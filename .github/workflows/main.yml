@@ -4,7 +4,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
       - name: Unzip app
@@ -23,13 +23,13 @@ jobs:
         working-directory: android
         run: |
           PROPS=gradle/wrapper/gradle-wrapper.properties
-          cat $PROPS
           VER=$(grep -o 'gradle-[0-9.]*-bin' $PROPS | head -1)
+          NUM=${VER#gradle-}
+          NUM=${NUM%-bin}
+          grep -v '^networkTimeout=' $PROPS > p.tmp && mv p.tmp $PROPS
+          echo "networkTimeout=300000" >> $PROPS
           for URL in \
-            "https\://services.gradle.org/distributions/$VER.zip" \
-            "https\://downloads.gradle.org/distributions/$VER.zip" \
-            "https\://mirrors.cloud.tencent.com/gradle/$VER.zip" \
-            "https\://mirrors.huaweicloud.com/gradle/$VER.zip" \
+            "https\://github.com/gradle/gradle-distributions/releases/download/v$NUM/$VER.zip" \
             "https\://services.gradle.org/distributions/$VER.zip"; do
             echo "=== Пробуем $URL"
             sed -i "s#^distributionUrl=.*#distributionUrl=$URL#" $PROPS
@@ -37,9 +37,10 @@ jobs:
               echo "BUILD_OK"
               exit 0
             fi
-            sleep 45
           done
-          exit 1
+          echo "=== Пробуем Gradle, установленный на сервере"
+          which gradle && gradle --version
+          gradle assembleRelease --no-daemon
       - uses: actions/upload-artifact@v4
         with:
           name: podskazka-trader-apk
