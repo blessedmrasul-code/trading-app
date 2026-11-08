@@ -16,6 +16,8 @@ jobs:
         with:
           distribution: temurin
           java-version: 17
+      - name: Fix babel-preset-expo version
+        run: npm pkg set dependencies.babel-preset-expo="~57.0.17"
       - run: npm install
       - run: npx expo install --fix
       - run: npx expo prebuild --platform android --no-install
