@@ -51,13 +51,18 @@
         <aside class="trade-panel panel">
           <div class="panel-head"><div><h2>Новая сделка</h2><p>Только виртуальные средства</p></div><span class="trade-icon">↗</span></div>
           <label class="field-label">Актив</label><div class="selected-asset" id="selectedAsset">BTC / USDT <span>Bitcoin</span></div>
-          <label class="field-label" for="amount">Сумма сделки</label>
+          <label class="field-label" for="amount">Маржа (своя сумма)</label>
           <div class="amount-input"><span>$</span><input id="amount" type="number" min="1" step="1" value="100"><button id="maxBtn">MAX</button></div>
           <div class="quick-amounts"><button data-amount="50">$50</button><button data-amount="100">$100</button><button data-amount="250">$250</button><button data-amount="500">$500</button></div>
           <div class="trade-info"><span>Доступно</span><b id="available">$10,000.00</b></div>
-          <div class="trade-info"><span>Тип сделки</span><b>Демо · без риска</b></div>
+          <div class="trade-info"><span>Плечо</span><select id="leverage" class="lev-select"><option value="1">1x</option><option value="2">2x</option><option value="3">3x</option><option value="5">5x</option><option value="10">10x</option><option value="20">20x</option></select></div>
+          <div class="trade-info"><span>Размер позиции</span><b id="posSize">$100.00</b></div>
+          <div class="trade-info"><span>Ликвидация LONG</span><b id="liqLong" class="negative">—</b></div>
+          <div class="trade-info"><span>Ликвидация SHORT</span><b id="liqShort" class="negative">—</b></div>
+          <div class="trade-info"><span>Funding Rate</span><b>0.0100% / 8ч</b></div>
+          <div class="trade-info"><span>Тип сделки</span><b>Демо · виртуальные средства</b></div>
           <div class="direction-buttons"><button class="buy-btn" id="buyBtn"><span>↗</span><b>Купить</b><small>LONG / рост</small></button><button class="sell-btn" id="sellBtn"><span>↘</span><b>Продать</b><small>SHORT / падение</small></button></div>
-          <p class="trade-disclaimer">Это симулятор для обучения. Сделки не отправляются на биржу и не являются финансовой рекомендацией.</p>
+          <p class="trade-disclaimer">Учебный симулятор: ликвидация и Funding Rate смоделированы упрощённо (поддерживающая маржа 0,5%, funding 0,01% за 8 часов, LONG платит, SHORT получает). Сделки не отправляются на биржу и не являются финансовой рекомендацией.</p>
         </aside>
       </section>
 
@@ -68,13 +73,27 @@
 
       <section class="panel content-screen hidden" id="portfolioScreen"><div class="panel-head"><div><h2>Портфель</h2><p>Твои виртуальные средства и позиции</p></div></div><div id="portfolioContent"></div></section>
       <section class="panel content-screen hidden" id="historyScreen"><div class="panel-head"><div><h2>История сделок</h2><p>Результаты закрытых демо-сделок</p></div></div><div id="historyContent"></div></section>
-      <section class="panel content-screen hidden" id="academyScreen"><div class="panel-head"><div><h2>Академия ARVEX</h2><p>Изучай основы трейдинга без риска</p></div></div><div class="lesson-grid"><article class="lesson"><span>01 · ОСНОВЫ</span><h3>Что такое рынок?</h3><p>Разберись, как формируется цена и что такое торговая пара.</p><button class="lesson-btn" data-lesson="1">Изучить урок</button></article><article class="lesson"><span>02 · РИСКИ</span><h3>Управление рисками</h3><p>Почему нельзя рисковать всем балансом в одной сделке.</p><button class="lesson-btn" data-lesson="2">Изучить урок</button></article><article class="lesson"><span>03 · АНАЛИЗ</span><h3>Свечи и графики</h3><p>Познакомься с японскими свечами и таймфреймами.</p><button class="lesson-btn" data-lesson="3">Изучить урок</button></article></div></section>
+      <section class="panel content-screen hidden" id="academyScreen"><div class="panel-head"><div><h2>Академия ARVEX</h2><p>Изучай основы трейдинга без риска</p></div></div><div id="academyContent"></div></section>
 
       <footer>ARVEX © 2026 <span>Обучение · Демо-торговля · Не финансовый совет</span></footer>
     </main>
   </div>
+  <div id="welcomeModal" class="welcome-overlay hidden">
+    <div class="welcome-card">
+      <div class="brand welcome-brand"><span class="brand-mark">A</span><span>ARVEX</span></div>
+      <h2>Добро пожаловать в ARVEX</h2>
+      <p class="muted">Создай профиль, чтобы сохранять демо-баланс, сделки, XP и прогресс в Академии на этом устройстве.</p>
+      <label class="muted" for="welcomeName">Имя</label>
+      <input id="welcomeName" class="welcome-input" type="text" maxlength="30" placeholder="Например, Алексей" autocomplete="name">
+      <label class="muted" for="welcomeUsername" style="display:block;margin-top:12px">Username</label>
+      <input id="welcomeUsername" class="welcome-input" type="text" maxlength="21" placeholder="latin_letters_123" autocomplete="username">
+      <button id="createProfile" class="welcome-submit" type="button">Создать профиль</button>
+      <small class="muted">Это локальный профиль. Демо-торговля проходит на виртуальных средствах.</small>
+    </div>
+  </div>
   <div id="toast" class="toast"></div>
   <script src="https://s3.tradingview.com/tv.js"></script>
+  <script src="lessons.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
