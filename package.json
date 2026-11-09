@@ -1,0 +1,17 @@
+{
+  "name": "arvex-mobile",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Capacitor-обёртка ARVEX для Android",
+  "scripts": {
+    "build:web": "node scripts/build-web.js",
+    "sync": "npm run build:web && npx cap sync android"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.0.0",
+    "@capacitor/core": "^8.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.0.0"
+  }
+}
