@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#09090f">
+  <title>ARVEX — Demo Trading</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand"><span class="brand-mark">A</span><span>ARVEX</span></div>
+      <div class="side-caption">TRADING LEARNING</div>
+      <nav>
+        <button class="nav-item active" data-screen="trade">▦ <span>Торговля</span></button>
+        <button class="nav-item" data-screen="portfolio">◈ <span>Портфель</span></button>
+        <button class="nav-item" data-screen="history">↗ <span>История</span></button>
+        <button class="nav-item" data-screen="academy">✦ <span>Академия</span></button>
+      </nav>
+      <div class="sidebar-bottom">
+        <div class="profile-mini"><div class="avatar">A</div><div><b id="sideName">ARVEX USER</b><small>Уровень <span id="sideLevel">1</span></small></div></div>
+        <div class="demo-label"><i></i> DEMO ACCOUNT</div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div><div class="eyebrow">ПОНЯТНЫЙ ТРЕЙДИНГ НАЧИНАЕТСЯ ЗДЕСЬ</div><h1 id="pageTitle">Торговая панель</h1></div>
+        <div class="top-actions"><span class="demo-pill">● ДЕМО-РЕЖИМ</span><button class="profile-button" id="profileBtn"><span class="avatar small">A</span><span id="userName">ARVEX USER</span>⌄</button></div>
+      </header>
+
+      <section class="stats-grid">
+        <article class="stat-card balance-card"><span class="stat-label">ДЕМО-БАЛАНС</span><strong id="balance">$10,000.00</strong><span class="stat-note">Виртуальные средства · не реальные деньги</span></article>
+        <article class="stat-card"><span class="stat-label">ОТКРЫТЫЕ ПОЗИЦИИ</span><strong id="openCount">0</strong><span class="stat-note">Активные демо-сделки</span></article>
+        <article class="stat-card"><span class="stat-label">ОБЩИЙ РЕЗУЛЬТАТ</span><strong id="totalPnl" class="positive">$0.00</strong><span class="stat-note">Закрытые сделки</span></article>
+        <article class="stat-card xp-card"><span class="stat-label">УРОВЕНЬ <span id="levelNum">1</span></span><strong><span id="xpNum">0</span><small> / 100 XP</small></strong><div class="xp-track"><span id="xpBar"></span></div><span class="stat-note">Тренируйся и изучай уроки</span></article>
+      </section>
+
+      <section class="trading-layout" id="tradeScreen">
+        <div class="chart-panel panel">
+          <div class="panel-head chart-head">
+            <div><div class="asset-title"><span class="coin-icon">₿</span><div><h2 id="assetName">Bitcoin <span>BTC/USDT</span></h2><div class="price-row"><strong id="marketPrice">$—</strong><span id="priceStatus" class="live-status">Загрузка цены…</span></div></div></div></div>
+            <select id="assetSelect" class="asset-select"><option value="BTCUSDT">BTC / USDT</option><option value="ETHUSDT">ETH / USDT</option><option value="SOLUSDT">SOL / USDT</option><option value="BNBUSDT">BNB / USDT</option></select>
+          </div>
+          <div class="chart-tabs"><span class="selected">График рынка</span><span>1м</span><span>5м</span><span>15м</span><span>1ч</span><span>4ч</span><span>1Д</span><span class="chart-tag">TradingView</span></div>
+          <div class="chart-wrap"><div id="tv_chart"></div></div>
+          <div class="chart-foot"><span>График отображает рыночные данные TradingView.</span><span>ARVEX · учебная среда</span></div>
+        </div>
+
+        <aside class="trade-panel panel">
+          <div class="panel-head"><div><h2>Новая сделка</h2><p>Только виртуальные средства</p></div><span class="trade-icon">↗</span></div>
+          <label class="field-label">Актив</label><div class="selected-asset" id="selectedAsset">BTC / USDT <span>Bitcoin</span></div>
+          <label class="field-label" for="amount">Сумма сделки</label>
+          <div class="amount-input"><span>$</span><input id="amount" type="number" min="1" step="1" value="100"><button id="maxBtn">MAX</button></div>
+          <div class="quick-amounts"><button data-amount="50">$50</button><button data-amount="100">$100</button><button data-amount="250">$250</button><button data-amount="500">$500</button></div>
+          <div class="trade-info"><span>Доступно</span><b id="available">$10,000.00</b></div>
+          <div class="trade-info"><span>Тип сделки</span><b>Демо · без риска</b></div>
+          <div class="direction-buttons"><button class="buy-btn" id="buyBtn"><span>↗</span><b>Купить</b><small>LONG / рост</small></button><button class="sell-btn" id="sellBtn"><span>↘</span><b>Продать</b><small>SHORT / падение</small></button></div>
+          <p class="trade-disclaimer">Это симулятор для обучения. Сделки не отправляются на биржу и не являются финансовой рекомендацией.</p>
+        </aside>
+      </section>
+
+      <section class="bottom-grid" id="tradeBottom">
+        <div class="panel positions-panel"><div class="panel-head"><div><h2>Открытые позиции</h2><p>Управляй виртуальными сделками</p></div><span class="count-badge" id="positionsBadge">0</span></div><div id="positionsList" class="empty-state">Пока нет открытых позиций. Открой первую демо-сделку.</div></div>
+        <div class="panel market-panel"><div class="panel-head"><div><h2>Рынок</h2><p>Цены обновляются автоматически</p></div><span class="live-dot">LIVE</span></div><div id="marketList"></div></div>
+      </section>
+
+      <section class="panel content-screen hidden" id="portfolioScreen"><div class="panel-head"><div><h2>Портфель</h2><p>Твои виртуальные средства и позиции</p></div></div><div id="portfolioContent"></div></section>
+      <section class="panel content-screen hidden" id="historyScreen"><div class="panel-head"><div><h2>История сделок</h2><p>Результаты закрытых демо-сделок</p></div></div><div id="historyContent"></div></section>
+      <section class="panel content-screen hidden" id="academyScreen"><div class="panel-head"><div><h2>Академия ARVEX</h2><p>Изучай основы трейдинга без риска</p></div></div><div class="lesson-grid"><article class="lesson"><span>01 · ОСНОВЫ</span><h3>Что такое рынок?</h3><p>Разберись, как формируется цена и что такое торговая пара.</p><button class="lesson-btn" data-lesson="1">Изучить урок</button></article><article class="lesson"><span>02 · РИСКИ</span><h3>Управление рисками</h3><p>Почему нельзя рисковать всем балансом в одной сделке.</p><button class="lesson-btn" data-lesson="2">Изучить урок</button></article><article class="lesson"><span>03 · АНАЛИЗ</span><h3>Свечи и графики</h3><p>Познакомься с японскими свечами и таймфреймами.</p><button class="lesson-btn" data-lesson="3">Изучить урок</button></article></div></section>
+
+      <footer>ARVEX © 2026 <span>Обучение · Демо-торговля · Не финансовый совет</span></footer>
+    </main>
+  </div>
+  <div id="toast" class="toast"></div>
+  <script src="https://s3.tradingview.com/tv.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
