@@ -1,0 +1,19 @@
+// Подпись релиза через init-скрипт Gradle: не нужно править сгенерированный android/app/build.gradle.
+// Данные берутся из переменных окружения (секреты GitHub), в репозитории их нет.
+allprojects {
+  afterEvaluate { p ->
+    if (p.plugins.hasPlugin('com.android.application') && System.getenv('ARVEX_KEYSTORE')) {
+      p.android {
+        signingConfigs {
+          arvexRelease {
+            storeFile file(System.getenv('ARVEX_KEYSTORE'))
+            storePassword System.getenv('ARVEX_STORE_PASSWORD')
+            keyAlias System.getenv('ARVEX_KEY_ALIAS')
+            keyPassword System.getenv('ARVEX_KEY_PASSWORD')
+          }
+        }
+        buildTypes { release { signingConfig signingConfigs.arvexRelease } }
+      }
+    }
+  }
+}
