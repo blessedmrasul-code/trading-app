@@ -4,7 +4,7 @@ const path = require('path');
 
 const root = path.resolve(__dirname, '..');
 const out = path.resolve(__dirname, 'www');
-const FILES = ['index.html', 'app.js', 'lessons.js', 'style.css'];
+const FILES = ['index.html', 'style.css', 'app.js', 'cloud-config.js', 'cloud.js', 'chart.js', 'school.js', 'tools.js', 'lessons.js', 'exam.js', 'glossary.js', 'logo.png', 'favicon.png', 'icon-192.png', 'icon-512.png', 'manifest.webmanifest'];
 
 fs.rmSync(out, { recursive: true, force: true });
 fs.mkdirSync(out, { recursive: true });
