@@ -1,227 +1,411 @@
+/* ARVEX — ядро: состояние, рынок, график, сделки, профиль, навигация.
+   Учебный симулятор: все средства виртуальные. By Mrasulv */
 const $=id=>document.getElementById(id);
 const ASSETS={
- BTCUSDT:{name:"Bitcoin",pair:"BTC / USDT",symbol:"BINANCE:BTCUSDT",icon:"₿",fallback:67000},
- ETHUSDT:{name:"Ethereum",pair:"ETH / USDT",symbol:"BINANCE:ETHUSDT",icon:"Ξ",fallback:3500},
- SOLUSDT:{name:"Solana",pair:"SOL / USDT",symbol:"BINANCE:SOLUSDT",icon:"◎",fallback:160},
- BNBUSDT:{name:"BNB",pair:"BNB / USDT",symbol:"BINANCE:BNBUSDT",icon:"◆",fallback:600}
+ BTCUSDT:{sym:"BTC",name:"Bitcoin",pair:"BTC / USDT",fb:74900},
+ ETHUSDT:{sym:"ETH",name:"Ethereum",pair:"ETH / USDT",fb:3200},
+ SOLUSDT:{sym:"SOL",name:"Solana",pair:"SOL / USDT",fb:165},
+ BNBUSDT:{sym:"BNB",name:"BNB",pair:"BNB / USDT",fb:620}
 };
-let balance=10000, closedPnl=0, xp=0, level=1, positions=[], history=[], prices={}, currentAsset="BTCUSDT", toastTimer;
-let progress={lessons:{},quizzes:{}};
-
+const DEMO_CHANGE={BTCUSDT:1.24,ETHUSDT:-0.62,SOLUSDT:2.8,BNBUSDT:0.35};
+const TF={"1m":60000,"5m":300000,"15m":900000,"1h":3600000,"4h":14400000,"1d":86400000};
+const API="https://api.binance.com/api/v3";
 const STORAGE_KEY="arvex_v3_state";
+const LEVEL_TITLES=["Новичок","Ученик","Практик","Трейдер","Профи","Эксперт","Мастер","Легенда"];
+const AVATARS=[["#7c5cff","#4a2fd1"],["#ff6a85","#c92a57"],["#27d493","#0e8a5e"],["#f5c451","#c27c0e"],["#4f8cff","#2349c9"],["#ff8a4c","#c24a14"],["#c05cff","#7a1fd1"],["#3fd0e6","#0e7a8f"]];
+const MMR=0.005, FUNDING_RATE=0.0001, FUNDING_MS=8*3600*1000;
+
+let balance=10000, closedPnl=0, xp=0, level=1, positions=[], history=[], currentAsset="BTCUSDT";
+let progress={lessons:{},quizzes:{},exams:{}};
+let profile=null, tradeXp={day:"",amount:0}, tourDone=false, tourStep=0;
+let prices={}, changes={}, live=false, klLive=false, tf="15m", candles=[], chart=null, candleReq=0, toastTimer=null, pendingAvatar=0, editingProfile=false, activeScreen="trade";
+
+// Страховка: заставка не должна зависнуть даже при ошибке запуска.
+setTimeout(()=>{const s=$("splash");if(s)s.classList.add("out")},4500);
+
+/* ===== Утилиты ===== */
+function money(n){if(Math.abs(n)<0.00001)n=0;const a=Math.abs(n);return (n<0?"-":"")+"$"+a.toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:a>=1?2:5})}
+function signed(n){return (n>0?"+":"")+money(n)}
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+function showToast(msg){const t=$("toast");t.textContent=msg;t.classList.add("show");clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove("show"),2800)}
+function marketPrice(a=currentAsset){return prices[a]??ASSETS[a].fb}
+function levelTitle(){return LEVEL_TITLES[Math.min(level-1,LEVEL_TITLES.length-1)]}
+
+/* ===== Состояние ===== */
 function saveState(){
- try{localStorage.setItem(STORAGE_KEY,JSON.stringify({balance,closedPnl,xp,level,positions,history,currentAsset,progress,profile:{name:localStorage.getItem("arvex_name")||"",username:localStorage.getItem("arvex_username")||""}}))}catch(e){}
-}
-// XP: единая точка начисления. Возвращает true, если получен новый уровень.
-function addXp(n){
- xp+=n;let up=false;
- if(xp>=100){level+=Math.floor(xp/100);xp%=100;up=true}
- return up;
-}
-// Начисление XP один раз за конкретный урок/тест.
-function awardOnce(kind,id,amount){
- if(progress[kind][id])return {awarded:false,levelUp:false};
- progress[kind][id]=true;
- const levelUp=addXp(amount);
- saveState();
- return {awarded:true,levelUp};
+ try{localStorage.setItem(STORAGE_KEY,JSON.stringify({balance,closedPnl,xp,level,positions,history,currentAsset,progress,tradeXp,profile,tourDone,updatedAt:Date.now()}));if(typeof Cloud!=="undefined")Cloud.schedule()}catch(e){}
 }
 function loadState(){
- try{
-  const s=JSON.parse(localStorage.getItem(STORAGE_KEY)||"null");
-  if(!s)return;
-  if(Number.isFinite(s.balance))balance=s.balance;
-  if(Number.isFinite(s.closedPnl))closedPnl=s.closedPnl;
-  if(Number.isFinite(s.xp))xp=s.xp;
-  if(Number.isFinite(s.level))level=s.level;
-  if(Array.isArray(s.positions))positions=s.positions;
-  if(Array.isArray(s.history))history=s.history;
+ let s=null;
+ try{s=JSON.parse(localStorage.getItem(STORAGE_KEY)||"null")}catch(e){}
+ if(s&&typeof s==="object"){
+  const n=(v,d)=>Number.isFinite(v)?v:d;
+  balance=n(s.balance,10000);closedPnl=n(s.closedPnl,0);xp=n(s.xp,0);level=Math.max(1,n(s.level,1));
+  positions=Array.isArray(s.positions)?s.positions:[];history=Array.isArray(s.history)?s.history:[];
   if(s.currentAsset&&ASSETS[s.currentAsset])currentAsset=s.currentAsset;
-  if(s.progress&&typeof s.progress==="object"){
-   progress={lessons:{...(s.progress.lessons||{})},quizzes:{...(s.progress.quizzes||{})}};
-  }
-  // Отбрасываем повреждённые записи, чтобы они не ломали интерфейс.
-  positions=positions.filter(p=>p&&ASSETS[p.asset]&&Number.isFinite(p.amount)&&Number.isFinite(p.entry));
-  history=history.filter(p=>p&&ASSETS[p.asset]&&Number.isFinite(p.pnl));
-  if(s.profile?.name)localStorage.setItem("arvex_name",s.profile.name);
-  if(s.profile?.username)localStorage.setItem("arvex_username",s.profile.username);
- }catch(e){}
+  if(s.progress&&typeof s.progress==="object")progress={lessons:{...(s.progress.lessons||{})},quizzes:{...(s.progress.quizzes||{})},exams:{...(s.progress.exams||{})}};
+  tourDone=!!s.tourDone;
+  if(s.tradeXp&&typeof s.tradeXp==="object")tradeXp={day:String(s.tradeXp.day||""),amount:n(s.tradeXp.amount,0)};
+  if(s.profile&&s.profile.name)profile={name:String(s.profile.name),username:String(s.profile.username||""),avatar:Number(s.profile.avatar)||0};
+ }
+ if(!profile){ // миграция со старых версий
+  try{const nm=localStorage.getItem("arvex_name"),un=localStorage.getItem("arvex_username");if(nm&&un)profile={name:nm,username:un,avatar:0}}catch(e){}
+ }
+ positions=positions.filter(p=>p&&ASSETS[p.asset]&&Number.isFinite(p.amount)&&Number.isFinite(p.entry));
+ history=history.filter(p=>p&&ASSETS[p.asset]&&Number.isFinite(p.pnl));
 }
-function openWelcome(){
- const hasProfile=localStorage.getItem("arvex_name")&&localStorage.getItem("arvex_username");
- if(!hasProfile){$("welcomeModal").classList.remove("hidden");$("welcomeName").focus()}
-}
-function createProfile(){
- const name=$("welcomeName").value.trim(), username=$("welcomeUsername").value.trim().replace(/^@/,"");
- if(name.length<2){showToast("Имя должно содержать минимум 2 символа.");return}
- if(!/^[a-zA-Z0-9_]{3,20}$/.test(username)){showToast("Username: 3–20 символов, латиница, цифры или _");return}
- localStorage.setItem("arvex_name",name);localStorage.setItem("arvex_username",username);
- setName(name);$("profileBtn").innerHTML=`<span class="avatar small">${name[0].toUpperCase()}</span><span>@${username}</span>⌄`;
- $("welcomeModal").classList.add("hidden");saveState();showToast("Профиль ARVEX создан на этом устройстве.");
+function addXp(n){xp+=n;let up=false;if(xp>=100){level+=Math.floor(xp/100);xp%=100;up=true}return up}
+function awardOnce(kind,id,amount){
+ if(progress[kind][id])return {awarded:false,levelUp:false};
+ progress[kind][id]=true;const levelUp=addXp(amount);saveState();renderTop();return {awarded:true,levelUp};
 }
 
-function money(n){return n.toLocaleString("en-US",{style:"currency",currency:"USD",minimumFractionDigits:2,maximumFractionDigits:2})}
-function showToast(msg){$("toast").textContent=msg;$("toast").classList.add("show");clearTimeout(toastTimer);toastTimer=setTimeout(()=>$("toast").classList.remove("show"),2600)}
-function marketPrice(asset=currentAsset){return prices[asset]||ASSETS[asset].fallback}
+/* ===== Рынок: цены и свечи ===== */
+async function fetchJSON(url,ms=6000){
+ const ctl=new AbortController(),t=setTimeout(()=>ctl.abort(),ms);
+ try{const r=await fetch(url,{signal:ctl.signal});if(!r.ok)throw new Error("HTTP "+r.status);return await r.json()}finally{clearTimeout(t)}
+}
 async function fetchPrices(){
- for(const key of Object.keys(ASSETS)){
-  try{const r=await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${key}`);if(!r.ok)throw Error();const d=await r.json();prices[key]=Number(d.price)}
-  catch(e){if(!prices[key])prices[key]=ASSETS[key].fallback}
+ try{
+  const syms=encodeURIComponent(JSON.stringify(Object.keys(ASSETS)));
+  const arr=await fetchJSON(`${API}/ticker/24hr?symbols=${syms}`);
+  let ok=0;
+  for(const x of arr){const p=Number(x.lastPrice);if(ASSETS[x.symbol]&&Number.isFinite(p)&&p>0){prices[x.symbol]=p;changes[x.symbol]=Number(x.priceChangePercent)||0;ok++}}
+  live=ok>0;if(!ok)throw new Error("empty");
+ }catch(e){
+  live=false;
+  for(const a in ASSETS){prices[a]=(prices[a]??ASSETS[a].fb)*(1+(Math.random()-.5)*0.0008);if(changes[a]==null)changes[a]=DEMO_CHANGE[a]}
  }
- checkLiquidations();renderMarket();updateHeaderPrice();renderPositions();updateOrderPreview();
+ applyLive();checkTriggers();renderTicker();renderHead();renderPositions();updateOrderPreview();
 }
-function updateHeaderPrice(){
- const a=ASSETS[currentAsset];$("assetName").innerHTML=`${a.name} <span>${a.pair}</span>`;$("selectedAsset").innerHTML=`${a.pair}<span>${a.name}</span>`;$("marketPrice").textContent=money(marketPrice());
- $("priceStatus").textContent=prices[currentAsset]?"Live price · Binance":"Demo reference price";$("priceStatus").className=prices[currentAsset]?"live-status live":"live-status";
- const icon=document.querySelector(".coin-icon");icon.textContent=a.icon;
+function applyLive(){
+ if(!candles.length||!chart)return;
+ const p=marketPrice(),tfMs=TF[tf],last=candles[candles.length-1];
+ if(Date.now()>=last.t+tfMs){candles.push({t:Math.floor(Date.now()/tfMs)*tfMs,o:p,h:p,l:p,c:p,v:0})}
+ else{last.c=p;if(p>last.h)last.h=p;if(p<last.l)last.l=p}
+ chart.setData(candles,tfMs);updateOhlc(chart.cross?candles[chart.cross.i]:null);
 }
-function initChart(){
- if(!window.TradingView){$("tv_chart").innerHTML='<div class="table-empty">Для загрузки графика требуется интернет.</div>';return}
- new TradingView.widget({autosize:true,symbol:ASSETS[currentAsset].symbol,interval:"15",timezone:"Etc/UTC",theme:"dark",style:"1",locale:"ru",toolbar_bg:"#0c0c12",enable_publishing:false,hide_top_toolbar:false,hide_legend:false,save_image:false,container_id:"tv_chart",backgroundColor:"#0c0c12",gridColor:"#1b1b25"});
+function seeded(str){let h=1779033703^str.length;for(let i=0;i<str.length;i++){h=Math.imul(h^str.charCodeAt(i),3432918353);h=h<<13|h>>>19}
+ return()=>{h=Math.imul(h^h>>>16,2246822507);h=Math.imul(h^h>>>13,3266489909);h^=h>>>16;return(h>>>0)/4294967296}}
+function synthCandles(asset,tfKey){
+ const n=300,tfMs=TF[tfKey],rnd=seeded(asset+tfKey),vol=0.0035*Math.sqrt(tfMs/900000)**0.8;
+ const end=Math.floor(Date.now()/tfMs)*tfMs,arr=[];let price=100,trend=0;
+ for(let i=0;i<n;i++){
+  trend=trend*0.93+(rnd()-.5)*0.0009;
+  const o=price,c=o*(1+trend+(rnd()-.5)*vol*2),h=Math.max(o,c)*(1+rnd()*vol*.7),l=Math.min(o,c)*(1-rnd()*vol*.7);
+  arr.push({t:end-(n-1-i)*tfMs,o,h,l,c,v:200+rnd()*800*(1+Math.abs(c-o)/o*200)});price=c;
+ }
+ const k=marketPrice(asset)/arr[n-1].c;
+ return arr.map(x=>({...x,o:x.o*k,h:x.h*k,l:x.l*k,c:x.c*k}));
 }
-function updateChart(){ $("tv_chart").innerHTML="";initChart(); }
-function renderMarket(){
- $("marketList").innerHTML=Object.keys(ASSETS).map(k=>`<div class="market-row"><span><b>${ASSETS[k].icon} ${ASSETS[k].name}</b><br><small class="muted">${ASSETS[k].pair}</small></span><b>${money(marketPrice(k))}</b><span class="muted">${prices[k]?"LIVE":"DEMO"}</span></div>`).join("");
+async function loadCandles(){
+ if(!chart)return;
+ const asset=currentAsset,myTf=tf,req=++candleReq;let arr;
+ try{
+  const raw=await fetchJSON(`${API}/klines?symbol=${asset}&interval=${myTf}&limit=300`);
+  arr=raw.map(k=>({t:+k[0],o:+k[1],h:+k[2],l:+k[3],c:+k[4],v:+k[5]}));
+  if(!arr.length||arr.some(c=>!Number.isFinite(c.c)||!Number.isFinite(c.t)))throw new Error("bad data");
+  klLive=true;
+ }catch(e){klLive=false;arr=synthCandles(asset,myTf)}
+ if(req!==candleReq)return;
+ candles=arr;
+ if(klLive&&!live)prices[asset]=arr[arr.length-1].c;
+ chart.setData(candles,TF[myTf]);updateOhlc();setChartLines();renderHead();
 }
-function renderPositions(){
- $("openCount").textContent=positions.length;$("positionsBadge").textContent=positions.length;
- if(!positions.length){$("positionsList").className="empty-state";$("positionsList").textContent="Пока нет открытых позиций. Открой первую демо-сделку.";return}
- $("positionsList").className="";
- $("positionsList").innerHTML=positions.map(p=>{const v=posView(p);return `<div class="position-row"><span><b class="asset-symbol">${ASSETS[p.asset].pair}</b><br><small class="muted">${p.direction} ${v.lev}x · ${new Date(p.time).toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit"})}</small></span><span>${money(v.margin)}<br><small class="muted">Размер ${money(v.size)} · Вход ${money(p.entry)}</small></span><span class="${v.net>=0?"positive":"negative"}">${v.net>=0?"+":""}${money(v.net)}<br><small class="muted">Ликв. ${v.liq?money(v.liq):"—"} · Fund. ${v.funding>=0?"-":"+"}${money(Math.abs(v.funding))}</small></span><button class="close-position" data-close="${p.id}">Закрыть</button></div>`}).join("");
- document.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>closePosition(Number(b.dataset.close)));
+function updateOhlc(c){
+ const k=c||candles[candles.length-1];if(!k){$("ohlcLine").innerHTML="";return}
+ const d=(k.c-k.o)/k.o*100,f=v=>v.toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:v>=100?2:4});
+ $("ohlcLine").innerHTML=`<span>O <b>${f(k.o)}</b></span><span>H <b>${f(k.h)}</b></span><span>L <b>${f(k.l)}</b></span><span>C <b>${f(k.c)}</b></span><span class="${d>=0?"pos":"neg"}"><b>${d>=0?"+":""}${d.toFixed(2)}%</b></span>`;
 }
-function renderStats(){
- $("balance").textContent=money(balance);$("available").textContent=money(balance);$("totalPnl").textContent=(closedPnl>=0?"+":"")+money(closedPnl);$("totalPnl").className=closedPnl>=0?"positive":"negative";
- $("xpNum").textContent=xp;$("levelNum").textContent=level;$("sideLevel").textContent=level;$("xpBar").style.width=(xp%100)+"%";
+function setChartLines(){
+ if(!chart)return;const L=[];
+ positions.filter(p=>p.asset===currentAsset).forEach(p=>{const v=posView(p);
+  L.push({price:p.entry,color:"#a58bff",label:`${p.direction} ${v.lev}x`});
+  if(v.liq)L.push({price:v.liq,color:"#ff5470",label:"LIQ"});
+  if(p.tp)L.push({price:p.tp,color:"#2ee59d",label:"TP"});
+  if(p.sl)L.push({price:p.sl,color:"#ff9f43",label:"SL"});});
+ chart.setLines(L);
 }
-/* ===== Фьючерсный симулятор (учебный): плечо, маржа, ликвидация, Funding ===== */
-const MMR=0.005;                 // поддерживающая маржа 0,5% от размера позиции
-const FUNDING_RATE=0.0001;       // 0,01% за 8 часов (учебное значение)
-const FUNDING_MS=8*3600*1000;
-function liqPrice(entry,lev,direction){
- const px=direction==="LONG"?entry*(1-1/lev+MMR):entry*(1+1/lev-MMR);
- return px>0?px:null;
-}
-// Расчёт позиции. Старые позиции без плеча считаются как 1x.
+
+/* ===== Фьючерсный симулятор ===== */
+function liqPrice(entry,lev,direction){const px=direction==="LONG"?entry*(1-1/lev+MMR):entry*(1+1/lev-MMR);return px>0?px:null}
 function posView(p,now=marketPrice(p.asset)){
- const lev=p.leverage||1, margin=p.margin??p.amount, size=p.size??p.amount, dir=p.direction==="LONG"?1:-1;
+ const lev=p.leverage||1,margin=p.margin??p.amount,size=p.size??p.amount,dir=p.direction==="LONG"?1:-1;
  const pnl=(now-p.entry)/p.entry*size*dir;
- const funding=size*FUNDING_RATE*((Date.now()-p.time)/FUNDING_MS)*dir; // >0: платим, <0: получаем
- const net=pnl-funding, equity=margin+net;
+ const funding=size*FUNDING_RATE*((Date.now()-p.time)/FUNDING_MS)*dir;
+ const net=pnl-funding,equity=margin+net;
  return {lev,margin,size,pnl,funding,net,equity,liq:liqPrice(p.entry,lev,p.direction),isLiq:equity<=size*MMR};
 }
 function updateOrderPreview(){
- const margin=Number($("amount").value)||0, lev=Number($("leverage").value)||1, entry=marketPrice();
- $("posSize").textContent=money(margin*lev);
- const l=liqPrice(entry,lev,"LONG"), s=liqPrice(entry,lev,"SHORT");
+ const margin=Number($("amount").value)||0,lev=Number($("leverage").value)||1,entry=marketPrice();
+ $("posSize").textContent=money(margin*lev);$("available").textContent=money(balance);
+ const l=liqPrice(entry,lev,"LONG"),s=liqPrice(entry,lev,"SHORT");
  $("liqLong").textContent=l?money(l):"—";$("liqShort").textContent=s?money(s):"—";
 }
+function readTpSl(direction,entry){
+ const parse=id=>{const raw=String($(id).value||"").trim().replace(",",".");if(!raw)return {v:null};const n=Number(raw);return Number.isFinite(n)&&n>0?{v:n}:{err:true}};
+ const t=parse("tpPct"),l=parse("slPct");
+ if(t.err||l.err)return {err:"Тейк-профит и стоп-лосс — положительные проценты (или оставь пустыми)."};
+ if(l.v!=null&&l.v>=100)return {err:"Стоп-лосс должен быть меньше 100%."};
+ const d=direction==="LONG"?1:-1;
+ return {tp:t.v!=null?entry*(1+d*t.v/100):null,sl:l.v!=null?entry*(1-d*l.v/100):null};
+}
 function openTrade(direction){
- const margin=Number($("amount").value), lev=Number($("leverage").value)||1;
+ const margin=Number($("amount").value),lev=Number($("leverage").value)||1;
+ if(!Number.isFinite(margin)||margin<=0){showToast("Укажи сумму больше нуля.");return false}
+ if(margin>balance){showToast("Недостаточно демо-средств для маржи.");return false}
+ const entry=marketPrice(),ts=readTpSl(direction,entry);
+ if(ts.err){showToast(ts.err);return false}
+ const p={id:Date.now()+Math.floor(Math.random()*1000),asset:currentAsset,direction,amount:margin,margin,leverage:lev,size:margin*lev,entry,time:Date.now(),tp:ts.tp,sl:ts.sl};
+ balance-=margin;positions.unshift(p);saveState();renderTop();renderPositions();updateOrderPreview();
+ const lq=liqPrice(entry,lev,direction);
+ const slBeyond=ts.sl&&lq&&((direction==="LONG"&&ts.sl<=lq)||(direction==="SHORT"&&ts.sl>=lq));
+ showToast(`${direction} ${lev}x открыт. Ликвидация: ${lq?money(lq):"—"}${slBeyond?" ⚠ стоп дальше ликвидации":""}`);return true;
+}
+function tradeXpFor(p){
+ if(Date.now()-p.time<30000)return 0; // защита от накрутки XP быстрыми сделками
+ const day=new Date().toISOString().slice(0,10);if(tradeXp.day!==day)tradeXp={day,amount:0};
+ const give=Math.min(10,50-tradeXp.amount);if(give<=0)return 0;tradeXp.amount+=give;return give;
+}
+// reason: "liq" | "sl" | "tp" | undefined (вручную). exitPrice — цена срабатывания стопа/тейка.
+function closePosition(id,reason,exitPrice){
+ const i=positions.findIndex(p=>p.id===id);if(i<0)return;
+ const p=positions.splice(i,1)[0],now=exitPrice??marketPrice(p.asset),v=posView(p,now),liquidated=reason==="liq";
+ const net=Math.max(liquidated?-v.margin:v.net,-v.margin);
+ balance+=v.margin+net;closedPnl+=net;
+ const got=liquidated?0:tradeXpFor(p),up=got?addXp(got):false;
+ history.unshift({...p,exit:now,pnl:net,funding:v.funding,liquidated,reason:reason||"manual",closed:Date.now()});
+ if(history.length>300)history.length=300;
+ saveState();renderTop();renderPositions();renderPortfolio();updateOrderPreview();
+ const res=`${net>=0?"+":""}${money(net)}${got?` · +${got} XP`:""}`;
+ showToast(liquidated?`Ликвидация ${ASSETS[p.asset].pair}: потеряна маржа ${money(v.margin)}`
+  :reason==="sl"?`Сработал стоп-лосс ${ASSETS[p.asset].sym}: ${res}`
+  :reason==="tp"?`Сработал тейк-профит ${ASSETS[p.asset].sym}: ${res}`
+  :up?`Новый уровень ARVEX: ${level}!`:`Сделка закрыта: ${res}`);
+}
+// Ликвидация проверяется первой: если стоп дальше неё, сработает ликвидация.
+function checkTriggers(){
+ positions.slice().forEach(p=>{
+  if(posView(p).isLiq){closePosition(p.id,"liq");return}
+  const now=marketPrice(p.asset),long=p.direction==="LONG";
+  if(p.sl&&(long?now<=p.sl:now>=p.sl))closePosition(p.id,"sl",p.sl);
+  else if(p.tp&&(long?now>=p.tp:now<=p.tp))closePosition(p.id,"tp",p.tp);
+ });
+}
+function tradeStats(){
+ const n=history.length,w=history.filter(h=>h.pnl>0),l=history.filter(h=>h.pnl<=0);
+ const sum=a=>a.reduce((s,x)=>s+x.pnl,0);
+ return {n,wins:w.length,winrate:n?w.length/n*100:0,totalPnl:closedPnl,
+  best:n?Math.max(...history.map(h=>h.pnl)):0,worst:n?Math.min(...history.map(h=>h.pnl)):0,
+  avgWin:w.length?sum(w)/w.length:0,avgLoss:l.length?sum(l)/l.length:0,
+  liq:history.filter(h=>h.liquidated).length,avgLev:n?history.reduce((s,h)=>s+(h.leverage||1),0)/n:0};
+}
+
+/* ===== Отрисовка торговли ===== */
+function renderTicker(){
+ $("tickerRow").innerHTML=Object.keys(ASSETS).map(a=>{const c=changes[a]??DEMO_CHANGE[a];
+  return `<button class="tick ${a===currentAsset?"on":""}" data-asset="${a}"><b>${ASSETS[a].sym}</b><span>${money(marketPrice(a))}</span><small class="${c>=0?"pos":"neg"}">${c>=0?"+":""}${c.toFixed(2)}%</small></button>`}).join("");
+}
+function renderHead(){
+ const a=ASSETS[currentAsset],c=changes[currentAsset]??DEMO_CHANGE[currentAsset];
+ $("pairName").textContent=`${a.name} · ${a.pair}`;$("bigPrice").textContent=money(marketPrice());
+ const b=$("chgBadge");b.textContent=`${c>=0?"+":""}${c.toFixed(2)}% · 24ч`;b.classList.toggle("dn",c<0);
+ const lv=$("liveStatus");lv.textContent=live?"● LIVE · Binance":"ДЕМО-ДАННЫЕ";lv.classList.toggle("on",live);
+ $("chartSrc").textContent=klLive?"Данные: Binance":"Иллюстративные данные (нет связи с Binance)";
+}
+function positionRows(){
+ if(!positions.length)return `<div class="empty">Нет открытых позиций.<br>Выбери направление и открой первую демо-сделку.</div>`;
+ return positions.map(p=>{const v=posView(p);
+  return `<div class="pos-row"><div class="l"><span class="tag ${p.direction==="LONG"?"long":"short"}">${p.direction} ${v.lev}x</span><b>${ASSETS[p.asset].sym}</b><small>Вход ${money(p.entry)} · Размер ${money(v.size)}</small></div>
+  <div class="m"><b class="${v.net>=0?"pos":"neg"}">${v.net>=0?"+":""}${money(v.net)}</b><small>Маржа ${money(v.margin)} · Ликв. ${v.liq?money(v.liq):"—"}</small>${p.tp||p.sl?`<small>TP ${p.tp?money(p.tp):"—"} · SL ${p.sl?money(p.sl):"—"}</small>`:""}</div><button class="close-position" data-close="${p.id}">Закрыть</button></div>`}).join("");
+}
+function renderPositions(){
+ const html=positionRows();$("positionsList").innerHTML=html;$("posBadge").textContent=positions.length;
+ const pp=$("portfolioPositions");if(pp)pp.innerHTML=html;
+ setChartLines();renderPortfolioStats();
+}
+function historyRows(){
+ if(!history.length)return `<div class="empty">История пуста. Закрытые сделки появятся здесь.</div>`;
+ const rtag=h=>h.liquidated?'<span class="tag liq">ЛИКВИДАЦИЯ</span>':h.reason==="sl"?'<span class="tag liq">СТОП</span>':h.reason==="tp"?'<span class="tag long">ТЕЙК</span>':"";
+ return history.slice(0,60).map(h=>`<div class="pos-row"><div class="l"><span class="tag ${h.direction==="LONG"?"long":"short"}">${h.direction} ${h.leverage||1}x</span><b>${ASSETS[h.asset].sym}</b>${rtag(h)}<small>${new Date(h.closed||h.time).toLocaleString("ru-RU",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})}</small></div>
+  <div class="m"><b class="${h.pnl>=0?"pos":"neg"}">${h.pnl>=0?"+":""}${money(h.pnl)}</b><small>Маржа ${money(h.margin??h.amount)}</small></div><span></span></div>`).join("");
+}
+function renderPortfolioStats(){
+ const box=$("portfolioStats");if(!box)return;
+ const st=tradeStats(),open=positions.reduce((s,p)=>s+posView(p).net,0),eq=balance+positions.reduce((s,p)=>s+posView(p).equity,0);
+ box.innerHTML=`<div class="stat-grid">
+  <div class="stat"><small>Капитал</small><b>${money(eq)}</b></div>
+  <div class="stat"><small>Свободно</small><b>${money(balance)}</b></div>
+  <div class="stat"><small>Закрытый результат</small><b class="${st.totalPnl>=0?"pos":"neg"}">${st.totalPnl>=0?"+":""}${money(st.totalPnl)}</b></div>
+  <div class="stat"><small>Открытый результат</small><b class="${open>=0?"pos":"neg"}">${open>=0?"+":""}${money(open)}</b></div>
+  <div class="stat"><small>Сделок</small><b>${st.n}</b></div>
+  <div class="stat"><small>Винрейт</small><b>${st.n?st.winrate.toFixed(0)+"%":"—"}</b></div></div>`;
+}
+function renderPortfolio(){renderPortfolioStats();$("portfolioPositions").innerHTML=positionRows();$("historyContent").innerHTML=historyRows()}
+
+/* ===== Верхняя панель и профиль ===== */
+function applyAvatar(el,idx,name){
+ const [a,b]=AVATARS[(idx||0)%AVATARS.length];el.style.background=`linear-gradient(135deg,${a},${b})`;
+ el.textContent=((name||"A").trim().charAt(0)||"A").toUpperCase();
+}
+function renderTop(){
+ $("topBalance").textContent=money(balance);$("topLvl").textContent=level;
+ applyAvatar($("topAvatar"),profile?.avatar,profile?.name);
+ if(activeScreen==="profile")renderProfile();
+}
+const ACHIEVEMENTS=[
+ {i:"🚀",t:"Первый шаг",d:"Создать профиль",ok:()=>!!profile},
+ {i:"📈",t:"Первая сделка",d:"Открыть позицию",ok:()=>history.length+positions.length>=1},
+ {i:"💰",t:"В плюсе",d:"Закрыть сделку с прибылью",ok:()=>history.some(h=>h.pnl>0)},
+ {i:"🔟",t:"Десять сделок",d:"Закрыть 10 сделок",ok:()=>history.length>=10},
+ {i:"💥",t:"Урок усвоен",d:"Пережить ликвидацию",ok:()=>history.some(h=>h.liquidated)},
+ {i:"📘",t:"Первый урок",d:"Пройти урок",ok:()=>Object.keys(progress.lessons).length>=1},
+ {i:"🎓",t:"Выпускник",d:"Пройти все уроки",ok:()=>typeof LESSONS!=="undefined"&&LESSONS.every(l=>progress.lessons[l.id])},
+ {i:"✅",t:"Отличник",d:"Сдать все тесты",ok:()=>typeof LESSONS!=="undefined"&&LESSONS.every(l=>progress.quizzes[l.id])},
+ {i:"🏅",t:"Экзамен новичка",d:"Сдать экзамен",ok:()=>!!progress.exams.novice?.passed},
+ {i:"🏆",t:"Экзамен трейдера",d:"Сдать экзамен",ok:()=>!!progress.exams.advanced?.passed},
+ {i:"🎯",t:"Автозакрытие",d:"Сработал стоп или тейк",ok:()=>history.some(h=>h.reason==="sl"||h.reason==="tp")},
+ {i:"⭐",t:"Уровень 5",d:"Достичь 5 уровня",ok:()=>level>=5}
+];
+function renderProfile(){
+ const box=$("profileBody");if(!box)return;
+ const p=profile||{name:"Гость",username:"guest",avatar:0},st=tradeStats(),ach=ACHIEVEMENTS.filter(a=>a.ok()).length;
+ const lessonsDone=Object.keys(progress.lessons).length,total=typeof LESSONS!=="undefined"?LESSONS.length:0;
+ const exams=Object.values(progress.exams).filter(e=>e.passed).length;
+ box.innerHTML=`<div class="card"><div class="profile-hero"><div class="avatar" id="profAvatar"></div><div><h2>${esc(p.name)}</h2><div class="un">@${esc(p.username)}</div><span class="lvl-title">Уровень ${level} · ${levelTitle()}</span></div></div>
+  <div class="xpwrap"><div class="row"><span>Опыт</span><b>${xp} / 100 XP</b></div><div class="xpbar"><i style="width:${xp}%"></i></div></div>
+  <div class="btn-row"><button class="ghost" id="editProfile">✎ Редактировать</button><button class="ghost" id="showTour">? Обучающий тур</button><button class="danger" id="resetAccount">Сбросить демо-счёт</button></div></div>
+  <div class="stat-grid"><div class="stat"><small>Сделок</small><b>${st.n}</b></div><div class="stat"><small>Винрейт</small><b>${st.n?st.winrate.toFixed(0)+"%":"—"}</b></div>
+  <div class="stat"><small>Результат</small><b class="${closedPnl>=0?"pos":"neg"}">${closedPnl>=0?"+":""}${money(closedPnl)}</b></div><div class="stat"><small>Лучшая сделка</small><b class="${st.best>0?"pos":""}">${st.n?signed(st.best):"—"}</b></div>
+  <div class="stat"><small>Уроков</small><b>${lessonsDone}/${total}</b></div><div class="stat"><small>Экзаменов сдано</small><b>${exams}/2</b></div></div>
+  <div class="card"><div class="card-title">Достижения <span class="badge">${ach}/${ACHIEVEMENTS.length}</span></div><div class="ach-grid">${ACHIEVEMENTS.map(a=>`<div class="ach ${a.ok()?"on":""}"><i>${a.i}</i><b>${a.t}</b><small>${a.d}</small></div>`).join("")}</div></div>
+  <div class="card"><div class="card-title">Аккаунт</div>${typeof Cloud!=="undefined"?Cloud.accountHTML():""}</div>`;
+ applyAvatar($("profAvatar"),p.avatar,p.name);
+}
+function openProfileModal(edit){
+ editingProfile=!!edit;pendingAvatar=profile?.avatar||0;
+ $("welcomeTitle").textContent=edit?"Редактирование профиля":"Добро пожаловать в ARVEX";
+ $("welcomeText").textContent=edit?"Измени имя, username или аватар.":"Создай профиль: сохраним демо-баланс, сделки, XP и прогресс школы на этом устройстве.";
+ $("createProfile").textContent=edit?"Сохранить":"Создать профиль";$("cancelProfile").classList.toggle("hidden",!edit);
+ $("welcomeName").value=edit&&profile?profile.name:"";$("welcomeUsername").value=edit&&profile?profile.username:"";
+ renderAvatarPicker();$("welcomeModal").classList.remove("hidden");
+}
+function renderAvatarPicker(){
+ const name=$("welcomeName").value||"A";
+ $("welcomeAvatars").innerHTML=AVATARS.map((g,i)=>`<button type="button" class="av ${i===pendingAvatar?"on":""}" data-av="${i}" style="background:linear-gradient(135deg,${g[0]},${g[1]})">${esc((name.trim().charAt(0)||"A").toUpperCase())}</button>`).join("");
+}
+function submitProfile(){
+ const name=$("welcomeName").value.trim(),un=$("welcomeUsername").value.trim();
+ if(!name){showToast("Введи имя.");return}
+ if(!/^[A-Za-z0-9_]{3,20}$/.test(un)){showToast("Username: 3–20 символов, латиница, цифры, _");return}
+ profile={name,username:un,avatar:pendingAvatar};saveState();
+ $("welcomeModal").classList.add("hidden");renderTop();
+ showToast(editingProfile?"Профиль обновлён.":`Добро пожаловать, ${name}!`);
+ if(!editingProfile&&!tourDone)setTimeout(()=>openTour(0),700);
+}
+
+/* ===== Нижняя панель (sheet) ===== */
+function openSheet(html){$("sheetBody").innerHTML=html;$("sheet").classList.remove("hidden")}
+function closeSheet(){$("sheet").classList.add("hidden")}
+function confirmTrade(direction){
+ const margin=Number($("amount").value),lev=Number($("leverage").value)||1;
  if(!Number.isFinite(margin)||margin<=0){showToast("Укажи сумму больше нуля.");return}
  if(margin>balance){showToast("Недостаточно демо-средств для маржи.");return}
- const p={id:Date.now()+Math.floor(Math.random()*1000),asset:currentAsset,direction,amount:margin,margin,leverage:lev,size:margin*lev,entry:marketPrice(),time:Date.now()};
- balance-=margin;positions.unshift(p);saveState();renderStats();renderPositions();
- showToast(`${direction==="LONG"?"LONG":"SHORT"} ${lev}x открыт в демо-режиме. Ликвидация: ${liqPrice(p.entry,lev,direction)?money(liqPrice(p.entry,lev,direction)):"—"}`);
+ const entry=marketPrice(),lq=liqPrice(entry,lev,direction),ts=readTpSl(direction,entry);
+ if(ts.err){showToast(ts.err);return}
+ openSheet(`<h3>${direction} ${ASSETS[currentAsset].sym} · ${lev}x</h3><div class="kvs"><div><span>Цена входа</span><b>${money(entry)}</b></div><div><span>Маржа</span><b>${money(margin)}</b></div><div><span>Размер позиции</span><b>${money(margin*lev)}</b></div><div><span>Ликвидация</span><b class="neg">${lq?money(lq):"—"}</b></div>${ts.tp?`<div><span>Тейк-профит</span><b class="pos">${money(ts.tp)}</b></div>`:""}${ts.sl?`<div><span>Стоп-лосс</span><b class="neg">${money(ts.sl)}</b></div>`:""}</div>
+  <div class="dir-btns"><button class="ghost" id="sheetCancel">Отмена</button><button class="${direction==="LONG"?"buy":"sell"}" id="sheetConfirm" data-dir="${direction}"><b>Открыть ${direction}</b></button></div><p class="note">Демо-сделка на виртуальные средства.</p>`);
 }
-function closePosition(id,reason){
- const i=positions.findIndex(p=>p.id===id);if(i<0)return;
- const p=positions.splice(i,1)[0], now=marketPrice(p.asset), v=posView(p,now);
- const liquidated=reason==="liq";
- const net=Math.max(liquidated?-v.margin:v.net,-v.margin); // убыток не больше маржи
- balance+=v.margin+net;closedPnl+=net;
- const up=liquidated?false:addXp(10);
- history.unshift({...p,exit:now,pnl:net,funding:v.funding,liquidated,closed:Date.now()});
- saveState();renderStats();renderPositions();renderHistory();
- if(!$("portfolioScreen").classList.contains("hidden"))renderPortfolio();
- showToast(liquidated?`Ликвидация ${ASSETS[p.asset].pair}: потеряна маржа ${money(v.margin)}`:up?`Новый уровень ARVEX: ${level}!`:`Сделка закрыта. Результат: ${net>=0?"+":""}${money(net)}`);
+function resetAccount(){
+ openSheet(`<h3>Сбросить демо-счёт?</h3><p class="muted">Баланс вернётся к $10,000, позиции и история сделок будут удалены. Уровень, XP и прогресс школы сохранятся.</p><div class="dir-btns"><button class="ghost" id="sheetCancel">Отмена</button><button class="sell" id="resetConfirm"><b>Сбросить</b></button></div>`);
 }
-function checkLiquidations(){
- positions.filter(p=>posView(p).isLiq).map(p=>p.id).forEach(id=>closePosition(id,"liq"));
+
+/* ===== Обучающий тур ===== */
+const TOUR=[
+ {i:"🚀",t:"Это ARVEX",d:"Учебная платформа по трейдингу. Торгуй на виртуальные $10 000, учись и расти в уровнях. Реальные деньги не используются."},
+ {i:"📈",t:"Торговля",d:"Выбери актив, плечо и направление. Задай тейк-профит и стоп-лосс — позиция закроется сама. Кнопка ⛶ над графиком открывает его на весь экран."},
+ {i:"🎓",t:"Школа",d:"9 уроков, тесты, словарь и экзамены со случайными вопросами. За обучение начисляется XP."},
+ {i:"🧮",t:"Инструменты",d:"Калькулятор позиции и риска, а также помощник: объяснит термины и разберёт твои сделки."},
+ {i:"🏅",t:"Профиль",d:"Уровень, достижения и статистика. Данные хранятся на этом устройстве, прогресс сохраняется автоматически."}
+];
+function openTour(step){
+ tourDone=true;saveState();$("toast").classList.remove("show");tourStep=Math.max(0,Math.min(step,TOUR.length-1));
+ const s=TOUR[tourStep],last=tourStep===TOUR.length-1;
+ openSheet(`<div style="text-align:center"><div style="font-size:44px">${s.i}</div><h3 style="margin:8px 0">${s.t}</h3><p class="muted">${s.d}</p>
+  <div class="tour-dots">${TOUR.map((_,i)=>`<i class="${i===tourStep?"on":""}"></i>`).join("")}</div></div>
+  <div class="dir-btns" style="margin-top:14px"><button class="ghost" id="tourSkip">${last?"Закрыть":"Пропустить"}</button><button class="primary" style="margin:0" id="tourNext">${last?"Начать!":"Далее →"}</button></div>`);
 }
-function renderHistory(){
- if(!history.length){$("historyContent").innerHTML='<div class="table-empty">Закрытых сделок пока нет.</div>';return}
- $("historyContent").innerHTML=history.map(p=>`<div class="history-row"><span><b>${ASSETS[p.asset].pair}</b><br><small class="muted">${p.direction} ${p.leverage||1}x${p.liquidated?" · ЛИКВИДАЦИЯ":""}</small></span><span>${money(p.margin??p.amount)}</span><span class="${p.pnl>=0?"positive":"negative"}">${p.pnl>=0?"+":""}${money(p.pnl)}</span><span class="muted">${new Date(p.closed).toLocaleString("ru-RU")}</span></div>`).join("");
+
+/* ===== Навигация ===== */
+function go(screen){
+ if(screen!=="trade")setFullscreen(false);
+ activeScreen=screen;
+ document.querySelectorAll(".screen").forEach(s=>s.classList.toggle("active",s.id==="screen-"+screen));
+ document.querySelectorAll(".nav button").forEach(b=>b.classList.toggle("active",b.dataset.go===screen));
+ window.scrollTo(0,0);
+ if(screen==="trade"&&chart)setTimeout(()=>chart.resize(),30);
+ if(screen==="portfolio")renderPortfolio();
+ if(screen==="school"&&typeof renderSchool==="function")renderSchool();
+ if(screen==="tools"&&typeof renderTools==="function")renderTools();
+ if(screen==="profile")renderProfile();
 }
-function renderPortfolio(){
- $("portfolioContent").innerHTML=`<div class="stats-grid" style="margin-top:20px"><article class="stat-card"><span class="stat-label">ДЕМО-БАЛАНС</span><strong>${money(balance)}</strong></article><article class="stat-card"><span class="stat-label">ОТКРЫТЫЕ ПОЗИЦИИ</span><strong>${positions.length}</strong></article><article class="stat-card"><span class="stat-label">ЗАКРЫТЫЙ P/L</span><strong class="${closedPnl>=0?"positive":"negative"}">${money(closedPnl)}</strong></article></div>${positions.length?positions.map(p=>`<div class="position-row"><span>${ASSETS[p.asset].pair} · ${p.direction} ${p.leverage||1}x</span><span>${money(p.margin??p.amount)}</span><span>Вход: ${money(p.entry)}</span><button class="close-position" data-close="${p.id}">Закрыть</button></div>`).join(""):'<div class="table-empty">Открытых позиций нет.</div>'}`;
- document.querySelectorAll("#portfolioContent [data-close]").forEach(b=>b.onclick=()=>closePosition(Number(b.dataset.close)));
+function setFullscreen(on){
+ const card=$("chartCard");if(!card||card.classList.contains("fs")===on)return;
+ card.classList.toggle("fs",on);document.body.classList.toggle("noscroll",on);
+ requestAnimationFrame(()=>{chart&&chart.resize();requestAnimationFrame(()=>chart&&chart.resize())});
 }
-function showScreen(screen){
- const names={trade:"Торговая панель",portfolio:"Портфель",history:"История сделок",academy:"Академия ARVEX"};$("pageTitle").textContent=names[screen]||names.trade;
- ["trade","portfolio","history","academy"].forEach(s=>{const el=$(s+"Screen")||$(s+"Bottom");if(el)el.classList.toggle("hidden",s!==screen)});
- $("tradeBottom").classList.toggle("hidden",screen!=="trade");
- document.querySelectorAll(".nav-item").forEach(b=>b.classList.toggle("active",b.dataset.screen===screen));
- if(screen==="portfolio")renderPortfolio();if(screen==="history")renderHistory();if(screen==="academy")renderAcademy();
+
+/* ===== Заставка ===== */
+function runSplash(done){
+ const s=$("splash"),sub=$("splashSub"),msgs=["Добро пожаловать","Загружаем рынок…","Готово к торговле"];
+ let i=0;const iv=setInterval(()=>{i=Math.min(i+1,msgs.length-1);if(sub)sub.textContent=msgs[i]},650);
+ setTimeout(()=>{clearInterval(iv);s.classList.add("out");setTimeout(done,350)},2000);
 }
-document.querySelectorAll(".nav-item").forEach(b=>b.addEventListener("click",()=>showScreen(b.dataset.screen)));
-$("assetSelect").addEventListener("change",e=>{currentAsset=e.target.value;saveState();updateHeaderPrice();updateOrderPreview();updateChart()});
-$("buyBtn").onclick=()=>openTrade("LONG");$("sellBtn").onclick=()=>openTrade("SHORT");
-document.querySelectorAll("[data-amount]").forEach(b=>b.onclick=()=>{$("amount").value=b.dataset.amount;updateOrderPreview()});
-$("maxBtn").onclick=()=>{$("amount").value=Math.floor(balance);updateOrderPreview()};
-$("amount").addEventListener("input",updateOrderPreview);$("leverage").addEventListener("change",updateOrderPreview);
-$("profileBtn").onclick=()=>{const name=prompt("Имя профиля",localStorage.getItem("arvex_name")||"");if(name&&name.trim()){localStorage.setItem("arvex_name",name.trim());setName(name.trim());saveState()}};
-function setName(name){$("userName").textContent=name.toUpperCase();$("sideName").textContent=name.toUpperCase();document.querySelectorAll(".avatar").forEach(a=>a.textContent=name.trim()[0].toUpperCase());}
-const savedName=localStorage.getItem("arvex_name");if(savedName)setName(savedName);
-const savedUsername=localStorage.getItem("arvex_username");if(savedUsername)$("profileBtn").innerHTML=`<span class="avatar small">${(savedName||"A")[0].toUpperCase()}</span><span>@${savedUsername}</span>⌄`;
-$("createProfile").onclick=createProfile;
-/* ===== Академия: уроки и тесты, XP один раз за урок и один раз за тест ===== */
-let academyView={screen:"list",lessonId:null,result:null};
-function lessonById(id){return LESSONS.find(l=>l.id===id)}
-function renderAcademy(){
- const box=$("academyContent");if(!box)return;
- const doneL=LESSONS.filter(l=>progress.lessons[l.id]).length, doneQ=LESSONS.filter(l=>progress.quizzes[l.id]).length;
- const v=academyView, lesson=v.lessonId?lessonById(v.lessonId):null;
- if(v.screen==="list"||!lesson){
-  box.innerHTML=`<div class="academy-progress">Уроков пройдено: <b>${doneL}/${LESSONS.length}</b> · Тестов сдано: <b>${doneQ}/${LESSONS.length}</b></div><div class="lesson-grid">${LESSONS.map(l=>`<article class="lesson"><span>${l.tag}</span><h3>${l.title}</h3><p>${l.summary}</p><div class="lesson-status"><i class="${progress.lessons[l.id]?"ok":""}">${progress.lessons[l.id]?"✓ Урок":"Урок · +"+LESSON_XP+" XP"}</i><i class="${progress.quizzes[l.id]?"ok":""}">${progress.quizzes[l.id]?"✓ Тест":"Тест · +"+QUIZ_XP+" XP"}</i></div><button class="lesson-btn" data-act="open" data-lesson="${l.id}">${progress.lessons[l.id]?"Открыть снова":"Изучить урок"}</button></article>`).join("")}</div>`;
-  return;
- }
- if(v.screen==="lesson"){
-  const done=!!progress.lessons[lesson.id];
-  box.innerHTML=`<button class="back-btn" data-act="list">← Все уроки</button><article class="lesson-view"><span class="lesson-tag">${lesson.tag}</span><h3>${lesson.title}</h3>${lesson.body.map(t=>`<p>${t}</p>`).join("")}<div class="key-points"><b>Главное</b><ul>${lesson.points.map(t=>`<li>${t}</li>`).join("")}</ul></div><div class="lesson-actions">${done?`<button class="lesson-btn" data-act="quiz" data-lesson="${lesson.id}">Перейти к тесту</button><small class="muted">Урок уже засчитан · XP за него начисляется один раз</small>`:`<button class="lesson-btn" data-act="finish" data-lesson="${lesson.id}">Завершить урок · +${LESSON_XP} XP</button>`}</div></article>`;
-  return;
- }
- if(v.screen==="quiz"){
-  const r=v.result, done=!!progress.quizzes[lesson.id];
-  box.innerHTML=`<button class="back-btn" data-act="lesson" data-lesson="${lesson.id}">← К уроку</button><article class="lesson-view"><span class="lesson-tag">ТЕСТ · ${lesson.title}</span><h3>Проверь себя</h3><p class="muted">Нужно ${QUIZ_PASS_SCORE} правильных ответа из ${lesson.quiz.length}. ${done?"Тест уже сдан, XP за него начисляется один раз.":"За успешную сдачу: +"+QUIZ_XP+" XP."}</p>${lesson.quiz.map((q,qi)=>{
-   const given=r?r.answers[qi]:null;
-   return `<fieldset class="quiz-q"><legend>${qi+1}. ${q.q}</legend>${q.options.map((o,oi)=>{
-    let cls="";if(r){if(oi===q.answer)cls="right";else if(oi===given)cls="wrong"}
-    return `<label class="quiz-opt ${cls}"><input type="radio" name="q${qi}" value="${oi}" ${given===oi?"checked":""} ${r?"disabled":""}> <span>${o}</span></label>`}).join("")}${r?`<small class="muted">${q.explain}</small>`:""}</fieldset>`}).join("")}${r?`<div class="quiz-result ${r.passed?"pass":"fail"}">Результат: ${r.score} из ${lesson.quiz.length}. ${r.passed?"Тест сдан!":"Пока не зачтено — перечитай урок и попробуй ещё раз."}${r.xpText?" "+r.xpText:""}</div><div class="lesson-actions"><button class="lesson-btn" data-act="retry" data-lesson="${lesson.id}">Пройти заново</button><button class="back-btn" data-act="list">К списку уроков</button></div>`:`<div class="lesson-actions"><button class="lesson-btn" data-act="check" data-lesson="${lesson.id}">Проверить ответы</button></div>`}</article>`;
- }
+
+/* ===== Запуск ===== */
+function bind(){
+ document.addEventListener("click",e=>{
+  const t=e.target;
+  if(typeof Cloud!=="undefined"&&Cloud.click(t))return;
+  const go_=t.closest("[data-go]");if(go_){go(go_.dataset.go);return}
+  const cl=t.closest("[data-close]");if(cl){closePosition(Number(cl.dataset.close));return}
+  const as=t.closest("[data-asset]");if(as){currentAsset=as.dataset.asset;saveState();renderTicker();renderHead();updateOrderPreview();candles=[];chart.setData([]);loadCandles();return}
+  const tfb=t.closest("[data-tf]");if(tfb){tf=tfb.dataset.tf;document.querySelectorAll("#tfSeg button").forEach(b=>b.classList.toggle("on",b===tfb));loadCandles();return}
+  const ind=t.closest("[data-ind]");if(ind){const k=ind.dataset.ind;chart[k]=!chart[k];ind.classList.toggle("on",chart[k]);chart.draw();return}
+  const lv=t.closest("[data-lev]");if(lv){$("leverage").value=lv.dataset.lev;$("levLabel").textContent=lv.dataset.lev+"x";document.querySelectorAll("#levChips button").forEach(b=>b.classList.toggle("on",b===lv));updateOrderPreview();return}
+  const pc=t.closest("[data-pct]");if(pc){$("amount").value=Math.floor(balance*Number(pc.dataset.pct))/100;updateOrderPreview();return}
+  const op=t.closest("[data-open]");if(op){confirmTrade(op.dataset.open);return}
+  const av=t.closest("[data-av]");if(av){pendingAvatar=Number(av.dataset.av);renderAvatarPicker();return}
+  if(t.closest("#tourNext")){if(tourStep>=TOUR.length-1)closeSheet();else openTour(tourStep+1);return}
+  if(t.closest("#tourSkip")){closeSheet();return}
+  if(t.closest("#showTour")){openTour(0);return}
+  if(t.closest("#sheetCancel")){closeSheet();return}
+  const sc=t.closest("#sheetConfirm");if(sc){closeSheet();openTrade(sc.dataset.dir);return}
+  if(t.closest("#resetConfirm")){balance=10000;closedPnl=0;positions=[];history=[];saveState();closeSheet();renderTop();renderPositions();renderPortfolio();updateOrderPreview();showToast("Демо-счёт сброшен.");return}
+  if(t.closest("#editProfile")){openProfileModal(true);return}
+  if(t.closest("#resetAccount")){resetAccount();return}
+  if(t.id==="sheet"){closeSheet();return}
+ });
+ $("buyBtn").onclick=()=>openTrade("LONG");$("sellBtn").onclick=()=>openTrade("SHORT");
+ $("amount").addEventListener("input",updateOrderPreview);
+ $("fsBtn").onclick=()=>setFullscreen(true);$("fsClose").onclick=()=>setFullscreen(false);
+ $("zoomIn").onclick=()=>chart.zoom(0.8);$("zoomOut").onclick=()=>chart.zoom(1.25);
+ $("createProfile").onclick=submitProfile;$("cancelProfile").onclick=()=>$("welcomeModal").classList.add("hidden");
+ $("welcomeName").addEventListener("input",renderAvatarPicker);
+ document.addEventListener("keydown",e=>{if(e.key==="Escape"){setFullscreen(false);closeSheet()}});
+ window.addEventListener("resize",()=>chart&&chart.resize());
+ document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden")saveState()});
+ window.addEventListener("pagehide",saveState);
 }
-function academyAction(act,id){
- const lesson=lessonById(id);
- if(act==="list"){academyView={screen:"list",lessonId:null,result:null}}
- else if(act==="open"||act==="lesson"){academyView={screen:"lesson",lessonId:id,result:null}}
- else if(act==="finish"&&lesson){
-  const r=awardOnce("lessons",id,LESSON_XP);renderStats();
-  showToast(r.awarded?(r.levelUp?`Урок пройден! +${LESSON_XP} XP · Новый уровень ${level}!`:`Урок пройден! +${LESSON_XP} XP`):"Этот урок уже засчитан.");
-  academyView={screen:"quiz",lessonId:id,result:null};
- }
- else if(act==="quiz"||act==="retry"){academyView={screen:"quiz",lessonId:id,result:null}}
- else if(act==="check"&&lesson){
-  const answers=lesson.quiz.map((_,qi)=>{const c=document.querySelector(`input[name="q${qi}"]:checked`);return c?Number(c.value):null});
-  if(answers.some(a=>a===null)){showToast("Ответь на все вопросы теста.");return}
-  const score=answers.filter((a,qi)=>a===lesson.quiz[qi].answer).length, passed=score>=QUIZ_PASS_SCORE;
-  let xpText="";
-  if(passed){
-   const r=awardOnce("quizzes",id,QUIZ_XP);renderStats();
-   xpText=r.awarded?`+${QUIZ_XP} XP получено${r.levelUp?` · Новый уровень ${level}!`:""}.`:"XP за этот тест уже был получен.";
-   showToast(r.awarded?`Тест сдан! +${QUIZ_XP} XP`:"Тест сдан. XP уже был начислен ранее.");
-  }
-  academyView={screen:"quiz",lessonId:id,result:{answers,score,passed,xpText}};
- }
- renderAcademy();
- const sc=$("academyScreen");if(sc&&sc.scrollIntoView)sc.scrollIntoView({block:"start"});
+function init(){
+ try{loadState()}catch(e){}
+ chart=new CandleChart($("chartCanvas"),{onCross:c=>updateOhlc(c)});
+ bind();
+ renderTop();renderTicker();renderHead();renderPositions();renderPortfolio();updateOrderPreview();
+ loadCandles();fetchPrices();
+ if(typeof Cloud!=="undefined")Cloud.sync();
+ if("serviceWorker" in navigator&&!window.Capacitor&&/^https?:/.test(location.protocol))navigator.serviceWorker.register("sw.js").catch(()=>{});
+ setInterval(fetchPrices,5000);setInterval(loadCandles,45000);
+ runSplash(()=>{if(!profile)openProfileModal(false)});
 }
-if($("academyContent"))$("academyContent").addEventListener("click",e=>{
- const b=e.target.closest("[data-act]");if(!b)return;
- academyAction(b.dataset.act,Number(b.dataset.lesson)||null);
-});
-// Страховка: сохраняем состояние при сворачивании/закрытии вкладки.
-document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden")saveState()});
-window.addEventListener("pagehide",saveState);
-loadState();
-$("assetSelect").value=currentAsset;
-renderStats();updateHeaderPrice();renderMarket();renderPositions();updateOrderPreview();initChart();fetchPrices();setInterval(fetchPrices,15000);openWelcome();
+window.addEventListener("DOMContentLoaded",init);
