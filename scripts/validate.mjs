@@ -36,6 +36,10 @@ const config = read("cloud-config.js");
 if (/service[_-]?role|sb_secret_/i.test(config)) fail("secret Supabase key pattern found in cloud-config.js");
 else pass("cloud-config.js contains no service-role/secret-key pattern");
 
+const clientCode = fs.readdirSync(root).filter((n) => n.endsWith(".js")).map((n) => read(n)).join("\\n");
+if (/(?:api|fapi)\\/v\\d+\\/order\\b/i.test(clientCode)) fail("real exchange order endpoint found in client JavaScript");
+else pass("client JavaScript contains no real exchange order endpoint");
+
 const premium = read("premium.js");
 const schema = read("backend/premium.sql");
 for (const rpc of ["arvex_my_premium", "arvex_admin_is_admin", "arvex_admin_stats", "arvex_admin_history", "arvex_admin_search_users", "arvex_admin_set_subscription", "arvex_admin_revoke_subscription"]) {
