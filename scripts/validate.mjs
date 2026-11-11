@@ -28,6 +28,10 @@ if (!process.exitCode) pass("all root JavaScript files pass node --check");
 try { JSON.parse(read("manifest.webmanifest")); pass("manifest.webmanifest is valid JSON"); }
 catch (error) { fail(`manifest.webmanifest is invalid: ${error.message}`); }
 
+const cloudTests = spawnSync(process.execPath, [path.join(root, "scripts/test-cloud-sync.mjs")], { encoding: "utf8" });
+if (cloudTests.status !== 0) fail(`Cloud sync regression tests failed: ${cloudTests.stderr || cloudTests.stdout}`);
+else pass("cloud sync regression tests pass");
+
 const config = read("cloud-config.js");
 if (/service[_-]?role|sb_secret_/i.test(config)) fail("secret Supabase key pattern found in cloud-config.js");
 else pass("cloud-config.js contains no service-role/secret-key pattern");
