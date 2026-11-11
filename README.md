@@ -72,7 +72,7 @@ Set these secrets in Supabase Dashboard → Edge Functions → Secrets:
 
 ### Deploy and connect the Telegram bot
 
-Deploy both functions from the repository using the Supabase CLI linked to the correct project:
+The functions are already deployed to the ARVEX Supabase project. To redeploy after a code change, use the Supabase CLI linked to that project:
 
 ```sh
 supabase functions deploy create-stars-invoice
@@ -92,6 +92,6 @@ curl -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/setWebhook" \
 
 Keep the bot token and webhook secret private.
 
-After configuring Supabase's `cloud-config.js` with the project URL and publishable/anon key, set `starsEnabled: true` in `shop-config.js`. Test a real Stars payment and its automatic renewal/cancellation behavior before announcing the subscription to customers.
+The repository's `cloud-config.js` is already connected to the ARVEX Supabase project with its public publishable key. The three Edge Functions are deployed there. Keep `starsEnabled: false` until the private secrets are configured, the Telegram webhook is registered, and a real Stars payment has been tested. Only then set `starsEnabled: true` in `shop-config.js`.
 
 **Important:** Telegram Stars subscriptions are recurring. Users must be told clearly that renewal is automatic and can be cancelled through ARVEX or Telegram. The ARVEX profile includes controls to disable or re-enable automatic renewal; the paid period remains active until its expiry. Do not activate sales until that control/support process and the legal offer are ready.
