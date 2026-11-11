@@ -46,3 +46,43 @@
 - `backend/supabase.sql` создаёт таблицы `arvex_saves`, `orders`, `entitlements` и включает RLS-политики. Выполни SQL в Supabase SQL Editor для облачных аккаунтов и заявок.
 - **Важно:** текущая проверка Premium в `access.js` ещё использует локальный флаг. Не включай платные функции и не принимай оплату через этот прототип до переноса проверки прав на сервер. Telegram Stars, 30-дневные подписки и автопродление пока не реализованы.
 - `offer.html` — шаблон оферты; перед продажами его нужно заполнить и проверить.
+
+## Telegram Stars subscriptions (prepared, not activated)
+
+ARVEX now contains a server-side Telegram Stars subscription flow. It is deliberately **disabled by default**: set `starsEnabled: true` in `shop-config.js` only after the Supabase project, Edge Functions, and Telegram webhook have been configured and tested.
+
+- Default price: **120 Telegram Stars**.
+- Billing period: **30 days**, using Telegram's recurring Stars invoice support.
+- Payment is verified by the Telegram webhook; the browser never grants Premium itself.
+- The owner receives lifetime access when their Supabase Auth user UUID matches the server secret `ARVEX_OWNER_USER_ID`.
+
+### Supabase database
+
+Run the complete `backend/supabase.sql` script in the Supabase SQL Editor. It creates private payment-intent and payment-receipt tables. Do not add public read/write policies to these two tables.
+
+### Edge Function secrets
+
+Set these secrets in Supabase Dashboard → Edge Functions → Secrets:
+
+- `TELEGRAM_BOT_TOKEN` — token from BotFather. Never put it in browser code or Git.
+- `TELEGRAM_WEBHOOK_SECRET` — random secret containing only letters, digits, underscores or hyphens; use at least 32 random characters.
+- `ARVEX_STARS_PRICE` — optional; defaults to `120`.
+- `ARVEX_OWNER_USER_ID` — the owner's UUID from Supabase Authentication → Users. This is how lifetime owner access is assigned.
+- Supabase provides the project URL and server API keys to Edge Functions. Never expose a secret/service-role key in the website.
+
+### Deploy and connect the Telegram bot
+
+Deploy both functions from the repository using the Supabase CLI linked to the correct project:
+
+```sh
+supabase functions deploy create-stars-invoice
+supabase functions deploy telegram-stars-webhook
+```
+
+The `telegram-stars-webhook` function has JWT verification disabled in `supabase/config.toml`; it authenticates Telegram using the webhook secret header. The invoice function requires the signed-in ARVEX user's JWT.
+
+Set the bot webhook to the deployed function URL using Telegram's `setWebhook` method, passing the same secret in `secret_token` and allowing only `pre_checkout_query` and `message` updates. Keep the bot token private.
+
+After configuring Supabase's `cloud-config.js` with the project URL and publishable/anon key, set `starsEnabled: true` in `shop-config.js`. Test a real Stars payment and its automatic renewal/cancellation behavior before announcing the subscription to customers.
+
+**Important:** Telegram Stars subscriptions are recurring. Users must be told clearly that renewal is automatic and can be cancelled through Telegram. This code does not yet provide an in-app cancellation control. Do not activate sales until that control/support process and the legal offer are ready.
