@@ -91,6 +91,16 @@ async function insertOrder(o){
   const body={...o};if(session)body.user_id=session.uid;
   await req("/rest/v1/orders",{method:"POST",headers:{...hdr(tok),"Prefer":"return=minimal"},body:JSON.stringify(body)});return true;
  }
+ async function createStarsInvoice(){
+  if(!enabled()||!session)throw new Error("Сначала войди в аккаунт ARVEX.");
+  const tok=await token();
+  const r=await fetch(cfg().url.replace(/\/$/,"")+"/functions/v1/create-stars-invoice",{
+   method:"POST",headers:hdr(tok),body:"{}"
+  });
+  let j=null;try{j=await r.json()}catch(e){}
+  if(!r.ok)throw new Error((j&&j.error)||("HTTP "+r.status));
+  return j||{};
+ }
  async function myEntitlement(){
   const tok=await token();
   const rows=await req(`/rest/v1/entitlements?user_id=eq.${session.uid}&select=plan,expires_at`,{headers:hdr(tok)});
