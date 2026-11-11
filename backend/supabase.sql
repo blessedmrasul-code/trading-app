@@ -63,9 +63,11 @@ create table if not exists public.entitlements (
   user_id uuid primary key references auth.users(id) on delete cascade,
   plan text not null default 'lifetime',
   expires_at timestamptz,
-  updated_at timestamptz not null default now()
+  updated_at timestamptz not null default now(),
+  auto_renew boolean not null default true
 );
 
+alter table public.entitlements add column if not exists auto_renew boolean not null default true;
 alter table public.entitlements enable row level security;
 
 drop policy if exists "Users read own ARVEX entitlement" on public.entitlements;
@@ -112,6 +114,7 @@ create table if not exists public.telegram_star_payments (
   stars_amount integer not null check (stars_amount between 1 and 10000),
   currency text not null default 'XTR' check (currency = 'XTR'),
   is_recurring boolean not null default false,
+  is_first_recurring boolean not null default false,
   expires_at timestamptz,
   created_at timestamptz not null default now()
 );
