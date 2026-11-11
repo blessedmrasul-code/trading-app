@@ -50,6 +50,7 @@
  }
  async function search(){
   const q=($("premiumSearch")?.value||"").trim(),out=$("premiumResults");if(!out)return;
+  if(q.length<3){out.innerHTML='<p class="note">Введи минимум 3 символа email или полный UUID пользователя.</p>';return}
   out.innerHTML='<p class="muted">Ищем…</p>';
   try{
    const rows=await rpc("arvex_admin_search_users",{p_query:q});
@@ -61,7 +62,11 @@
   if(busy)return;busy=true;
   try{
    if(kind==="grant"){
-    const plan=$("premiumAdmin").querySelector('[data-plan="'+CSS.escape(id)+'"]').value;
+    const select=Array.from($("premiumAdmin").querySelectorAll("[data-plan]")).find(el=>el.dataset.plan===id);
+    if(!select)throw new Error("Не найден выбранный срок подписки.");
+    const plan=select.value,planLabel=plan==="forever"?"навсегда":plan+" дней";
+    const user=$("premiumAdmin").querySelector('[data-grant="'+id+'"]')?.closest(".premium-user")?.querySelector("b")?.textContent||id;
+    if(!confirm("Выдать PREMIUM пользователю "+user+" на срок: "+planLabel+"? Подтверди, что перевод Telegram Stars проверен."))return;
     await rpc("arvex_admin_set_subscription",{p_user_id:id,p_days:plan==="forever"?30:Number(plan),p_forever:plan==="forever"});
     if(window.showToast)showToast("PREMIUM выдан.");
    }else{
