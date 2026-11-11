@@ -18,7 +18,7 @@
   }catch(e){host.innerHTML='<p class="note">Статус появится после входа в облачный аккаунт.</p>';}
  }
  function cardHTML(){
-  return '<section class="card" id="premiumCard"><div class="card-title">ARVEX PREMIUM <span class="badge">100 ⭐ / 30 дней</span></div><div id="premiumStatus"><p class="muted">Проверяем подписку…</p></div><p class="note">Для покупки напиши владельцу и отправь 100 Telegram Stars. Доступ включается вручную после проверки платежа.</p><a class="primary" style="display:block;text-align:center;text-decoration:none" href="https://t.me/mrasulv" target="_blank" rel="noopener">Купить / продлить в Telegram · @mrasulv</a></section><section class="card" id="premiumAdmin"><div class="card-title">Администрирование PREMIUM</div><div id="premiumAdminBody"><p class="muted">Проверяем права администратора…</p></div></section>';
+  return '<section class="card" id="premiumCard"><div class="card-title">ARVEX PREMIUM <span class="badge">100 ⭐ / 30 дней</span></div><div id="premiumStatus"><p class="muted">Проверяем подписку…</p></div><p class="note">Для покупки отправь владельцу 100 Telegram Stars. Затем зарегистрируйся и войди в облачный аккаунт по email, чтобы владелец мог найти тебя и вручную включить доступ.</p><a class="primary" style="display:block;text-align:center;text-decoration:none" href="https://t.me/mrasulv" target="_blank" rel="noopener">Купить / продлить в Telegram · @mrasulv</a></section><section class="card" id="premiumAdmin"><div class="card-title">Администрирование PREMIUM</div><div id="premiumAdminBody"><p class="muted">Проверяем права администратора…</p></div></section>';
  }
  function mount(){
   const box=$("profileBody"); if(!box || typeof Cloud === "undefined" || !Cloud.enabled())return;
