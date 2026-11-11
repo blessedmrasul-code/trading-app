@@ -36,7 +36,11 @@ const Cloud=(()=>{
   const j=await req("/auth/v1/token?grant_type=password",{method:"POST",headers:hdr(),body:JSON.stringify({email,password:pw})});
   adopt(j);return {ok:true};
  }
- function signOut(){keep(null);status=""}
+ async function rpc(name,args={}){
+  const tok=await token();
+  return req("/rest/v1/rpc/"+encodeURIComponent(name),{method:"POST",headers:hdr(tok),body:JSON.stringify(args)});
+ }
+ function signOut(){keep(null);status="";window.dispatchEvent(new Event("arvex:cloud-auth"))}
  async function pull(){
   const tok=await token();
   const rows=await req(`/rest/v1/arvex_saves?user_id=eq.${session.uid}&select=data,updated_at`,{headers:hdr(tok)});
@@ -75,7 +79,7 @@ const Cloud=(()=>{
   try{
    if(kind==="up"){const r=await signUp(e,p);if(r.confirm){m.textContent="Письмо отправлено. Подтверди почту и нажми «Войти».";return}}
    else await signIn(e,p);
-   showToast("Вход выполнен");await sync();
+   showToast("Вход выполнен");window.dispatchEvent(new Event("arvex:cloud-auth"));await sync();
   }catch(err){m.textContent=err.message}
  }
  function click(t){
@@ -85,5 +89,5 @@ const Cloud=(()=>{
   if(t.closest("#cloudOut")){signOut();renderProfile();return true}
   return false;
  }
- return {enabled,accountHTML,click,schedule,sync,isIn:()=>!!session};
+ return {enabled,accountHTML,click,schedule,sync,rpc,isIn:()=>!!session,user:()=>session?{id:session.uid,email:session.email}:null};
 })();
