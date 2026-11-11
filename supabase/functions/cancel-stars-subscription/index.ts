@@ -35,6 +35,8 @@ Deno.serve(async (req: Request) => {
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
   try {
     const jwt = (req.headers.get("Authorization") || "").replace(/^Bearer\\s+/i, "");
+    const body = await req.json().catch(() => ({}));
+    const enabled = body.enabled !== false;
     const base = Deno.env.get("SUPABASE_URL") || "";
     const publishable = key("SUPABASE_PUBLISHABLE_KEYS", "SUPABASE_ANON_KEY");
     if (!jwt || !base || !publishable) return json({ error: "Sign in to ARVEX first" }, 401);
@@ -69,7 +71,7 @@ Deno.serve(async (req: Request) => {
       body: JSON.stringify({
         user_id: payment.telegram_user_id,
         telegram_payment_charge_id: payment.telegram_payment_charge_id,
-        is_canceled: true,
+        is_canceled: !enabled,
       }),
     });
     const result = await telegram.json();
@@ -80,9 +82,9 @@ Deno.serve(async (req: Request) => {
     await db(`entitlements?user_id=eq.${encodeURIComponent(user.id)}`, {
       method: "PATCH",
       headers: { Prefer: "return=minimal" },
-      body: JSON.stringify({ auto_renew: false, updated_at: new Date().toISOString() }),
+      body: JSON.stringify({ auto_renew: enabled, updated_at: new Date().toISOString() }),
     });
-    return json({ ok: true, message: "Автопродление отключено. Доступ сохранится до конца оплаченного периода." });
+    return json({ ok: true, message: enabled ? "Автопродление снова включено." : "Автопродление отключено. Доступ сохранится до конца оплаченного периода." });
   } catch (error) {
     console.error("cancel-stars-subscription:", error);
     return json({ error: "Не удалось отключить автопродление." }, 500);
