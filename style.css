@@ -204,3 +204,27 @@ select.field{appearance:none}
 .chart-foot span:last-child{text-align:right}
 
 .tour-dots{display:flex;justify-content:center;gap:7px;margin-top:14px}.tour-dots i{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.18)}.tour-dots i.on{width:22px;border-radius:8px;background:var(--purple)}
+
+
+/* ===== PREMIUM ===== */
+#premiumCard .primary{margin-top:12px}
+.premium-results{margin-top:12px}
+.premium-user{display:grid;gap:10px;padding:12px 0;border-top:1px solid var(--border)}
+.premium-user>div:first-child{min-width:0}
+.premium-user b,.premium-user small{display:block;overflow-wrap:anywhere}
+.premium-user small{color:var(--muted);font-size:11px;margin-top:4px}
+.premium-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.premium-actions select{grid-column:1/-1}
+.premium-actions button{font-size:12px;padding:10px 6px}
+@media(min-width:600px){.premium-user{grid-template-columns:minmax(0,1fr) 230px;align-items:center}.premium-actions{grid-template-columns:1fr 1fr}.premium-actions select{grid-column:1/-1}}
+
+
+/* PREMIUM admin dashboard */
+.premium-stat-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:10px 0 16px}
+.premium-stat-grid>div{padding:12px;border:1px solid var(--border);border-radius:12px;background:var(--panel)}
+.premium-stat-grid small,.premium-stat-grid b{display:block}
+.premium-stat-grid small{color:var(--muted);font-size:11px}
+.premium-stat-grid b{font-size:20px;margin-top:3px}
+.premium-event{padding:10px 0;border-top:1px solid var(--border)}
+.premium-event b,.premium-event small{display:block;overflow-wrap:anywhere}
+.premium-event small{color:var(--muted);font-size:11px;margin-top:3px}
