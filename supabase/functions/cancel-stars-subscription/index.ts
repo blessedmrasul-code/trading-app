@@ -36,7 +36,7 @@ Deno.serve(async (req: Request) => {
   try {
     const jwt = (req.headers.get("Authorization") || "").replace(/^Bearer\\s+/i, "");
     const body = await req.json().catch(() => ({}));
-    const enabled = body.enabled !== false;
+    const enabled = body?.enabled !== false;
     const base = Deno.env.get("SUPABASE_URL") || "";
     const publishable = key("SUPABASE_PUBLISHABLE_KEYS", "SUPABASE_ANON_KEY");
     if (!jwt || !base || !publishable) return json({ error: "Sign in to ARVEX first" }, 401);
