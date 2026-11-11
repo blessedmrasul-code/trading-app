@@ -36,7 +36,7 @@ const Cloud=(()=>{
   const j=await req("/auth/v1/token?grant_type=password",{method:"POST",headers:hdr(),body:JSON.stringify({email,password:pw})});
   adopt(j);return {ok:true};
  }
- function signOut(){keep(null);status=""}
+ function signOut(){keep(null);status="";if(typeof Access!=="undefined")Access.refresh()}
  async function pull(){
   const tok=await token();
   const rows=await req(`/rest/v1/arvex_saves?user_id=eq.${session.uid}&select=data,updated_at`,{headers:hdr(tok)});
