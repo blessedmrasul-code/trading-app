@@ -14,7 +14,7 @@ const Access=(()=>{
  const locked=f=>!!(shop().enabled&&(shop().lockedFeatures||[]).includes(f)&&!isPremium());
  function cardHTML(){
   const s=shop();
-  if(isPremium())return `<div class="card"><div class="card-title">Доступ <span class="badge">Premium</span></div><p style="margin:0">Полный доступ активирован навсегда. Спасибо, что поддерживаешь проект!</p></div>`;
+  if(isPremium()){const until=entitlement.plan==="lifetime"?"Пожизненный доступ активирован. Спасибо, что поддерживаешь проект!":`Подписка активна до ${new Date(entitlement.expires_at).toLocaleDateString("ru-RU")}.`;return `<div class="card"><div class="card-title">Доступ <span class="badge">Premium</span></div><p style="margin:0">${until}</p></div>`;}
   if(!s.enabled)return `<div class="card"><div class="card-title">Premium</div><p class="muted" style="margin:0">Платный доступ с онлайн-уроками готовится. Разовая оплата, без подписок и автопродления.</p></div>`;
   const old=s.promoPrice>0&&s.promoPrice<s.price?` <s class="muted">${s.price} ₽</s>`:"";
   return `<div class="card"><div class="card-title">Premium</div><p style="margin:0 0 8px">Разовая оплата <b>${price()} ₽</b>${old} — доступ навсегда, без подписок и автопродления.</p><div class="btn-row"><button class="primary" id="accBuy">Получить доступ</button><button class="ghost" id="accOffer">Оферта</button></div></div>`;
