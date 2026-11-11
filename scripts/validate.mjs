@@ -36,8 +36,8 @@ const config = read("cloud-config.js");
 if (/service[_-]?role|sb_secret_/i.test(config)) fail("secret Supabase key pattern found in cloud-config.js");
 else pass("cloud-config.js contains no service-role/secret-key pattern");
 
-const clientCode = fs.readdirSync(root).filter((n) => n.endsWith(".js")).map((n) => read(n)).join("\\n");
-if (/(?:api|fapi)\\/v\\d+\\/order\\b/i.test(clientCode)) fail("real exchange order endpoint found in client JavaScript");
+const clientCode = fs.readdirSync(root).filter((n) => n.endsWith(".js")).map((n) => read(n)).join("\n");
+if (/(?:api|fapi)\/v\d+\/order\b/i.test(clientCode)) fail("real exchange order endpoint found in client JavaScript");
 else pass("client JavaScript contains no real exchange order endpoint");
 
 const premium = read("premium.js");
