@@ -140,6 +140,66 @@ async function applySuccessfulPayment(message: any) {
   });
 }
 
+async function applyRefund(message: any) {
+  const refund = message?.refunded_payment;
+  if (!refund?.telegram_payment_charge_id) throw new Error("Invalid refunded Stars payment");
+  const charge = encodeURIComponent(refund.telegram_payment_charge_id);
+  const rows = await db(
+    `telegram_star_payments?telegram_payment_charge_id=eq.${charge}&select=id,user_id,intent_id,telegram_user_id`,
+  );
+  const payment = Array.isArray(rows) ? rows[0] : null;
+  if (!payment) throw new Error("Refund does not match a recorded ARVEX payment");
+
+  const intents = await db(
+    `telegram_payment_intents?id=eq.${encodeURIComponent(payment.intent_id)}&select=invoice_payload&limit=1`,
+  );
+  if (!Array.isArray(intents) || intents[0]?.invoice_payload !== refund.invoice_payload) {
+    throw new Error("Refund payload does not match the original invoice");
+  }
+
+  await db(`telegram_star_payments?id=eq.${encodeURIComponent(payment.id)}`, {
+    method: "PATCH",
+    headers: { Prefer: "return=minimal" },
+    body: JSON.stringify({ refunded_at: new Date().toISOString() }),
+  });
+
+  const current = await db(
+    `entitlements?user_id=eq.${encodeURIComponent(payment.user_id)}&select=plan&limit=1`,
+  );
+  if (String(current?.[0]?.plan || "").toLowerCase() === "lifetime") return;
+
+  const remaining = await db(
+    `telegram_star_payments?user_id=eq.${encodeURIComponent(payment.user_id)}&refunded_at=is.null&expires_at=not.is.null&select=expires_at&order=expires_at.desc&limit=1`,
+  );
+  const expiresAt = Array.isArray(remaining) && remaining[0]?.expires_at
+    ? remaining[0].expires_at
+    : new Date().toISOString();
+
+  await db(`entitlements?user_id=eq.${encodeURIComponent(payment.user_id)}`, {
+    method: "PATCH",
+    headers: { Prefer: "return=minimal" },
+    body: JSON.stringify({
+      plan: "monthly", expires_at: expiresAt, auto_renew: false,
+      updated_at: new Date().toISOString(),
+    }),
+  });
+
+  try {
+    const first = await db(
+      `telegram_star_payments?user_id=eq.${encodeURIComponent(payment.user_id)}&is_first_recurring=eq.true&select=telegram_user_id,telegram_payment_charge_id&order=created_at.asc&limit=1`,
+    );
+    if (Array.isArray(first) && first[0]?.telegram_user_id && first[0]?.telegram_payment_charge_id) {
+      await telegram("editUserStarSubscription", {
+        user_id: first[0].telegram_user_id,
+        telegram_payment_charge_id: first[0].telegram_payment_charge_id,
+        is_canceled: true,
+      });
+    }
+  } catch (error) {
+    console.error("Could not cancel refunded subscription renewal:", error);
+  }
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method !== "POST") return new Response("Method not allowed", { status: 405 });
   const expected = webhookSecret();
@@ -152,6 +212,8 @@ Deno.serve(async (req: Request) => {
       await answerPreCheckout(update.pre_checkout_query);
     } else if (update.message?.successful_payment) {
       await applySuccessfulPayment(update.message);
+    } else if (update.message?.refunded_payment) {
+      await applyRefund(update.message);
     }
     return Response.json({ ok: true });
   } catch (error) {
