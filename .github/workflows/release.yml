@@ -125,8 +125,18 @@ jobs:
           VERSION_NAME: ${{ inputs.version_name }}
         working-directory: .
         run: |
-          gh release create "v$VERSION_NAME" \
-            "mobile/release-output/ARVEX-$VERSION_NAME.apk" \
-            "mobile/release-output/ARVEX-$VERSION_NAME.aab" \
-            --title "ARVEX $VERSION_NAME" \
-            --notes "Подписанный релиз ARVEX. APK для установки на Android; AAB для Google Play. Учебный симулятор, используются виртуальные средства."
+          if gh release view "v$VERSION_NAME" >/dev/null 2>&1; then
+            gh release upload "v$VERSION_NAME" \
+              "mobile/release-output/ARVEX-$VERSION_NAME.apk" \
+              "mobile/release-output/ARVEX-$VERSION_NAME.aab" \
+              --clobber
+            gh release edit "v$VERSION_NAME" \
+              --title "ARVEX $VERSION_NAME" \
+              --notes "Подписанный релиз ARVEX. APK для установки на Android; AAB для Google Play. Учебный симулятор, используются виртуальные средства."
+          else
+            gh release create "v$VERSION_NAME" \
+              "mobile/release-output/ARVEX-$VERSION_NAME.apk" \
+              "mobile/release-output/ARVEX-$VERSION_NAME.aab" \
+              --title "ARVEX $VERSION_NAME" \
+              --notes "Подписанный релиз ARVEX. APK для установки на Android; AAB для Google Play. Учебный симулятор, используются виртуальные средства."
+          fi
