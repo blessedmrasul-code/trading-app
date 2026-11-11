@@ -54,8 +54,8 @@ Deno.serve(async (req: Request) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const publishable = keyFromEnv("SUPABASE_PUBLISHABLE_KEYS", "SUPABASE_ANON_KEY");
     const botToken = Deno.env.get("TELEGRAM_BOT_TOKEN");
-    if (!supabaseUrl || !publishable || !botToken) {
-      return json({ error: "Payment service is not configured yet" }, 503);
+    if (!supabaseUrl || !publishable) {
+      return json({ error: "Supabase is not configured yet" }, 503);
     }
 
     const userResponse = await fetch(`${supabaseUrl}/auth/v1/user`, {
@@ -77,6 +77,8 @@ Deno.serve(async (req: Request) => {
       });
       return json({ lifetime: true, message: "Owner lifetime access is active." });
     }
+
+    if (!botToken) return json({ error: "Telegram bot is not configured yet" }, 503);
 
     const stars = Number(Deno.env.get("ARVEX_STARS_PRICE") || "120");
     if (!Number.isInteger(stars) || stars < 1 || stars > 10000) {
