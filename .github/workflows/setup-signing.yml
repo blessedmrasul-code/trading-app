@@ -25,7 +25,7 @@ jobs:
           mkdir -p "$RUNNER_TEMP/arvex-signing"
           STORE_PASSWORD="$(openssl rand -hex 32)"
           echo "::add-mask::$STORE_PASSWORD"
-          keytool -genkeypair -v \
+          keytool -genkeypair -v -noprompt \
             -keystore "$RUNNER_TEMP/arvex-signing/arvex-release.keystore" \
             -storepass "$STORE_PASSWORD" \
             -keypass "$STORE_PASSWORD" \
