@@ -1,0 +1,23 @@
+name: Start ARVEX release build
+
+on:
+  push:
+    paths:
+      - ".github/workflows/trigger-release-now"
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  dispatch-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Start signed ARVEX 1.0.1 release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh workflow run release.yml --repo "${{ github.repository }}" --ref main \
+            -f version_name=1.0.1 \
+            -f version_code=2 \
+            -f publish_release=true
