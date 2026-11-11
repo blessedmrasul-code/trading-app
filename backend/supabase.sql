@@ -23,7 +23,7 @@ drop policy if exists "Users insert own ARVEX save" on public.arvex_saves;
 create policy "Users insert own ARVEX save"
   on public.arvex_saves for insert
   to authenticated
-  with check (auth.uid() = user_id);
+  with check ((select auth.uid()) = user_id);
 
 drop policy if exists "Users update own ARVEX save" on public.arvex_saves;
 create policy "Users update own ARVEX save"
