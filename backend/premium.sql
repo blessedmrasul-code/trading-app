@@ -143,3 +143,42 @@ grant execute on function public.arvex_admin_revoke_subscription(uuid) to authen
 -- select id, email from auth.users order by created_at;
 -- Затем подставь UUID своего аккаунта:
 -- insert into public.arvex_admins(user_id) values ('ВАШ-UUID') on conflict do nothing;
+
+
+-- Административная статистика и журнал последних операций.
+create or replace function public.arvex_admin_stats()
+returns table(total_users bigint, active_subscriptions bigint, forever_subscriptions bigint, expired_subscriptions bigint, events_total bigint)
+language plpgsql stable security definer set search_path = public, auth
+as $$
+begin
+  if not exists(select 1 from public.arvex_admins where user_id = auth.uid()) then raise exception 'Доступ запрещён'; end if;
+  return query
+  select
+    (select count(*) from auth.users),
+    (select count(*) from public.arvex_subscriptions s where s.is_forever or s.expires_at > now()),
+    (select count(*) from public.arvex_subscriptions s where s.is_forever),
+    (select count(*) from public.arvex_subscriptions s where not s.is_forever and s.expires_at <= now()),
+    (select count(*) from public.arvex_subscription_events);
+end;
+$$;
+
+create or replace function public.arvex_admin_history(p_limit integer default 50)
+returns table(event_id bigint, email text, action text, plan text, event_at timestamptz, expires_at timestamptz, admin_email text)
+language plpgsql stable security definer set search_path = public, auth
+as $$
+begin
+  if not exists(select 1 from public.arvex_admins where user_id = auth.uid()) then raise exception 'Доступ запрещён'; end if;
+  return query
+  select e.id, u.email::text, e.action, e.plan, e.created_at, e.expires_at, a.email::text
+  from public.arvex_subscription_events e
+  join auth.users u on u.id = e.user_id
+  join auth.users a on a.id = e.admin_id
+  order by e.created_at desc
+  limit greatest(1, least(coalesce(p_limit,50),100));
+end;
+$$;
+
+revoke all on function public.arvex_admin_stats() from public, anon;
+revoke all on function public.arvex_admin_history(integer) from public, anon;
+grant execute on function public.arvex_admin_stats() to authenticated;
+grant execute on function public.arvex_admin_history(integer) to authenticated;
