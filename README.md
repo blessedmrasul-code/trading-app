@@ -95,3 +95,8 @@ Keep the bot token and webhook secret private.
 The repository's `cloud-config.js` is already connected to the ARVEX Supabase project with its public publishable key. The three Edge Functions are deployed there. Keep `starsEnabled: false` until the private secrets are configured, the Telegram webhook is registered, and a real Stars payment has been tested. Only then set `starsEnabled: true` in `shop-config.js`.
 
 **Important:** Telegram Stars subscriptions are recurring. Users must be told clearly that renewal is automatic and can be cancelled through ARVEX or Telegram. The ARVEX profile includes controls to disable or re-enable automatic renewal; the paid period remains active until its expiry. Do not activate sales until that control/support process and the legal offer are ready.
+
+
+### Подписанный Android-релиз
+
+Для релизной сборки откройте Actions → **Release (signed APK + AAB)**. Перед первым запуском настройте постоянный keystore по инструкции в `mobile/signing/README.md` и добавьте четыре GitHub Actions secrets: `ARVEX_KEYSTORE_BASE64`, `ARVEX_STORE_PASSWORD`, `ARVEX_KEY_ALIAS`, `ARVEX_KEY_PASSWORD`. Workflow создаёт подписанные release APK и AAB; APK предназначен для установки на Android, AAB — для Google Play. При каждом обновлении увеличивайте version code и используйте тот же keystore.
