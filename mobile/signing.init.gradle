@@ -1,18 +1,25 @@
-// Подпись релиза через init-скрипт Gradle: не нужно править сгенерированный android/app/build.gradle.
-// Данные берутся из переменных окружения (секреты GitHub), в репозитории их нет.
+// Подпись Android release и фиксация версии без правки сгенерированного build.gradle.
 allprojects {
   afterEvaluate { p ->
-    if (p.plugins.hasPlugin('com.android.application') && System.getenv('ARVEX_KEYSTORE')) {
+    if (p.plugins.hasPlugin('com.android.application')) {
       p.android {
-        signingConfigs {
-          arvexRelease {
-            storeFile file(System.getenv('ARVEX_KEYSTORE'))
-            storePassword System.getenv('ARVEX_STORE_PASSWORD')
-            keyAlias System.getenv('ARVEX_KEY_ALIAS')
-            keyPassword System.getenv('ARVEX_KEY_PASSWORD')
+        if (System.getenv('ARVEX_KEYSTORE')) {
+          signingConfigs {
+            arvexRelease {
+              storeFile file(System.getenv('ARVEX_KEYSTORE'))
+              storePassword System.getenv('ARVEX_STORE_PASSWORD')
+              keyAlias System.getenv('ARVEX_KEY_ALIAS')
+              keyPassword System.getenv('ARVEX_KEY_PASSWORD')
+            }
+          }
+          buildTypes { release { signingConfig signingConfigs.arvexRelease } }
+        }
+        if (System.getenv('ARVEX_VERSION_CODE') || System.getenv('ARVEX_VERSION_NAME')) {
+          defaultConfig {
+            if (System.getenv('ARVEX_VERSION_CODE')) versionCode Integer.parseInt(System.getenv('ARVEX_VERSION_CODE'))
+            if (System.getenv('ARVEX_VERSION_NAME')) versionName System.getenv('ARVEX_VERSION_NAME')
           }
         }
-        buildTypes { release { signingConfig signingConfigs.arvexRelease } }
       }
     }
   }
