@@ -77,6 +77,7 @@ Deploy both functions from the repository using the Supabase CLI linked to the c
 ```sh
 supabase functions deploy create-stars-invoice
 supabase functions deploy telegram-stars-webhook
+supabase functions deploy cancel-stars-subscription
 ```
 
 The `telegram-stars-webhook` function has JWT verification disabled in `supabase/config.toml`; it authenticates Telegram using the webhook secret header. The invoice function requires the signed-in ARVEX user's JWT.
@@ -85,4 +86,4 @@ Set the bot webhook to the deployed function URL using Telegram's `setWebhook` m
 
 After configuring Supabase's `cloud-config.js` with the project URL and publishable/anon key, set `starsEnabled: true` in `shop-config.js`. Test a real Stars payment and its automatic renewal/cancellation behavior before announcing the subscription to customers.
 
-**Important:** Telegram Stars subscriptions are recurring. Users must be told clearly that renewal is automatic and can be cancelled through Telegram. This code does not yet provide an in-app cancellation control. Do not activate sales until that control/support process and the legal offer are ready.
+**Important:** Telegram Stars subscriptions are recurring. Users must be told clearly that renewal is automatic and can be cancelled through Telegram. The ARVEX profile includes controls to disable or re-enable automatic renewal; the paid period remains active until its expiry. Do not activate sales until that control/support process and the legal offer are ready.
