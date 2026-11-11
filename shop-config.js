@@ -1,7 +1,7 @@
 // Настройки платного доступа. Пока enabled:false — в приложении показывается только «скоро».
 // Включай (enabled:true) только после оформления самозанятости/ИП и заполнения оферты (offer.html).
 window.ARVEX_SHOP=window.ARVEX_SHOP||{
-  enabled:false,
+  enabled:false,\n  starsEnabled:false, // включить только после настройки Supabase Edge Functions и Telegram webhook\n  stars:120,          // цена подписки в Telegram Stars\n  subscriptionDays:30,
   price:990,          // обычная цена, ₽, разовый платёж навсегда
   promoPrice:490,     // цена по акции для первых покупателей (0 — без акции)
   telegram:"mrasulv",  // твой Telegram без @, например "mrasulv"
