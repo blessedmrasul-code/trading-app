@@ -217,3 +217,14 @@ select.field{appearance:none}
 .premium-actions select{grid-column:1/-1}
 .premium-actions button{font-size:12px;padding:10px 6px}
 @media(min-width:600px){.premium-user{grid-template-columns:minmax(0,1fr) 230px;align-items:center}.premium-actions{grid-template-columns:1fr 1fr}.premium-actions select{grid-column:1/-1}}
+
+
+/* PREMIUM admin dashboard */
+.premium-stat-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:10px 0 16px}
+.premium-stat-grid>div{padding:12px;border:1px solid var(--border);border-radius:12px;background:var(--panel)}
+.premium-stat-grid small,.premium-stat-grid b{display:block}
+.premium-stat-grid small{color:var(--muted);font-size:11px}
+.premium-stat-grid b{font-size:20px;margin-top:3px}
+.premium-event{padding:10px 0;border-top:1px solid var(--border)}
+.premium-event b,.premium-event small{display:block;overflow-wrap:anywhere}
+.premium-event small{color:var(--muted);font-size:11px;margin-top:3px}
