@@ -1,11 +1,16 @@
-/* ARVEX Access: заявка на платный доступ (разовый, без продления) и проверка доступа.
-   Доступ выдаёт владелец вручную (таблица entitlements в Supabase). Проверка — на сервере, не в JS. */
+/* ARVEX Access: заявка на доступ и серверная проверка entitlement. Локальный флаг Premium не используется. */
 const Access=(()=>{
  const shop=()=>window.ARVEX_SHOP||{};
- const PK="arvex_premium";
+ let entitlement=null;
  const price=()=>{const s=shop();return s.promoPrice>0&&s.promoPrice<s.price?s.promoPrice:s.price};
- const isPremium=()=>{try{return localStorage.getItem(PK)==="1"}catch(e){return false}};
- const setPremium=v=>{try{v?localStorage.setItem(PK,"1"):localStorage.removeItem(PK)}catch(e){}};
+ const isPremium=()=>{
+  if(!entitlement)return false;
+  if(entitlement.expires_at){
+   const expiry=Date.parse(entitlement.expires_at);
+   if(!Number.isFinite(expiry)||expiry<=Date.now())return false;
+  }
+  return ["lifetime","monthly","premium"].includes(String(entitlement.plan||"").toLowerCase());
+ };
  const locked=f=>!!(shop().enabled&&(shop().lockedFeatures||[]).includes(f)&&!isPremium());
  function cardHTML(){
   const s=shop();
@@ -49,8 +54,16 @@ const Access=(()=>{
   window.open(`https://t.me/${encodeURIComponent(s.telegram)}?text=${encodeURIComponent(text)}`,"_blank","noopener");
  }
  async function refresh(){
-  if(typeof Cloud==="undefined"||!Cloud.isIn())return;
-  try{const row=await Cloud.myEntitlement();setPremium(!!row);if(typeof activeScreen!=="undefined"&&activeScreen==="profile")renderProfile()}catch(e){}
+  entitlement=null;
+  if(typeof Cloud==="undefined"||!Cloud.isIn()){
+   if(typeof activeScreen!=="undefined"&&activeScreen==="profile")renderProfile();
+   return;
+  }
+  try{
+   const row=await Cloud.myEntitlement();
+   entitlement=row||null;
+  }catch(e){entitlement=null}
+  if(typeof activeScreen!=="undefined"&&activeScreen==="profile")renderProfile();
  }
  function click(t){
   if(t.closest("#accBuy")){openSheet(formHTML());return true}
