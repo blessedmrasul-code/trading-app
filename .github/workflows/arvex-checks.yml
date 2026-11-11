@@ -3,11 +3,14 @@ name: ARVEX static checks
 on:
   pull_request:
     branches: [main]
-  push:
-    branches: [feature/arvex-premium-foundation]
+  workflow_dispatch:
 
 permissions:
   contents: read
+
+concurrency:
+  group: arvex-validation-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   validate:
