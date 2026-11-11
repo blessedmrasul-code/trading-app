@@ -54,7 +54,7 @@ ARVEX now contains a server-side Telegram Stars subscription flow. It is deliber
 - Default price: **120 Telegram Stars**.
 - Billing period: **30 days**, using Telegram's recurring Stars invoice support.
 - Payment is verified by the Telegram webhook; the browser never grants Premium itself.
-- The owner receives lifetime access when their Supabase Auth user UUID matches the server secret `ARVEX_OWNER_USER_ID`.
+- When the owner signs in and requests Premium in the app, the server grants lifetime access and adds that Supabase Auth UUID to `arvex_admins` if it matches `ARVEX_OWNER_USER_ID`.
 
 ### Supabase database
 
