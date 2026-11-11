@@ -5,11 +5,11 @@ const Access=(()=>{
  const price=()=>{const s=shop();return s.promoPrice>0&&s.promoPrice<s.price?s.promoPrice:s.price};
  const isPremium=()=>{
   if(!entitlement)return false;
-  if(entitlement.expires_at){
-   const expiry=Date.parse(entitlement.expires_at);
-   if(!Number.isFinite(expiry)||expiry<=Date.now())return false;
-  }
-  return ["lifetime","monthly","premium"].includes(String(entitlement.plan||"").toLowerCase());
+  const plan=String(entitlement.plan||"").toLowerCase();
+  if(plan==="lifetime")return !entitlement.expires_at;
+  if(!["monthly","premium"].includes(plan)||!entitlement.expires_at)return false;
+  const expiry=Date.parse(entitlement.expires_at);
+  return Number.isFinite(expiry)&&expiry>Date.now();
  };
  const locked=f=>!!(shop().enabled&&(shop().lockedFeatures||[]).includes(f)&&!isPremium());
  function cardHTML(){
