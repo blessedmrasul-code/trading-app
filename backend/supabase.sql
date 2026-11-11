@@ -59,34 +59,50 @@ create policy "Anyone can submit an ARVEX order"
 
 grant insert on public.orders to anon, authenticated;
 
-create table if not exists public.entitlements (
+create table if not exists public.arvex_admins (
   user_id uuid primary key references auth.users(id) on delete cascade,
-  plan text not null default 'lifetime',
-  expires_at timestamptz,
-  updated_at timestamptz not null default now(),
-  auto_renew boolean not null default true
+  created_at timestamptz not null default now()
 );
 
-alter table public.entitlements add column if not exists auto_renew boolean not null default true;
-alter table public.entitlements enable row level security;
+alter table public.arvex_admins enable row level security;
+revoke all on public.arvex_admins from anon, authenticated;
+grant all on public.arvex_admins to service_role;
 
-drop policy if exists "Users read own ARVEX entitlement" on public.entitlements;
-create policy "Users read own ARVEX entitlement"
-  on public.entitlements for select
+create table if not exists public.arvex_subscriptions (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  starts_at timestamptz not null default now(),
+  expires_at timestamptz,
+  is_forever boolean not null default false,
+  updated_at timestamptz not null default now(),
+  updated_by uuid references auth.users(id),
+  auto_renew boolean not null default false
+);
+
+alter table public.arvex_subscriptions
+  add column if not exists auto_renew boolean not null default false;
+alter table public.arvex_subscriptions enable row level security;
+
+drop policy if exists "Users read own ARVEX subscription" on public.arvex_subscriptions;
+drop policy if exists "users read own subscription" on public.arvex_subscriptions;
+create policy "Users read own ARVEX subscription"
+  on public.arvex_subscriptions for select
   to authenticated
   using ((select auth.uid()) = user_id);
 
-grant select on public.entitlements to authenticated;
-grant all on public.entitlements to service_role;
+grant select on public.arvex_subscriptions to authenticated;
+grant all on public.arvex_subscriptions to service_role;
 
--- Owner grants lifetime access manually after verifying payment:
--- insert into public.entitlements (user_id, plan, expires_at)
--- values ('AUTH_USER_UUID', 'lifetime', null)
+-- Owner receives lifetime access after ARVEX_OWNER_USER_ID is set as an Edge Function secret.
+-- Manual owner grant, if needed:
+-- insert into public.arvex_subscriptions (user_id, starts_at, expires_at, is_forever, auto_renew)
+-- values ('AUTH_USER_UUID', now(), null, true, false)
 -- on conflict (user_id) do update
--- set plan = excluded.plan, expires_at = null, updated_at = now();
+-- set starts_at = now(), expires_at = null, is_forever = true, auto_renew = false, updated_at = now();
 
--- Owner revokes access:
--- delete from public.entitlements where user_id = 'AUTH_USER_UUID';
+-- Revoke a user's Premium access:
+-- update public.arvex_subscriptions
+-- set expires_at = now(), is_forever = false, auto_renew = false, updated_at = now()
+-- where user_id = 'AUTH_USER_UUID';
 
 -- Telegram Stars subscription intents and verified payment receipts.
 -- These tables are server-only: no anon/authenticated policies or grants.
