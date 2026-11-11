@@ -56,6 +56,7 @@ const Cloud=(()=>{
    const fresh=!local||(!(local.history||[]).length&&!(local.positions||[]).length&&!local.xp&&(local.level||1)<=1&&!Object.keys((local.progress&&local.progress.lessons)||{}).length&&!Object.keys((local.progress&&local.progress.exams)||{}).length);
    if(row&&(ct>lt||fresh)){localStorage.setItem(STORAGE_KEY,JSON.stringify(row.data));loadState();rerender();status="Загружено из облака"}
    else if(raw){await push(raw);status="Сохранено в облако"}
+   if(typeof Access!=="undefined")Access.refresh();
    status+=" · "+new Date().toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit"});
   }catch(e){status="Ошибка синхронизации: "+e.message}
   busy=false;if(typeof activeScreen!=="undefined"&&activeScreen==="profile")renderProfile();
@@ -65,7 +66,7 @@ const Cloud=(()=>{
  function accountHTML(){
   if(!enabled())return `<p class="muted" style="margin:0">Сейчас профиль хранится на этом устройстве.</p><div class="soon">🔒 Облачные аккаунты подключаются владельцем проекта (см. README → «Облако»).</div>`;
   if(session)return `<p style="margin:0 0 8px">Вход выполнен: <b>${esc(session.email)}</b></p><p class="muted" style="margin:0 0 10px">${esc(status||"Прогресс синхронизируется автоматически.")}</p><div class="btn-row"><button class="ghost" id="cloudSync">↻ Синхронизировать</button><button class="danger" id="cloudOut">Выйти</button></div>`;
-  return `<p class="muted" style="margin:0 0 10px">Войди, чтобы сохранить прогресс в облаке и открыть его на другом устройстве.</p><input id="cEmail" type="email" placeholder="Email" autocomplete="email"><input id="cPass" type="password" placeholder="Пароль (от 8 символов)" autocomplete="current-password" style="margin-top:8px"><div class="btn-row" style="margin-top:10px"><button class="primary" id="cloudIn">Войти</button><button class="ghost" id="cloudUp">Регистрация</button></div><p class="muted" id="cloudMsg" style="margin:8px 0 0"></p>`;
+  return `<p class="muted" style="margin:0 0 10px">Войди, чтобы сохранить прогресс в облаке и открыть его на другом устройстве.</p><input class="field" id="cEmail" type="email" placeholder="Email" autocomplete="email"><input class="field" id="cPass" type="password" placeholder="Пароль (от 8 символов)" autocomplete="current-password" style="margin-top:8px"><div class="btn-row" style="margin-top:10px"><button class="primary" id="cloudIn">Войти</button><button class="ghost" id="cloudUp">Регистрация</button></div><p class="muted" id="cloudMsg" style="margin:8px 0 0"></p>`;
  }
  async function form(kind){
   const e=($("cEmail").value||"").trim(),p=$("cPass").value||"",m=$("cloudMsg");
@@ -85,5 +86,15 @@ const Cloud=(()=>{
   if(t.closest("#cloudOut")){signOut();renderProfile();return true}
   return false;
  }
- return {enabled,accountHTML,click,schedule,sync,isIn:()=>!!session};
+async function insertOrder(o){
+  const tok=session?await token():cfg().anonKey;
+  const body={...o};if(session)body.user_id=session.uid;
+  await req("/rest/v1/orders",{method:"POST",headers:{...hdr(tok),"Prefer":"return=minimal"},body:JSON.stringify(body)});return true;
+ }
+ async function myEntitlement(){
+  const tok=await token();
+  const rows=await req(`/rest/v1/entitlements?user_id=eq.${session.uid}&select=plan`,{headers:hdr(tok)});
+  return rows&&rows[0]?rows[0]:null;
+ }
+ return {insertOrder,myEntitlement,enabled,accountHTML,click,schedule,sync,isIn:()=>!!session};
 })();

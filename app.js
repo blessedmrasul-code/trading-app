@@ -18,7 +18,7 @@ const MMR=0.005, FUNDING_RATE=0.0001, FUNDING_MS=8*3600*1000;
 let balance=10000, closedPnl=0, xp=0, level=1, positions=[], history=[], currentAsset="BTCUSDT";
 let progress={lessons:{},quizzes:{},exams:{}};
 let profile=null, tradeXp={day:"",amount:0}, tourDone=false, tourStep=0;
-let prices={}, changes={}, live=false, klLive=false, tf="15m", candles=[], chart=null, candleReq=0, toastTimer=null, pendingAvatar=0, editingProfile=false, activeScreen="trade";
+let prices={}, changes={}, live=false, klLive=false, tf="15m", candles=[], chart=null, candleReq=0, toastTimer=null, pendingAvatar=0, pendingPhoto="", editingProfile=false, activeScreen="trade";
 
 // Страховка: заставка не должна зависнуть даже при ошибке запуска.
 setTimeout(()=>{const s=$("splash");if(s)s.classList.add("out")},4500);
@@ -46,7 +46,7 @@ function loadState(){
   if(s.progress&&typeof s.progress==="object")progress={lessons:{...(s.progress.lessons||{})},quizzes:{...(s.progress.quizzes||{})},exams:{...(s.progress.exams||{})}};
   tourDone=!!s.tourDone;
   if(s.tradeXp&&typeof s.tradeXp==="object")tradeXp={day:String(s.tradeXp.day||""),amount:n(s.tradeXp.amount,0)};
-  if(s.profile&&s.profile.name)profile={name:String(s.profile.name),username:String(s.profile.username||""),avatar:Number(s.profile.avatar)||0};
+  if(s.profile&&s.profile.name)profile={name:String(s.profile.name),username:String(s.profile.username||""),avatar:Number(s.profile.avatar)||0,photo:/^data:image\/jpeg;base64,/.test(s.profile.photo||"")?s.profile.photo:""};
  }
  if(!profile){ // миграция со старых версий
   try{const nm=localStorage.getItem("arvex_name"),un=localStorage.getItem("arvex_username");if(nm&&un)profile={name:nm,username:un,avatar:0}}catch(e){}
@@ -153,6 +153,7 @@ function readTpSl(direction,entry){
 function openTrade(direction){
  const margin=Number($("amount").value),lev=Number($("leverage").value)||1;
  if(!Number.isFinite(margin)||margin<=0){showToast("Укажи сумму больше нуля.");return false}
+ if(margin<1){showToast("Минимальная сумма — $1.");return false}
  if(margin>balance){showToast("Недостаточно демо-средств для маржи.");return false}
  const entry=marketPrice(),ts=readTpSl(direction,entry);
  if(ts.err){showToast(ts.err);return false}
@@ -244,13 +245,14 @@ function renderPortfolioStats(){
 function renderPortfolio(){renderPortfolioStats();$("portfolioPositions").innerHTML=positionRows();$("historyContent").innerHTML=historyRows()}
 
 /* ===== Верхняя панель и профиль ===== */
-function applyAvatar(el,idx,name){
+function applyAvatar(el,idx,name,photo){
+ if(photo){el.style.background=`center/cover no-repeat url(${photo})`;el.textContent="";return}
  const [a,b]=AVATARS[(idx||0)%AVATARS.length];el.style.background=`linear-gradient(135deg,${a},${b})`;
  el.textContent=((name||"A").trim().charAt(0)||"A").toUpperCase();
 }
 function renderTop(){
- $("topBalance").textContent=money(balance);$("topLvl").textContent=level;
- applyAvatar($("topAvatar"),profile?.avatar,profile?.name);
+ $("topBalance").textContent=Math.abs(balance)>=1e6?(balance<0?"-":"")+"$"+(Math.abs(balance)/1e6).toFixed(2)+"M":money(balance);$("topLvl").textContent=level;
+ applyAvatar($("topAvatar"),profile?.avatar,profile?.name,profile?.photo);
  if(activeScreen==="profile")renderProfile();
 }
 const ACHIEVEMENTS=[
@@ -279,11 +281,11 @@ function renderProfile(){
   <div class="stat"><small>Результат</small><b class="${closedPnl>=0?"pos":"neg"}">${closedPnl>=0?"+":""}${money(closedPnl)}</b></div><div class="stat"><small>Лучшая сделка</small><b class="${st.best>0?"pos":""}">${st.n?signed(st.best):"—"}</b></div>
   <div class="stat"><small>Уроков</small><b>${lessonsDone}/${total}</b></div><div class="stat"><small>Экзаменов сдано</small><b>${exams}/2</b></div></div>
   <div class="card"><div class="card-title">Достижения <span class="badge">${ach}/${ACHIEVEMENTS.length}</span></div><div class="ach-grid">${ACHIEVEMENTS.map(a=>`<div class="ach ${a.ok()?"on":""}"><i>${a.i}</i><b>${a.t}</b><small>${a.d}</small></div>`).join("")}</div></div>
-  <div class="card"><div class="card-title">Аккаунт</div>${typeof Cloud!=="undefined"?Cloud.accountHTML():""}</div>`;
- applyAvatar($("profAvatar"),p.avatar,p.name);
+  <div class="card"><div class="card-title">Аккаунт</div>${typeof Cloud!=="undefined"?Cloud.accountHTML():""}</div>${typeof Access!=="undefined"?Access.cardHTML():""}`;
+ applyAvatar($("profAvatar"),p.avatar,p.name,p.photo);
 }
 function openProfileModal(edit){
- editingProfile=!!edit;pendingAvatar=profile?.avatar||0;
+ editingProfile=!!edit;pendingAvatar=profile?.avatar||0;pendingPhoto=profile?.photo||"";
  $("welcomeTitle").textContent=edit?"Редактирование профиля":"Добро пожаловать в ARVEX";
  $("welcomeText").textContent=edit?"Измени имя, username или аватар.":"Создай профиль: сохраним демо-баланс, сделки, XP и прогресс школы на этом устройстве.";
  $("createProfile").textContent=edit?"Сохранить":"Создать профиль";$("cancelProfile").classList.toggle("hidden",!edit);
@@ -292,13 +294,26 @@ function openProfileModal(edit){
 }
 function renderAvatarPicker(){
  const name=$("welcomeName").value||"A";
- $("welcomeAvatars").innerHTML=AVATARS.map((g,i)=>`<button type="button" class="av ${i===pendingAvatar?"on":""}" data-av="${i}" style="background:linear-gradient(135deg,${g[0]},${g[1]})">${esc((name.trim().charAt(0)||"A").toUpperCase())}</button>`).join("");
+ $("welcomeAvatars").innerHTML=AVATARS.map((g,i)=>`<button type="button" class="av ${i===pendingAvatar&&!pendingPhoto?"on":""}" data-av="${i}" style="background:linear-gradient(135deg,${g[0]},${g[1]})">${esc((name.trim().charAt(0)||"A").toUpperCase())}</button>`).join("")+
+  `<label class="av photo ${pendingPhoto?"on":""}" style="${pendingPhoto?`background:center/cover url(${pendingPhoto})`:""}">${pendingPhoto?"":"📷"}<input type="file" id="avPhoto" accept="image/*" hidden></label>`+(pendingPhoto?`<button type="button" class="ghost" id="avPhotoDel" style="grid-column:1/-1">Убрать фото</button>`:"");
+}
+function pickPhoto(file){
+ if(!file||!/^image\//.test(file.type)){showToast("Выбери картинку.");return}
+ const url=URL.createObjectURL(file),img=new Image();
+ img.onload=()=>{
+  const c=document.createElement("canvas"),S=160;c.width=c.height=S;
+  const m=Math.min(img.width,img.height),sx=(img.width-m)/2,sy=(img.height-m)/2;
+  c.getContext("2d").drawImage(img,sx,sy,m,m,0,0,S,S);
+  pendingPhoto=c.toDataURL("image/jpeg",0.85);URL.revokeObjectURL(url);renderAvatarPicker();
+ };
+ img.onerror=()=>{URL.revokeObjectURL(url);showToast("Не удалось открыть фото.")};
+ img.src=url;
 }
 function submitProfile(){
  const name=$("welcomeName").value.trim(),un=$("welcomeUsername").value.trim();
  if(!name){showToast("Введи имя.");return}
  if(!/^[A-Za-z0-9_]{3,20}$/.test(un)){showToast("Username: 3–20 символов, латиница, цифры, _");return}
- profile={name,username:un,avatar:pendingAvatar};saveState();
+ profile={name,username:un,avatar:pendingAvatar,photo:pendingPhoto};saveState();
  $("welcomeModal").classList.add("hidden");renderTop();
  showToast(editingProfile?"Профиль обновлён.":`Добро пожаловать, ${name}!`);
  if(!editingProfile&&!tourDone)setTimeout(()=>openTour(0),700);
@@ -364,9 +379,12 @@ function runSplash(done){
 
 /* ===== Запуск ===== */
 function bind(){
+ document.addEventListener("change",e=>{if(e.target&&e.target.id==="avPhoto")pickPhoto(e.target.files&&e.target.files[0])});
  document.addEventListener("click",e=>{
   const t=e.target;
   if(typeof Cloud!=="undefined"&&Cloud.click(t))return;
+  if(typeof Access!=="undefined"&&Access.click(t))return;
+  if(t.closest("#avPhotoDel")){pendingPhoto="";renderAvatarPicker();return}
   const go_=t.closest("[data-go]");if(go_){go(go_.dataset.go);return}
   const cl=t.closest("[data-close]");if(cl){closePosition(Number(cl.dataset.close));return}
   const as=t.closest("[data-asset]");if(as){currentAsset=as.dataset.asset;saveState();renderTicker();renderHead();updateOrderPreview();candles=[];chart.setData([]);loadCandles();return}
@@ -375,7 +393,7 @@ function bind(){
   const lv=t.closest("[data-lev]");if(lv){$("leverage").value=lv.dataset.lev;$("levLabel").textContent=lv.dataset.lev+"x";document.querySelectorAll("#levChips button").forEach(b=>b.classList.toggle("on",b===lv));updateOrderPreview();return}
   const pc=t.closest("[data-pct]");if(pc){$("amount").value=Math.floor(balance*Number(pc.dataset.pct))/100;updateOrderPreview();return}
   const op=t.closest("[data-open]");if(op){confirmTrade(op.dataset.open);return}
-  const av=t.closest("[data-av]");if(av){pendingAvatar=Number(av.dataset.av);renderAvatarPicker();return}
+  const av=t.closest("[data-av]");if(av){pendingAvatar=Number(av.dataset.av);pendingPhoto="";renderAvatarPicker();return}
   if(t.closest("#tourNext")){if(tourStep>=TOUR.length-1)closeSheet();else openTour(tourStep+1);return}
   if(t.closest("#tourSkip")){closeSheet();return}
   if(t.closest("#showTour")){openTour(0);return}

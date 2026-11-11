@@ -204,3 +204,14 @@ select.field{appearance:none}
 .chart-foot span:last-child{text-align:right}
 
 .tour-dots{display:flex;justify-content:center;gap:7px;margin-top:14px}.tour-dots i{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.18)}.tour-dots i.on{width:22px;border-radius:8px;background:var(--purple)}
+.av.photo{background:#1c1c2b;cursor:pointer;font-size:22px;border-color:rgba(255,255,255,.18)}
+
+/* Аудит: узкие телефоны (≤ 369px) не должны растягивать страницу */
+html{overflow-x:hidden;max-width:100%}
+#splash{overflow:hidden}
+.ticker-row,.screen>*,.card,.chart-card,.order-card{min-width:0;max-width:100%}
+.topbar{gap:8px}.topbar>*{min-width:0}.brand{flex-shrink:0}.top-right{flex-shrink:1;gap:10px}.balance-chip b{white-space:nowrap}
+@media (max-width:389px){.brand em{display:none}.topbar{padding-left:12px;padding-right:12px}.balance-chip b{font-size:14px}}
+.stat-grid>*,.stat{min-width:0}.stat b{overflow-wrap:anywhere;font-size:clamp(14px,4.6vw,18px)}
+.nav button{min-width:0}.nav button span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.chart-foot{flex-wrap:wrap}.chart-foot span{min-width:0;overflow-wrap:anywhere}.chart-foot span:first-child{white-space:normal}
