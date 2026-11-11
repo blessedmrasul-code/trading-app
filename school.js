@@ -22,6 +22,7 @@ function renderSchool(){
  const box=$("schoolBody");if(!box)return;
  if(schoolTab==="lessons")box.innerHTML=lessonsHTML();
  else if(schoolTab==="exam")box.innerHTML=examHTML();
+ else if(schoolTab==="mentor")box.innerHTML=renderMentorHTML();
  else box.innerHTML=glossaryHTML();
 }
 function openLesson(id){schoolTab="lessons";lessonView={screen:"lesson",id,result:null};go("school")}
