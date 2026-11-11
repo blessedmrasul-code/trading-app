@@ -56,9 +56,11 @@ const Cloud=(()=>{
   busy=true;
   try{
    const row=await pull(),raw=localStorage.getItem(STORAGE_KEY);
-   const local=raw?JSON.parse(raw):null,lt=(local&&local.updatedAt)||0,ct=row&&row.data&&row.data.updatedAt||0;
-   const fresh=!local||(!(local.history||[]).length&&!(local.positions||[]).length&&!local.xp&&(local.level||1)<=1&&!Object.keys((local.progress&&local.progress.lessons)||{}).length&&!Object.keys((local.progress&&local.progress.exams)||{}).length);
-   if(row&&(ct>lt||fresh)){localStorage.setItem(STORAGE_KEY,JSON.stringify(row.data));loadState();rerender();status="Загружено из облака"}
+   const local=raw?JSON.parse(raw):null;
+   const lt=Number(local&&local.updatedAt)||0,ct=Number(row&&row.data&&row.data.updatedAt)||0;
+   // Сравниваем время последнего сохранения. Эвристика «пустого профиля»
+   // могла перезаписать более свежие локальные данные облачной копией.
+   if(row&&ct>lt){localStorage.setItem(STORAGE_KEY,JSON.stringify(row.data));loadState();rerender();status="Загружено из облака"}
    else if(raw){await push(raw);status="Сохранено в облако"}
    status+=" · "+new Date().toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit"});
   }catch(e){status="Ошибка синхронизации: "+e.message}
