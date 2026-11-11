@@ -77,6 +77,7 @@ create policy "Users read own ARVEX entitlement"
   using ((select auth.uid()) = user_id);
 
 grant select on public.entitlements to authenticated;
+grant all on public.entitlements to service_role;
 
 -- Owner grants lifetime access manually after verifying payment:
 -- insert into public.entitlements (user_id, plan, expires_at)
