@@ -87,4 +87,9 @@ await scenario({
   remote: { updatedAt: 200, balance: 12000, marker: "cloud-tie" },
   expectedMode: "push"
 });
-console.log("Cloud sync regression tests passed (newer cloud, newer local, equal timestamps).");
+await scenario({
+  local: { updatedAt: 400, balance: 6000, marker: "first-cloud-save" },
+  remote: null,
+  expectedMode: "push"
+});
+console.log("Cloud sync regression tests passed (newer cloud, newer local, equal timestamps, first cloud save).");
