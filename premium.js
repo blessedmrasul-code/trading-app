@@ -65,12 +65,12 @@
   if(e.target.closest("#premiumFind"))search();
   const g=e.target.closest("[data-grant]");if(g)action("grant",g.dataset.grant);
   const r=e.target.closest("[data-revoke]");if(r)action("revoke",r.dataset.revoke);
-  if(e.target.closest("#cloudIn")||e.target.closest("#cloudUp"))setTimeout(()=>{mount();loadStatus()},900);
+  if(e.target.closest("#cloudIn")||e.target.closest("#cloudUp"))setTimeout(()=>{mount();loadStatus();checkAdmin()},900);
  });
  document.addEventListener("keydown",e=>{if(e.key==="Enter"&&e.target.id==="premiumSearch")search();});
  window.addEventListener("DOMContentLoaded",()=>{
   const target=$("profileBody");if(target){observer=new MutationObserver(()=>{if(document.getElementById("screen-profile")?.classList.contains("active"))mount();});observer.observe(target,{childList:true});}
   mount();
  });
- window.addEventListener("arvex:cloud-auth",()=>{mount();loadStatus();});
+ window.addEventListener("arvex:cloud-auth",()=>{mount();loadStatus();checkAdmin();});
 })();
