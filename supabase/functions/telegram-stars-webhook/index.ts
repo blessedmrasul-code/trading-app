@@ -88,26 +88,26 @@ async function applySuccessfulPayment(message: any) {
   // Telegram supplies the authoritative expiration timestamp for recurring Stars payments.
   // A duplicate webhook writes the same expiry and the unique charge ID prevents duplicate receipts.
   if (isOwner) {
-    await db("entitlements?on_conflict=user_id", {
+    await db("arvex_subscriptions?on_conflict=user_id", {
       method: "POST",
       headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
       body: JSON.stringify({
-        user_id: intent.user_id, plan: "lifetime", expires_at: null, auto_renew: false,
-        updated_at: new Date().toISOString(),
+        user_id: intent.user_id, starts_at: new Date().toISOString(), expires_at: null,
+        is_forever: true, auto_renew: false, updated_at: new Date().toISOString(), updated_by: null,
       }),
     });
   } else {
     const current = await db(
-      `entitlements?user_id=eq.${encodeURIComponent(intent.user_id)}&select=plan,expires_at&limit=1`,
+      `arvex_subscriptions?user_id=eq.${encodeURIComponent(intent.user_id)}&select=is_forever,expires_at&limit=1`,
     );
     const existing = Array.isArray(current) ? current[0] : null;
-    if (String(existing?.plan || "").toLowerCase() !== "lifetime") {
+    if (existing?.is_forever !== true) {
       await db("entitlements?on_conflict=user_id", {
         method: "POST",
         headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
         body: JSON.stringify({
-          user_id: intent.user_id, plan: "monthly", expires_at: expiresAt, auto_renew: true,
-          updated_at: new Date().toISOString(),
+          user_id: intent.user_id, starts_at: new Date().toISOString(), expires_at: expiresAt,
+          is_forever: false, auto_renew: true, updated_at: new Date().toISOString(), updated_by: null,
         }),
       });
     }
@@ -164,9 +164,9 @@ async function applyRefund(message: any) {
   });
 
   const current = await db(
-    `entitlements?user_id=eq.${encodeURIComponent(payment.user_id)}&select=plan&limit=1`,
+    `arvex_subscriptions?user_id=eq.${encodeURIComponent(payment.user_id)}&select=is_forever&limit=1`,
   );
-  if (String(current?.[0]?.plan || "").toLowerCase() === "lifetime") return;
+  if (current?.[0]?.is_forever === true) return;
 
   const remaining = await db(
     `telegram_star_payments?user_id=eq.${encodeURIComponent(payment.user_id)}&refunded_at=is.null&expires_at=not.is.null&select=expires_at&order=expires_at.desc&limit=1`,
@@ -175,11 +175,11 @@ async function applyRefund(message: any) {
     ? remaining[0].expires_at
     : new Date().toISOString();
 
-  await db(`entitlements?user_id=eq.${encodeURIComponent(payment.user_id)}`, {
+  await db(`arvex_subscriptions?user_id=eq.${encodeURIComponent(payment.user_id)}`, {
     method: "PATCH",
     headers: { Prefer: "return=minimal" },
     body: JSON.stringify({
-      plan: "monthly", expires_at: expiresAt, auto_renew: false,
+      expires_at: expiresAt, is_forever: false, auto_renew: false,
       updated_at: new Date().toISOString(),
     }),
   });
