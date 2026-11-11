@@ -119,3 +119,5 @@ async function insertOrder(o){
  }
  return {insertOrder,myEntitlement,createStarsInvoice,setStarsAutoRenew,enabled,accountHTML,click,schedule,sync,isIn:()=>!!session};
 })();
+
+// Netlify production redeploy trigger: email confirmation redirects to the public site.
