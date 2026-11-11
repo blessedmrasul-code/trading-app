@@ -46,6 +46,13 @@ for (const rpc of ["arvex_my_premium", "arvex_admin_is_admin", "arvex_admin_stat
   if (!premium.includes(rpc) || !schema.includes(rpc)) fail(`PREMIUM RPC mismatch or missing function: ${rpc}`);
 }
 if (!process.exitCode) pass("PREMIUM UI RPC names match the SQL schema");
+if (!premium.includes("Подтверди, что перевод Telegram Stars проверен") || !premium.includes("q.length<3")) {
+  fail("PREMIUM admin confirmation or search validation is missing");
+}
+if (!premium.includes('$("premiumAdmin").hidden=true') || !premium.includes('window.addEventListener("arvex:cloud-auth"')) {
+  fail("PREMIUM admin panel must survive login state changes");
+}
+
 
 if (html.includes('src="access.js"') || html.includes('src="shop-config.js"')) {
   fail("legacy one-time-access scripts must not be loaded alongside subscription PREMIUM");
