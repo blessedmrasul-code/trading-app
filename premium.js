@@ -5,7 +5,7 @@
  const fmt = v => v ? new Date(v).toLocaleString("ru-RU",{dateStyle:"medium",timeStyle:"short"}) : "Навсегда";
  let observer, busy=false;
  async function rpc(name,args={}){
-  if(!window.Cloud || !Cloud.isIn()) throw new Error("Сначала войди в облачный аккаунт.");
+  if(typeof Cloud === "undefined" || !Cloud.isIn()) throw new Error("Сначала войди в облачный аккаунт.");
   return Cloud.rpc(name,args);
  }
  async function loadStatus(){
@@ -21,7 +21,7 @@
   return '<section class="card" id="premiumCard"><div class="card-title">ARVEX PREMIUM <span class="badge">100 ⭐ / 30 дней</span></div><div id="premiumStatus"><p class="muted">Проверяем подписку…</p></div><p class="note">Для покупки напиши владельцу и отправь 100 Telegram Stars. Доступ включается вручную после проверки платежа.</p><a class="primary" style="display:block;text-align:center;text-decoration:none" href="https://t.me/mrasulv" target="_blank" rel="noopener">Купить / продлить в Telegram · @mrasulv</a></section><section class="card" id="premiumAdmin"><div class="card-title">Администрирование PREMIUM</div><div id="premiumAdminBody"><p class="muted">Проверяем права администратора…</p></div></section>';
  }
  function mount(){
-  const box=$("profileBody"); if(!box || !window.Cloud || !Cloud.enabled())return;
+  const box=$("profileBody"); if(!box || typeof Cloud === "undefined" || !Cloud.enabled())return;
   if(!$("premiumCard")){box.insertAdjacentHTML("beforeend",cardHTML());loadStatus();checkAdmin();}
  }
  async function refreshAdminOverview(){
