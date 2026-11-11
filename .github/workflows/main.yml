@@ -1,6 +1,7 @@
 name: Build APK
 
 # Запуск вручную: Actions → Build APK → Run workflow
+# Проверочный запуск после настройки NETLIFY_AUTH_TOKEN
 on:
   push:
     branches: [main]
