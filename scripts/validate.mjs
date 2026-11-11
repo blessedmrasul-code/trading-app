@@ -9,12 +9,12 @@ const fail = (message) => { console.error("FAIL:", message); process.exitCode = 
 const pass = (message) => console.log("OK:", message);
 
 const html = read("index.html");
-const localScripts = [...html.matchAll(/<script\\b[^>]*\\bsrc=["']([^"']+)["']/gi)].map((m) => m[1]);
-const localStyles = [...html.matchAll(/<link\\b[^>]*\\bhref=["']([^"']+\\.css(?:\\?[^"']*)?)["']/gi)].map((m) => m[1]);
+const localScripts = [...html.matchAll(/<script\b[^>]*\bsrc=["']([^"']+)["']/gi)].map((m) => m[1]);
+const localStyles = [...html.matchAll(/<link\b[^>]*\bhref=["']([^"']+\.css(?:\?[^"']*)?)["']/gi)].map((m) => m[1]);
 
 for (const src of [...localScripts, ...localStyles]) {
-  if (/^(?:https?:)?\\/\\//i.test(src) || src.startsWith("data:")) continue;
-  const clean = src.split("?")[0].replace(/^\\.\\//, "");
+  if (/^(?:https?:)?\/\//i.test(src) || src.startsWith("data:")) continue;
+  const clean = src.split("?")[0].replace(/^\.\//, "");
   if (!fs.existsSync(path.join(root, clean))) fail(`index.html references missing asset: ${src}`);
 }
 if (!process.exitCode) pass("all local script and stylesheet references exist");
