@@ -82,6 +82,17 @@ jobs:
       - name: Build web files (www)
         run: npm run build:web
 
+      - name: Deploy website to Netlify
+        working-directory: .
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+        run: |
+          if [ -z "$NETLIFY_AUTH_TOKEN" ]; then
+            echo "::warning::NETLIFY_AUTH_TOKEN is not configured; website deploy skipped."
+            exit 0
+          fi
+          npx --yes netlify-cli deploy --prod --dir . --site a78b925e-f43c-4e3f-a9de-873439ac6e85 --auth "$NETLIFY_AUTH_TOKEN" --message "ARVEX production deploy from GitHub Actions"
+
       - name: Create Android project (if missing)
         run: |
           if [ ! -d android ]; then
