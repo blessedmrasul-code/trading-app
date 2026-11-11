@@ -87,7 +87,7 @@ async function applySuccessfulPayment(message: any) {
       method: "POST",
       headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
       body: JSON.stringify({
-        user_id: intent.user_id, plan: "lifetime", expires_at: null,
+        user_id: intent.user_id, plan: "lifetime", expires_at: null, auto_renew: false,
         updated_at: new Date().toISOString(),
       }),
     });
@@ -101,7 +101,7 @@ async function applySuccessfulPayment(message: any) {
         method: "POST",
         headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
         body: JSON.stringify({
-          user_id: intent.user_id, plan: "monthly", expires_at: expiresAt,
+          user_id: intent.user_id, plan: "monthly", expires_at: expiresAt, auto_renew: true,
           updated_at: new Date().toISOString(),
         }),
       });
@@ -119,6 +119,7 @@ async function applySuccessfulPayment(message: any) {
       stars_amount: payment.total_amount,
       currency: payment.currency,
       is_recurring: !!payment.is_recurring,
+      is_first_recurring: !!payment.is_first_recurring,
       expires_at: telegramExpiry > 0 ? expiresAt : null,
     }),
   });
