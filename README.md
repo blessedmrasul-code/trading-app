@@ -25,7 +25,7 @@
 Папка `mobile/`. GitHub → Actions → **Build APK** → Run workflow. Workflow копирует сайт в `mobile/www`, создаёт Android-проект, генерирует иконки из `mobile/assets` и собирает debug APK (артефакт `arvex-debug-apk`; галочка «Опубликовать APK в GitHub Releases» создаёт релиз). Для Google Play понадобится подписанный release-билд.
 
 ## Важно
-Это образовательный симулятор. Реальные деньги и ордера не используются. Не финансовая рекомендация. Серверные аккаунты и синхронизация между устройствами — следующий этап.
+Это образовательный симулятор. Реальные деньги и ордера не используются. Не финансовая рекомендация. Облачные аккаунты и синхронизация реализуются через Supabase.
 
 ## Netlify
 `netlify.toml` задаёт публикацию корня репозитория без сборки. В Netlify: Site configuration → Build & deploy → Continuous deployment должен быть привязан репозиторий `trading-app`, ветка `main`, Build command пустой, Publish directory `.`
