@@ -15,6 +15,11 @@ const Access=(()=>{
  function cardHTML(){
   const s=shop();
   if(isPremium()){const until=String(entitlement.plan||"").toLowerCase()==="lifetime"?"Пожизненный доступ активирован. Спасибо, что поддерживаешь проект!":`Подписка активна до ${new Date(entitlement.expires_at).toLocaleDateString("ru-RU")}.`;return `<div class="card"><div class="card-title">Доступ <span class="badge">Premium</span></div><p style="margin:0">${until}</p></div>`;}
+  if(s.starsEnabled){
+   if(typeof Cloud==="undefined"||!Cloud.enabled())return `<div class="card"><div class="card-title">ARVEX Premium</div><p class="muted" style="margin:0">Подписка через Telegram Stars скоро появится после подключения сервера.</p></div>`;
+   if(!Cloud.isIn())return `<div class="card"><div class="card-title">ARVEX Premium</div><p class="muted" style="margin:0">Войди в аккаунт ARVEX, чтобы оформить подписку и привязать её к своему прогрессу.</p></div>`;
+   return `<div class="card"><div class="card-title">ARVEX Premium</div><p style="margin:0 0 8px"><b>${Number(s.stars)||120} ⭐ / 30 дней</b> · автоматическое продление через Telegram Stars. Отменить продление можно в Telegram.</p><div class="btn-row"><button class="primary" id="accStarsBuy">Оформить подписку</button><button class="ghost" id="accStarsCheck">Проверить доступ</button></div><p class="muted" id="accStarsMsg" style="margin:8px 0 0"></p></div>`;
+  }
   if(!s.enabled)return `<div class="card"><div class="card-title">Premium</div><p class="muted" style="margin:0">Платный доступ с онлайн-уроками готовится. Разовая оплата, без подписок и автопродления.</p></div>`;
   const old=s.promoPrice>0&&s.promoPrice<s.price?` <s class="muted">${s.price} ₽</s>`:"";
   return `<div class="card"><div class="card-title">Premium</div><p style="margin:0 0 8px">Разовая оплата <b>${price()} ₽</b>${old} — доступ навсегда, без подписок и автопродления.</p><div class="btn-row"><button class="primary" id="accBuy">Получить доступ</button><button class="ghost" id="accOffer">Оферта</button></div></div>`;
@@ -53,6 +58,20 @@ const Access=(()=>{
   const text=`Здравствуйте! Хочу доступ к ARVEX (${price()} ₽). Мой Telegram: @${d.tg}. Устройство: ${d.dev}.`;
   window.open(`https://t.me/${encodeURIComponent(s.telegram)}?text=${encodeURIComponent(text)}`,"_blank","noopener");
  }
+ async function buyStars(){
+  const b=document.getElementById("accStarsBuy"),m=document.getElementById("accStarsMsg");
+  if(b){b.disabled=true;b.textContent="Создаю счёт…"}
+  if(m)m.textContent="";
+  try{
+   if(typeof Cloud==="undefined"||!Cloud.createStarsInvoice)throw new Error("Облачный сервер не подключён.");
+   const result=await Cloud.createStarsInvoice();
+   if(result.lifetime){await refresh();return}
+   if(!result.url)throw new Error("Telegram не вернул ссылку на оплату.");
+   window.open(result.url,"_blank","noopener");
+   if(m)m.textContent="Счёт открыт в Telegram. После оплаты вернись сюда и нажми «Проверить доступ».";
+  }catch(e){if(m)m.textContent=e.message}
+  finally{if(b){b.disabled=false;b.textContent="Оформить подписку"}}
+ }
  async function refresh(){
   entitlement=null;
   if(typeof Cloud==="undefined"||!Cloud.isIn()){
@@ -66,6 +85,8 @@ const Access=(()=>{
   if(typeof activeScreen!=="undefined"&&activeScreen==="profile")renderProfile();
  }
  function click(t){
+  if(t.closest("#accStarsBuy")){buyStars();return true}
+  if(t.closest("#accStarsCheck")){refresh();const m=document.getElementById("accStarsMsg");if(m)m.textContent="Проверка завершена. Если платёж только что прошёл, подожди несколько секунд и проверь ещё раз.";return true}
   if(t.closest("#accBuy")){openSheet(formHTML());return true}
   if(t.closest("#accOffer")){window.open("offer.html","_blank","noopener");return true}
   if(t.closest("#accSend")){send();return true}
