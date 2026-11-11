@@ -92,7 +92,7 @@ begin
   if not exists(select 1 from auth.users where id = p_user_id) then
     raise exception 'Пользователь не найден';
   end if;
-  if not coalesce(p_forever,false) and p_days not in (30,90,365) then
+  if not coalesce(p_forever,false) and (p_days is null or p_days not in (30,90,365)) then
     raise exception 'Допустимые сроки: 30, 90 или 365 дней';
   end if;
   if p_forever then
