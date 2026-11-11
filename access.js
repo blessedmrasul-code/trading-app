@@ -60,16 +60,17 @@ const Access=(()=>{
  }
  async function buyStars(){
   const b=document.getElementById("accStarsBuy"),m=document.getElementById("accStarsMsg");
+  const paymentWindow=window.open("about:blank","_blank");
   if(b){b.disabled=true;b.textContent="Создаю счёт…"}
   if(m)m.textContent="";
   try{
    if(typeof Cloud==="undefined"||!Cloud.createStarsInvoice)throw new Error("Облачный сервер не подключён.");
    const result=await Cloud.createStarsInvoice();
-   if(result.lifetime){await refresh();return}
+   if(result.lifetime){if(paymentWindow)paymentWindow.close();await refresh();return}
    if(!result.url)throw new Error("Telegram не вернул ссылку на оплату.");
-   window.open(result.url,"_blank","noopener");
+   if(paymentWindow)paymentWindow.location.href=result.url;else window.location.href=result.url;
    if(m)m.textContent="Счёт открыт в Telegram. После оплаты вернись сюда и нажми «Проверить доступ».";
-  }catch(e){if(m)m.textContent=e.message}
+  }catch(e){if(paymentWindow)paymentWindow.close();if(m)m.textContent=e.message}
   finally{if(b){b.disabled=false;b.textContent="Оформить подписку"}}
  }
  async function refresh(){
