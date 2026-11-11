@@ -204,3 +204,31 @@ select.field{appearance:none}
 .chart-foot span:last-child{text-align:right}
 
 .tour-dots{display:flex;justify-content:center;gap:7px;margin-top:14px}.tour-dots i{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.18)}.tour-dots i.on{width:22px;border-radius:8px;background:var(--purple)}
+
+/* ARVEX MENTOR PATCH: BEGIN */
+.mentor-hero,.mentor-next{background:linear-gradient(135deg,rgba(124,92,255,.18),rgba(20,23,36,.96));border:1px solid rgba(165,139,255,.24);border-radius:18px;padding:18px;margin:12px 0}
+.mentor-kicker,.mentor-next>small{font-size:10px;letter-spacing:1.5px;color:var(--purple2);font-weight:800}
+.mentor-hero h2{font-size:22px;margin:8px 0}
+.mentor-hero>p,.mentor-next p{color:var(--muted);font-size:13px;line-height:1.55}
+.mentor-progress{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:18px 0 12px}
+.mentor-progress>div{background:rgba(7,8,13,.45);border:1px solid var(--border);border-radius:12px;padding:10px 5px;text-align:center}
+.mentor-progress b{display:block;font-size:20px;color:var(--text)}
+.mentor-progress span{font-size:11px;color:var(--muted)}
+.mentor-bar{height:7px;border-radius:10px;background:rgba(255,255,255,.08);overflow:hidden;margin:8px 0}
+.mentor-bar i{display:block;height:100%;background:linear-gradient(90deg,var(--purple),var(--purple2));border-radius:10px}
+.mentor-hero>small{color:var(--muted);font-size:11px}
+.mentor-next h3{margin:8px 0;font-size:18px}
+.mentor-next .primary{width:100%;margin-top:8px}
+.mentor-card p{font-size:13px;line-height:1.6;color:var(--muted)}
+.mentor-card .note{font-size:11px}
+.mentor-module{padding:11px 0;border-bottom:1px solid var(--border)}
+.mentor-module:last-child{border-bottom:0}
+.mentor-module-head{display:flex;justify-content:space-between;gap:8px;align-items:center;font-size:12px}
+.mentor-module-head span{color:var(--muted);font-size:10px;text-align:right}
+.mentor-score{display:flex;align-items:baseline;gap:9px;margin-top:4px}
+.mentor-score b{font-size:30px;color:var(--purple2)}
+.mentor-score span{font-size:12px;color:var(--muted)}
+.mentor-plan,.mentor-check{padding-left:20px;color:var(--muted);font-size:13px;line-height:1.8}
+.mentor-check li{margin:5px 0}
+.mentor-disclaimer{padding:12px 14px;margin:12px 0;color:var(--muted);font-size:11px;line-height:1.55;border-left:2px solid var(--purple);background:rgba(124,92,255,.06);border-radius:0 10px 10px 0}
+/* ARVEX MENTOR PATCH: END */
