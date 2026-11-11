@@ -22,7 +22,7 @@
 `index.html`, `style.css`, `manifest.webmanifest`, `sw.js`, `netlify.toml`, `app.js` (ядро), `chart.js` (график), `school.js`, `tools.js`, `lessons.js`, `exam.js`, `glossary.js`, `logo.png`, `favicon.png`. Данные хранятся в localStorage браузера или приложения.
 
 ## Android APK (Capacitor)
-Папка `mobile/`. GitHub → Actions → **Build APK** → Run workflow. Workflow копирует сайт в `mobile/www`, создаёт Android-проект, генерирует иконки из `mobile/assets` и собирает debug APK (артефакт `arvex-debug-apk`; галочка «Опубликовать APK в GitHub Releases» создаёт релиз). Для Google Play понадобится подписанный release-билд.
+Папка `mobile/`. Workflow **Build APK** собирает debug APK для внутренней проверки. Для полноценного подписанного релиза используйте **Setup ARVEX signing key** (один раз), затем **Release (signed APK + AAB)**. Подробная пошаговая инструкция без Termux: [mobile/signing/README.md](mobile/signing/README.md).
 
 ## Важно
 Это образовательный симулятор. Реальные деньги и ордера не используются. Не финансовая рекомендация. Серверные аккаунты и синхронизация между устройствами — следующий этап.
@@ -38,7 +38,7 @@
 Пароли приложение не хранит, только токены сессии. При входе побеждает более свежее состояние; на новом пустом устройстве подтягивается облачное.
 
 ## Релиз для Google Play
-См. `mobile/signing/README.md` и workflow `Release (signed AAB + APK)`.
+См. `mobile/signing/README.md` и workflow **Release (signed APK + AAB)**. Для публикации в Google Play используется AAB.
 
 ## Платный доступ (текущий прототип)
 - `shop-config.js` содержит настройки старого сценария разовой оплаты. `enabled:false` — платный доступ выключен.
@@ -87,7 +87,7 @@ Set the bot webhook to the deployed function URL using Telegram's `setWebhook` m
 ```sh
 curl -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/setWebhook" \
   -H "Content-Type: application/json" \
-  -d "{\"url\":\"${SUPABASE_URL}/functions/v1/telegram-stars-webhook\",\"secret_token\":\"${TELEGRAM_WEBHOOK_SECRET}\",\"allowed_updates\":[\"message\",\"pre_checkout_query\"]}"
+  -d "{\\"url\\":\\"\${SUPABASE_URL}/functions/v1/telegram-stars-webhook\\",\\"secret_token\\":\\"\${TELEGRAM_WEBHOOK_SECRET}\\",\\"allowed_updates\\":[\\"message\\",\\"pre_checkout_query\\"]}"
 ```
 
 Keep the bot token and webhook secret private.
@@ -96,7 +96,6 @@ The repository's `cloud-config.js` is already connected to the ARVEX Supabase pr
 
 **Important:** Telegram Stars subscriptions are recurring. Users must be told clearly that renewal is automatic and can be cancelled through ARVEX or Telegram. The ARVEX profile includes controls to disable or re-enable automatic renewal; the paid period remains active until its expiry. Do not activate sales until that control/support process and the legal offer are ready.
 
-
 ### Подписанный Android-релиз
 
-Для релизной сборки откройте Actions → **Release (signed APK + AAB)**. Перед первым запуском настройте постоянный keystore по инструкции в `mobile/signing/README.md` и добавьте четыре GitHub Actions secrets: `ARVEX_KEYSTORE_BASE64`, `ARVEX_STORE_PASSWORD`, `ARVEX_KEY_ALIAS`, `ARVEX_KEY_PASSWORD`. Workflow создаёт подписанные release APK и AAB; APK предназначен для установки на Android, AAB — для Google Play. При каждом обновлении увеличивайте version code и используйте тот же keystore.
+Для релизной сборки сначала один раз запустите **Setup ARVEX signing key**. Он создаст keystore и сохранит данные подписи в GitHub Actions Secrets. Затем запустите **Release (signed APK + AAB)**. APK предназначен для установки на Android, AAB — для Google Play. При каждом обновлении увеличивайте version code и используйте тот же keystore.
