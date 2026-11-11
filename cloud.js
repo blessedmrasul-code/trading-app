@@ -113,8 +113,8 @@ async function insertOrder(o){
  }
  async function myEntitlement(){
   const tok=await token();
-  const rows=await req(`/rest/v1/entitlements?user_id=eq.${session.uid}&select=plan,expires_at,auto_renew`,{headers:hdr(tok)});
-  return rows&&rows[0]?rows[0]:null;
+  const rows=await req(`/rest/v1/arvex_subscriptions?user_id=eq.${session.uid}&select=is_forever,expires_at,auto_renew`,{headers:hdr(tok)});
+  return rows&&rows[0]?{plan:rows[0].is_forever?"lifetime":"monthly",expires_at:rows[0].expires_at,auto_renew:rows[0].auto_renew}:null;
  }
  return {insertOrder,myEntitlement,createStarsInvoice,setStarsAutoRenew,enabled,accountHTML,click,schedule,sync,isIn:()=>!!session};
 })();
