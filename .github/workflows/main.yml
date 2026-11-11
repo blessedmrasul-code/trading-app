@@ -2,6 +2,30 @@ name: Build APK
 
 # Запуск вручную: Actions → Build APK → Run workflow
 on:
+  push:
+    branches: [main]
+    paths:
+      - "mobile/**"
+      - ".github/workflows/main.yml"
+      - "index.html"
+      - "style.css"
+      - "app.js"
+      - "access.js"
+      - "shop-config.js"
+      - "offer.html"
+      - "cloud.js"
+      - "cloud-config.js"
+      - "chart.js"
+      - "school.js"
+      - "tools.js"
+      - "lessons.js"
+      - "exam.js"
+      - "glossary.js"
+      - "logo.png"
+      - "favicon.png"
+      - "icon-192.png"
+      - "icon-512.png"
+      - "manifest.webmanifest"
   workflow_dispatch:
     inputs:
       publish_release:
