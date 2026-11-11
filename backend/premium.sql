@@ -34,7 +34,7 @@ grant select on public.arvex_subscriptions to authenticated;
 
 drop policy if exists "users read own subscription" on public.arvex_subscriptions;
 create policy "users read own subscription" on public.arvex_subscriptions
-  for select to authenticated using (auth.uid() = user_id);
+  for select to authenticated using ((select auth.uid()) = user_id);
 
 create or replace function public.arvex_my_premium()
 returns table(is_active boolean, is_forever boolean, expires_at timestamptz)
@@ -182,3 +182,8 @@ revoke all on function public.arvex_admin_stats() from public, anon;
 revoke all on function public.arvex_admin_history(integer) from public, anon;
 grant execute on function public.arvex_admin_stats() to authenticated;
 grant execute on function public.arvex_admin_history(integer) to authenticated;
+
+-- Индексы для внешних ключей и истории операций.
+create index if not exists arvex_subscription_events_admin_id_idx on public.arvex_subscription_events(admin_id);
+create index if not exists arvex_subscription_events_user_id_idx on public.arvex_subscription_events(user_id);
+create index if not exists arvex_subscriptions_updated_by_idx on public.arvex_subscriptions(updated_by);
