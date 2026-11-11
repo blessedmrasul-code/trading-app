@@ -1,49 +1,52 @@
 # Подпись Android-релиза ARVEX
 
-Для release APK и AAB нужен постоянный приватный Android keystore. Не создавайте новый ключ для каждого обновления: Android не позволит обновить установленное приложение, если подпись изменится.
+Для подписанного release APK и AAB нужен постоянный приватный Android keystore. Ключ создаётся один раз и используется для всех будущих обновлений. Не создавайте новый ключ для каждого релиза.
 
-## 1. Создать ключ один раз
+## 1. Создать временный GitHub-токен
 
-На компьютере с установленным JDK выполните:
+На GitHub откройте **Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token**.
 
-```bash
-keytool -genkeypair -v -keystore arvex-release.jks -alias arvex-release -keyalg RSA -keysize 2048 -validity 10000
-```
+Настройки токена:
+- Token name: `ARVEX signing setup`
+- Expiration: 1 day
+- Resource owner: ваш аккаунт
+- Repository access: Only select repositories → `trading-app`
+- Repository permissions → **Secrets: Read and write**
 
-Сохраните файл `arvex-release.jks`, пароль хранилища, пароль ключа и alias в надёжном месте. Не отправляйте их в чат, не добавляйте keystore в Git и не публикуйте его.
+Создайте токен и скопируйте его. Не отправляйте токен в чат и никому его не показывайте.
 
-## 2. Подготовить Base64
+## 2. Добавить временный токен в репозиторий
 
-Linux/macOS:
-```bash
-base64 -w 0 arvex-release.jks
-```
+Откройте **trading-app → Settings → Secrets and variables → Actions → New repository secret**.
 
-macOS, если `-w` не поддерживается:
-```bash
-base64 < arvex-release.jks | tr -d '\\n'
-```
+- Name: `ARVEX_BOOTSTRAP_TOKEN`
+- Secret: вставьте скопированный токен.
 
-Windows PowerShell:
-```powershell
-[Convert]::ToBase64String([IO.File]::ReadAllBytes("arvex-release.jks"))
-```
+Сохраните секрет.
 
-## 3. Добавить GitHub Actions secrets
+## 3. Автоматически создать ключ подписи
 
-Откройте репозиторий → Settings → Secrets and variables → Actions → New repository secret. Создайте четыре секрета:
+Откройте **Actions → Setup ARVEX signing key → Run workflow** и запустите workflow на ветке `main`.
 
-- `ARVEX_KEYSTORE_BASE64` — вся Base64-строка из шага 2.
-- `ARVEX_STORE_PASSWORD` — пароль keystore.
-- `ARVEX_KEY_ALIAS` — `arvex-release` (или выбранный alias).
-- `ARVEX_KEY_PASSWORD` — пароль ключа.
+GitHub Actions:
+- создаст постоянный Android keystore;
+- сгенерирует случайные пароли;
+- сохранит keystore и пароли напрямую в GitHub Actions Secrets;
+- удалит временный `ARVEX_BOOTSTRAP_TOKEN` из секретов репозитория.
 
-Не вставляйте значения секретов в исходный код или Issues.
+Keystore не публикуется в репозитории и не загружается как артефакт.
+
+После успешного выполнения откройте настройки своего GitHub-аккаунта → Developer settings → Personal access tokens и **отзовите временный токен**.
 
 ## 4. Собрать релиз
 
-Откройте Actions → **Release (signed APK + AAB)** → Run workflow. Укажите version name и увеличьте version code относительно предыдущего релиза. После успешной сборки скачайте APK из Artifacts или GitHub Releases. AAB предназначен для Google Play.
+Откройте **Actions → Release (signed APK + AAB) → Run workflow**:
+- version name: `1.0.0`
+- version code: `1`
+- publish release: `true`
+
+Для каждого следующего релиза увеличивайте version code. После успешной сборки APK и AAB появятся в GitHub Releases и в Artifacts.
 
 ## Важно
 
-Потеря keystore или паролей может лишить возможности выпускать обновления с той же подписью. Сделайте две безопасные резервные копии keystore. Никогда не храните их в этом репозитории.
+Не удаляйте и не перезаписывайте секреты подписи. Один и тот же keystore нужен для всех обновлений установленного приложения. Храните резервную копию ключа и паролей в безопасном месте, если позже решите экспортировать их из защищённого хранилища.
