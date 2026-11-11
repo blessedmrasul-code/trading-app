@@ -101,9 +101,19 @@ async function insertOrder(o){
   if(!r.ok)throw new Error((j&&j.error)||("HTTP "+r.status));
   return j||{};
  }
+ async function setStarsAutoRenew(enabled){
+  if(!session)throw new Error("Сначала войди в аккаунт ARVEX.");
+  const tok=await token();
+  const r=await fetch(cfg().url.replace(/\/$/,"")+"/functions/v1/cancel-stars-subscription",{
+   method:"POST",headers:hdr(tok),body:JSON.stringify({enabled:!!enabled})
+  });
+  let j=null;try{j=await r.json()}catch(e){}
+  if(!r.ok)throw new Error((j&&j.error)||("HTTP "+r.status));
+  return j||{};
+ }
  async function myEntitlement(){
   const tok=await token();
-  const rows=await req(`/rest/v1/entitlements?user_id=eq.${session.uid}&select=plan,expires_at`,{headers:hdr(tok)});
+  const rows=await req(`/rest/v1/entitlements?user_id=eq.${session.uid}&select=plan,expires_at,auto_renew`,{headers:hdr(tok)});
   return rows&&rows[0]?rows[0]:null;
  }
  return {insertOrder,myEntitlement,enabled,accountHTML,click,schedule,sync,isIn:()=>!!session};
