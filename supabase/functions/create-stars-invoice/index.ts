@@ -67,13 +67,18 @@ Deno.serve(async (req: Request) => {
 
     const ownerId = Deno.env.get("ARVEX_OWNER_USER_ID") || "";
     if (ownerId && user.id === ownerId) {
-      await adminRequest("entitlements?on_conflict=user_id", {
+      await adminRequest("arvex_subscriptions?on_conflict=user_id", {
         method: "POST",
         headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
         body: JSON.stringify({
-          user_id: user.id, plan: "lifetime", expires_at: null, auto_renew: false,
-          updated_at: new Date().toISOString(),
+          user_id: user.id, starts_at: new Date().toISOString(), expires_at: null,
+          is_forever: true, auto_renew: false, updated_at: new Date().toISOString(), updated_by: null,
         }),
+      });
+      await adminRequest("arvex_admins?on_conflict=user_id", {
+        method: "POST",
+        headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
+        body: JSON.stringify({ user_id: user.id }),
       });
       return json({ lifetime: true, message: "Owner lifetime access is active." });
     }
