@@ -39,7 +39,7 @@ async function adminRequest(path: string, init: RequestInit = {}) {
     },
   });
   if (!response.ok) throw new Error(`Database request failed (${response.status})`);
-  return response.status === 204 ? null : await response.json();
+  return response.status === 204 ? null : await response.json().catch(() => null);
 }
 
 Deno.serve(async (req: Request) => {
