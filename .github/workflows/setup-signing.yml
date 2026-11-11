@@ -2,6 +2,9 @@ name: Setup ARVEX signing key
 
 on:
   workflow_dispatch:
+  push:
+    paths:
+      - ".github/workflows/trigger-setup-signing"
 
 permissions:
   contents: read
@@ -79,7 +82,6 @@ jobs:
               })
               print(f"Saved repository secret: {name}")
 
-          # Remove the temporary PAT from repository secrets after setup.
           request(f"{api}/ARVEX_BOOTSTRAP_TOKEN", "DELETE")
           print("Removed temporary bootstrap token from repository secrets.")
           PY
