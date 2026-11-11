@@ -102,7 +102,7 @@ async function applySuccessfulPayment(message: any) {
     );
     const existing = Array.isArray(current) ? current[0] : null;
     if (existing?.is_forever !== true) {
-      await db("entitlements?on_conflict=user_id", {
+      await db("arvex_subscriptions?on_conflict=user_id", {
         method: "POST",
         headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
         body: JSON.stringify({
