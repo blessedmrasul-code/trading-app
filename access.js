@@ -14,7 +14,12 @@ const Access=(()=>{
  const locked=f=>!!(shop().enabled&&(shop().lockedFeatures||[]).includes(f)&&!isPremium());
  function cardHTML(){
   const s=shop();
-  if(isPremium()){const until=String(entitlement.plan||"").toLowerCase()==="lifetime"?"Пожизненный доступ активирован. Спасибо, что поддерживаешь проект!":`Подписка активна до ${new Date(entitlement.expires_at).toLocaleDateString("ru-RU")}.`;return `<div class="card"><div class="card-title">Доступ <span class="badge">Premium</span></div><p style="margin:0">${until}</p></div>`;}
+  if(isPremium()){
+   const lifetime=String(entitlement.plan||"").toLowerCase()==="lifetime";
+   const until=lifetime?"Пожизненный доступ активирован. Спасибо, что поддерживаешь проект!":`Подписка активна до ${new Date(entitlement.expires_at).toLocaleDateString("ru-RU")}.`;
+   const renew=lifetime?"":`<p class="muted" style="margin:6px 0 0">${entitlement.auto_renew===false?"Автопродление отключено.":"Автопродление включено через Telegram Stars."}</p><button class="ghost" id="accStarsToggle" style="margin-top:10px">${entitlement.auto_renew===false?"Включить автопродление":"Отключить автопродление"}</button>`;
+   return `<div class="card"><div class="card-title">Доступ <span class="badge">Premium</span></div><p style="margin:0">${until}</p>${renew}<p class="muted" id="accStarsMsg" style="margin:8px 0 0"></p></div>`;
+  }
   if(s.starsEnabled){
    if(typeof Cloud==="undefined"||!Cloud.enabled())return `<div class="card"><div class="card-title">ARVEX Premium</div><p class="muted" style="margin:0">Подписка через Telegram Stars скоро появится после подключения сервера.</p></div>`;
    if(!Cloud.isIn())return `<div class="card"><div class="card-title">ARVEX Premium</div><p class="muted" style="margin:0">Войди в аккаунт ARVEX, чтобы оформить подписку и привязать её к своему прогрессу.</p></div>`;
@@ -73,6 +78,17 @@ const Access=(()=>{
   }catch(e){if(paymentWindow)paymentWindow.close();if(m)m.textContent=e.message}
   finally{if(b){b.disabled=false;b.textContent="Оформить подписку"}}
  }
+ async function toggleStarsRenew(){
+  const enabled=entitlement?.auto_renew===false;
+  const b=document.getElementById("accStarsToggle"),m=document.getElementById("accStarsMsg");
+  if(b){b.disabled=true;b.textContent="Сохраняю…"}
+  try{
+   if(typeof Cloud==="undefined"||!Cloud.setStarsAutoRenew)throw new Error("Сервер не подключён.");
+   const result=await Cloud.setStarsAutoRenew(enabled);
+   await refresh();
+   if(m)m.textContent=result.message||"Настройка обновлена.";
+  }catch(e){if(m)m.textContent=e.message;if(b)b.disabled=false}
+ }
  async function refresh(){
   entitlement=null;
   if(typeof Cloud==="undefined"||!Cloud.isIn()){
@@ -86,6 +102,7 @@ const Access=(()=>{
   if(typeof activeScreen!=="undefined"&&activeScreen==="profile")renderProfile();
  }
  function click(t){
+  if(t.closest("#accStarsToggle")){toggleStarsRenew();return true}
   if(t.closest("#accStarsBuy")){buyStars();return true}
   if(t.closest("#accStarsCheck")){refresh();const m=document.getElementById("accStarsMsg");if(m)m.textContent="Проверка завершена. Если платёж только что прошёл, подожди несколько секунд и проверь ещё раз.";return true}
   if(t.closest("#accBuy")){openSheet(formHTML());return true}
