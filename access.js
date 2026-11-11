@@ -11,7 +11,7 @@ const Access=(()=>{
   const expiry=Date.parse(entitlement.expires_at);
   return Number.isFinite(expiry)&&expiry>Date.now();
  };
- const locked=f=>!!(shop().enabled&&(shop().lockedFeatures||[]).includes(f)&&!isPremium());
+ const locked=f=>!!((shop().enabled||shop().starsEnabled)&&(shop().lockedFeatures||[]).includes(f)&&!isPremium());
  function cardHTML(){
   const s=shop();
   if(isPremium()){
@@ -23,7 +23,7 @@ const Access=(()=>{
   if(s.starsEnabled){
    if(typeof Cloud==="undefined"||!Cloud.enabled())return `<div class="card"><div class="card-title">ARVEX Premium</div><p class="muted" style="margin:0">Подписка через Telegram Stars скоро появится после подключения сервера.</p></div>`;
    if(!Cloud.isIn())return `<div class="card"><div class="card-title">ARVEX Premium</div><p class="muted" style="margin:0">Войди в аккаунт ARVEX, чтобы оформить подписку и привязать её к своему прогрессу.</p></div>`;
-   return `<div class="card"><div class="card-title">ARVEX Premium</div><p style="margin:0 0 8px"><b>${Number(s.stars)||120} ⭐ / 30 дней</b> · автоматическое продление через Telegram Stars. Отменить продление можно в Telegram.</p><div class="btn-row"><button class="primary" id="accStarsBuy">Оформить подписку</button><button class="ghost" id="accStarsCheck">Проверить доступ</button></div><p class="muted" id="accStarsMsg" style="margin:8px 0 0"></p></div>`;
+   return `<div class="card"><div class="card-title">ARVEX Premium</div><p style="margin:0 0 8px"><b>${Number(s.stars)||120} ⭐ / 30 дней</b> · автоматическое продление через Telegram Stars. Управляй автопродлением здесь или в Telegram.</p><div class="btn-row"><button class="primary" id="accStarsBuy">Оформить подписку</button><button class="ghost" id="accStarsCheck">Проверить доступ</button></div><p class="muted" id="accStarsMsg" style="margin:8px 0 0"></p></div>`;
   }
   if(!s.enabled)return `<div class="card"><div class="card-title">Premium</div><p class="muted" style="margin:0">Платный доступ с онлайн-уроками готовится. Разовая оплата, без подписок и автопродления.</p></div>`;
   const old=s.promoPrice>0&&s.promoPrice<s.price?` <s class="muted">${s.price} ₽</s>`:"";
