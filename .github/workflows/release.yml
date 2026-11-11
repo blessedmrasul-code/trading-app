@@ -62,7 +62,7 @@ jobs:
             echo "::error::version_code должен быть положительным целым числом"
             exit 1
           fi
-          if ! [[ "$VERSION_NAME" =~ ^[0-9]+(\\.[0-9]+){1,2}$ ]]; then
+          if ! [[ "$VERSION_NAME" =~ ^[0-9]+(\.[0-9]+){1,2}$ ]]; then
             echo "::error::version_name должен быть в формате 1.0 или 1.0.0"
             exit 1
           fi
