@@ -43,11 +43,11 @@
   const host=$("premiumAdminBody");if(!host)return;
   try{
    const yes=await rpc("arvex_admin_is_admin");
-   if(yes!==true){$("premiumAdmin").hidden=true;return;}
+   if(yes!==true){$("premiumAdmin").hidden=true;host.innerHTML='<p class="muted">Администрирование доступно владельцу после входа в облачный аккаунт.</p>';return;}
    $("premiumAdmin").hidden=false;
    host.innerHTML='<div class="card-title">Статистика</div><div id="premiumStats"></div><div class="card-title" style="margin-top:16px">Последние операции <button class="ghost" id="premiumRefresh" type="button">Обновить</button></div><div id="premiumHistory"></div><div class="card-title" style="margin-top:18px">Управление доступом</div><p class="muted">Поиск пользователей по email или UUID. Можно выдать 30, 90, 365 дней или навсегда.</p><div class="chat-input"><input class="field" id="premiumSearch" placeholder="Email или UUID"><button id="premiumFind" type="button">Найти</button></div><div id="premiumResults" class="premium-results"><p class="note">Введи email пользователя.</p></div>';
    await refreshAdminOverview();
-  }catch(e){const card=$("premiumAdmin");if(card)card.hidden=true;}
+  }catch(e){const card=$("premiumAdmin");if(card)card.hidden=true;host.innerHTML='<p class="muted">Войдите в облачный аккаунт владельца, чтобы открыть админ-панель.</p>';}
  }
  async function search(){
   const q=($("premiumSearch")?.value||"").trim(),out=$("premiumResults");if(!out)return;
