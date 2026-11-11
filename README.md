@@ -94,4 +94,4 @@ Keep the bot token and webhook secret private.
 
 After configuring Supabase's `cloud-config.js` with the project URL and publishable/anon key, set `starsEnabled: true` in `shop-config.js`. Test a real Stars payment and its automatic renewal/cancellation behavior before announcing the subscription to customers.
 
-**Important:** Telegram Stars subscriptions are recurring. Users must be told clearly that renewal is automatic and can be cancelled through Telegram. The ARVEX profile includes controls to disable or re-enable automatic renewal; the paid period remains active until its expiry. Do not activate sales until that control/support process and the legal offer are ready.
+**Important:** Telegram Stars subscriptions are recurring. Users must be told clearly that renewal is automatic and can be cancelled through ARVEX or Telegram. The ARVEX profile includes controls to disable or re-enable automatic renewal; the paid period remains active until its expiry. Do not activate sales until that control/support process and the legal offer are ready.
