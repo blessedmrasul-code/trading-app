@@ -17,7 +17,7 @@ drop policy if exists "Users read own ARVEX save" on public.arvex_saves;
 create policy "Users read own ARVEX save"
   on public.arvex_saves for select
   to authenticated
-  using (auth.uid() = user_id);
+  using ((select auth.uid()) = user_id);
 
 drop policy if exists "Users insert own ARVEX save" on public.arvex_saves;
 create policy "Users insert own ARVEX save"
@@ -29,8 +29,8 @@ drop policy if exists "Users update own ARVEX save" on public.arvex_saves;
 create policy "Users update own ARVEX save"
   on public.arvex_saves for update
   to authenticated
-  using (auth.uid() = user_id)
-  with check (auth.uid() = user_id);
+  using ((select auth.uid()) = user_id)
+  with check ((select auth.uid()) = user_id);
 
 grant select, insert, update on public.arvex_saves to authenticated;
 
@@ -51,7 +51,7 @@ create policy "Anyone can submit an ARVEX order"
   on public.orders for insert
   to anon, authenticated
   with check (
-    (user_id is null or user_id = auth.uid())
+    (user_id is null or user_id = (select auth.uid()))
     and char_length(device) between 2 and 60
     and tg ~ '^[A-Za-z0-9_]{5,32}$'
     and price >= 0
@@ -72,7 +72,7 @@ drop policy if exists "Users read own ARVEX entitlement" on public.entitlements;
 create policy "Users read own ARVEX entitlement"
   on public.entitlements for select
   to authenticated
-  using (auth.uid() = user_id);
+  using ((select auth.uid()) = user_id);
 
 grant select on public.entitlements to authenticated;
 
