@@ -71,7 +71,7 @@ Deno.serve(async (req: Request) => {
         method: "POST",
         headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
         body: JSON.stringify({
-          user_id: user.id, plan: "lifetime", expires_at: null,
+          user_id: user.id, plan: "lifetime", expires_at: null, auto_renew: false,
           updated_at: new Date().toISOString(),
         }),
       });
