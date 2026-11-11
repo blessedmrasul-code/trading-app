@@ -93,7 +93,7 @@ async function insertOrder(o){
  }
  async function myEntitlement(){
   const tok=await token();
-  const rows=await req(`/rest/v1/entitlements?user_id=eq.${session.uid}&select=plan`,{headers:hdr(tok)});
+  const rows=await req(`/rest/v1/entitlements?user_id=eq.${session.uid}&select=plan,expires_at`,{headers:hdr(tok)});
   return rows&&rows[0]?rows[0]:null;
  }
  return {insertOrder,myEntitlement,enabled,accountHTML,click,schedule,sync,isIn:()=>!!session};
