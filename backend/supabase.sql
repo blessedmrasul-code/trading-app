@@ -146,5 +146,7 @@ create index if not exists telegram_payment_intents_user_created_idx
   on public.telegram_payment_intents (user_id, created_at desc);
 create index if not exists telegram_star_payments_user_created_idx
   on public.telegram_star_payments (user_id, created_at desc);
+create index if not exists telegram_star_payments_intent_id_idx
+  on public.telegram_star_payments (intent_id);
 
 -- Edge Functions use the server-only service role key to write these records.
