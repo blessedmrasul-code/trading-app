@@ -93,7 +93,7 @@ jobs:
       - name: Build signed release APK and AAB
         working-directory: mobile/android
         env:
-          ARVEX_KEYSTORE: ../arvex-release.keystore
+          ARVEX_KEYSTORE: ${{ github.workspace }}/mobile/arvex-release.keystore
           ARVEX_STORE_PASSWORD: ${{ secrets.ARVEX_STORE_PASSWORD }}
           ARVEX_KEY_ALIAS: ${{ secrets.ARVEX_KEY_ALIAS }}
           ARVEX_KEY_PASSWORD: ${{ secrets.ARVEX_KEY_PASSWORD }}
