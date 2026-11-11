@@ -21,6 +21,18 @@
 ## Файлы
 `index.html`, `style.css`, `manifest.webmanifest`, `sw.js`, `netlify.toml`, `app.js` (ядро), `chart.js` (график), `school.js`, `tools.js`, `lessons.js`, `exam.js`, `glossary.js`, `logo.png`, `favicon.png`. Данные хранятся в localStorage браузера или приложения.
 
+## Проверки перед публикацией
+
+В GitHub Actions добавлена проверка **ARVEX static checks** для Pull Request в `main` и push в рабочую ветку. Она проверяет:
+- синтаксис всех корневых JavaScript-файлов;
+- наличие локальных JS/CSS-файлов, подключённых в `index.html`;
+- корректность `manifest.webmanifest`;
+- отсутствие service-role/secret ключа в клиентской конфигурации;
+- соответствие имён PREMIUM RPC клиентскому коду и SQL;
+- регрессионные сценарии облачной синхронизации (новее облако, новее локальные данные, одинаковое время).
+
+Локальный запуск: `node scripts/validate.mjs`. Эти проверки статические и не заменяют ручной тест регистрации, входа и выдачи PREMIUM на Deploy Preview.
+
 ## Android APK (Capacitor)
 Папка `mobile/`. GitHub → Actions → **Build APK** → Run workflow. Workflow копирует сайт в `mobile/www`, создаёт Android-проект, генерирует иконки из `mobile/assets` и собирает debug APK (артефакт `arvex-debug-apk`; галочка «Опубликовать APK в GitHub Releases» создаёт релиз). Для Google Play понадобится подписанный release-билд.
 
