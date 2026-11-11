@@ -73,12 +73,17 @@ async function applySuccessfulPayment(message: any) {
     throw new Error("Payment does not match a valid ARVEX invoice");
   }
 
+  const previous = await db(
+    `telegram_star_payments?telegram_payment_charge_id=eq.${encodeURIComponent(payment.telegram_payment_charge_id)}&select=id&limit=1`,
+  );
+  if (Array.isArray(previous) && previous.length) return;
+
   const ownerId = Deno.env.get("ARVEX_OWNER_USER_ID") || "";
   const isOwner = ownerId && intent.user_id === ownerId;
   const telegramExpiry = Number(payment.subscription_expiration_date || 0);
   const expiresAt = telegramExpiry > 0
     ? new Date(telegramExpiry * 1000).toISOString()
-    : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+    : new Date((Number(message.date) || Math.floor(Date.now() / 1000)) * 1000 + 30 * 24 * 60 * 60 * 1000).toISOString();
 
   // Telegram supplies the authoritative expiration timestamp for recurring Stars payments.
   // A duplicate webhook writes the same expiry and the unique charge ID prevents duplicate receipts.
