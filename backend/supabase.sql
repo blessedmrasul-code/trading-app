@@ -117,9 +117,11 @@ create table if not exists public.telegram_star_payments (
   is_recurring boolean not null default false,
   is_first_recurring boolean not null default false,
   expires_at timestamptz,
+  refunded_at timestamptz,
   created_at timestamptz not null default now()
 );
 
+alter table public.telegram_star_payments add column if not exists refunded_at timestamptz;
 alter table public.telegram_star_payments enable row level security;
 revoke all on public.telegram_star_payments from anon, authenticated;
 grant all on public.telegram_star_payments to service_role;
