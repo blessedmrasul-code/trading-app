@@ -1,6 +1,6 @@
 -- ARVEX Supabase schema
 -- Run once in Supabase SQL Editor.
--- RLS ensures each signed-in user can access only their own save/entitlement.
+-- RLS ensures each signed-in user can read only their own save and subscription; payment tables are server-only.
 -- Public order submission is allowed; public reads are intentionally forbidden.
 
 create extension if not exists pgcrypto;
