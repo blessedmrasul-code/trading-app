@@ -79,7 +79,7 @@ Deno.serve(async (req: Request) => {
       console.error("Telegram cancellation failed:", result.description || telegram.status);
       return json({ error: "Telegram не смог отменить автопродление. Попробуй позже." }, 502);
     }
-    await db(`entitlements?user_id=eq.${encodeURIComponent(user.id)}`, {
+    await db(`arvex_subscriptions?user_id=eq.${encodeURIComponent(user.id)}`, {
       method: "PATCH",
       headers: { Prefer: "return=minimal" },
       body: JSON.stringify({ auto_renew: enabled, updated_at: new Date().toISOString() }),
