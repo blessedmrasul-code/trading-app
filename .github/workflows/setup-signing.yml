@@ -11,11 +11,17 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - name: Generate private Android signing key
+      - name: Generate key and save it directly to repository secrets
         env:
-          STORE_PASSWORD: ${{ secrets.ARVEX_BOOTSTRAP_TOKEN != '' && 'generated-in-next-step' || '' }}
+          GH_TOKEN: ${{ secrets.ARVEX_BOOTSTRAP_TOKEN }}
+          REPOSITORY: ${{ github.repository }}
         run: |
           set -euo pipefail
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::error::Add the ARVEX_BOOTSTRAP_TOKEN repository secret before running this workflow."
+            exit 1
+          fi
+
           mkdir -p "$RUNNER_TEMP/arvex-signing"
           STORE_PASSWORD="$(openssl rand -hex 32)"
           echo "::add-mask::$STORE_PASSWORD"
@@ -28,24 +34,9 @@ jobs:
             -dname "CN=ARVEX Release, OU=Android, O=ARVEX, L=Unknown, ST=Unknown, C=DE"
           KEYSTORE_B64="$(base64 -w 0 "$RUNNER_TEMP/arvex-signing/arvex-release.keystore")"
           echo "::add-mask::$KEYSTORE_B64"
-          {
-            echo "STORE_PASSWORD=$STORE_PASSWORD"
-            echo "KEYSTORE_B64=$KEYSTORE_B64"
-          } >> "$GITHUB_ENV"
 
-      - name: Save signing data directly to GitHub Actions Secrets
-        env:
-          GH_TOKEN: ${{ secrets.ARVEX_BOOTSTRAP_TOKEN }}
-          STORE_PASSWORD: ${{ env.STORE_PASSWORD }}
-          KEYSTORE_B64: ${{ env.KEYSTORE_B64 }}
-          REPOSITORY: ${{ github.repository }}
-        run: |
-          set -euo pipefail
-          if [ -z "$GH_TOKEN" ]; then
-            echo "::error::Add the ARVEX_BOOTSTRAP_TOKEN repository secret before running this workflow."
-            exit 1
-          fi
           python -m pip install --quiet pynacl
+          export STORE_PASSWORD KEYSTORE_B64
           python - <<'PY'
           import base64, json, os, urllib.request, urllib.error
           from nacl.public import PublicKey, SealedBox
@@ -72,15 +63,14 @@ jobs:
                   raise RuntimeError(f"GitHub API returned HTTP {exc.code}: {detail[:300]}")
 
           public_key = request(api + "/public-key")
-          key = PublicKey(base64.b64decode(public_key["key"]))
-          box = SealedBox(key)
-
+          box = SealedBox(PublicKey(base64.b64decode(public_key["key"])))
           values = {
               "ARVEX_KEYSTORE_BASE64": os.environ["KEYSTORE_B64"],
               "ARVEX_STORE_PASSWORD": os.environ["STORE_PASSWORD"],
               "ARVEX_KEY_ALIAS": "arvex-release",
               "ARVEX_KEY_PASSWORD": os.environ["STORE_PASSWORD"],
           }
+
           for name, value in values.items():
               encrypted = base64.b64encode(box.encrypt(value.encode())).decode()
               request(f"{api}/{name}", "PUT", {
@@ -89,14 +79,9 @@ jobs:
               })
               print(f"Saved repository secret: {name}")
 
-          # Remove the temporary PAT from repository secrets after it has done its job.
-          try:
-              request(f"{api}/ARVEX_BOOTSTRAP_TOKEN", "DELETE")
-              print("Removed temporary bootstrap token from repository secrets.")
-          except Exception as exc:
-              print(f"WARNING: remove ARVEX_BOOTSTRAP_TOKEN manually after this run: {exc}")
+          # Remove the temporary PAT from repository secrets after setup.
+          request(f"{api}/ARVEX_BOOTSTRAP_TOKEN", "DELETE")
+          print("Removed temporary bootstrap token from repository secrets.")
           PY
 
-      - name: Remove temporary signing files
-        if: always()
-        run: rm -rf "$RUNNER_TEMP/arvex-signing"
+          rm -rf "$RUNNER_TEMP/arvex-signing"
