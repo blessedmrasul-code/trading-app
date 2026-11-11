@@ -39,3 +39,20 @@
 
 ## Релиз для Google Play
 См. `mobile/signing/README.md` и workflow `Release (signed AAB + APK)`.
+
+
+## ARVEX PREMIUM (ручная выдача)
+
+Платёж не автоматизирован: покупатель связывается с владельцем в Telegram `@mrasulv`, переводит 100 Telegram Stars за 30 дней, а владелец вручную выдаёт доступ через профиль ARVEX.
+
+Для включения:
+1. Создай проект в Supabase.
+2. В SQL Editor выполни весь файл `backend/premium.sql`.
+3. В Supabase → Authentication → Users создай свой аккаунт владельца (email и пароль).
+4. В SQL Editor выполни `select id, email from auth.users order by created_at;`, скопируй UUID своего аккаунта и выполни в SQL:
+   `insert into public.arvex_admins(user_id) values ('ТВОЙ-UUID') on conflict do nothing;`
+5. Впиши Project URL и anon/public key в `cloud-config.js`. Не добавляй service_role key в сайт и GitHub.
+6. Убедись, что в Authentication разрешена регистрация пользователей. Пользователи должны входить через «Аккаунт» в профиле — локального профиля недостаточно для выдачи PREMIUM.
+7. Опубликуй эту ветку в Netlify Preview и проверь регистрацию, вход, поиск пользователя и выдачу тестовой подписки.
+
+Админ-права проверяются на сервере через таблицу `arvex_admins`; кнопки в браузере сами по себе прав не дают. Выдача и отзыв доступа записываются в `arvex_subscription_events`.
