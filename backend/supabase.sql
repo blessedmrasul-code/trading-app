@@ -84,3 +84,45 @@ grant select on public.entitlements to authenticated;
 
 -- Owner revokes access:
 -- delete from public.entitlements where user_id = 'AUTH_USER_UUID';
+
+-- Telegram Stars subscription intents and verified payment receipts.
+-- These tables are server-only: no anon/authenticated policies or grants.
+create table if not exists public.telegram_payment_intents (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  invoice_payload text not null unique,
+  stars_amount integer not null check (stars_amount between 1 and 10000),
+  currency text not null default 'XTR' check (currency = 'XTR'),
+  status text not null default 'pending' check (status in ('pending', 'paid', 'cancelled')),
+  telegram_user_id bigint,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+alter table public.telegram_payment_intents enable row level security;
+revoke all on public.telegram_payment_intents from anon, authenticated;
+grant all on public.telegram_payment_intents to service_role;
+
+create table if not exists public.telegram_star_payments (
+  id uuid primary key default gen_random_uuid(),
+  intent_id uuid not null references public.telegram_payment_intents(id) on delete restrict,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  telegram_user_id bigint,
+  telegram_payment_charge_id text not null unique,
+  stars_amount integer not null check (stars_amount between 1 and 10000),
+  currency text not null default 'XTR' check (currency = 'XTR'),
+  is_recurring boolean not null default false,
+  expires_at timestamptz,
+  created_at timestamptz not null default now()
+);
+
+alter table public.telegram_star_payments enable row level security;
+revoke all on public.telegram_star_payments from anon, authenticated;
+grant all on public.telegram_star_payments to service_role;
+
+create index if not exists telegram_payment_intents_user_created_idx
+  on public.telegram_payment_intents (user_id, created_at desc);
+create index if not exists telegram_star_payments_user_created_idx
+  on public.telegram_star_payments (user_id, created_at desc);
+
+-- Edge Functions use the server-only service role key to write these records.
