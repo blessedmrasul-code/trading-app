@@ -34,7 +34,7 @@ Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
   try {
-    const jwt = (req.headers.get("Authorization") || "").replace(/^Bearer\\s+/i, "");
+    const jwt = (req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "");
     const body = await req.json().catch(() => ({}));
     const enabled = body?.enabled !== false;
     const base = Deno.env.get("SUPABASE_URL") || "";
