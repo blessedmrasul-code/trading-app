@@ -1,164 +1,17 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <meta name="theme-color" content="#07080d">
-  <title>ARVEX — Trading Academy</title>
-  <link rel="icon" href="favicon.png">
-  <link rel="manifest" href="manifest.webmanifest">
-  <link rel="apple-touch-icon" href="icon-192.png">
-  <link rel="stylesheet" href="style.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#080a12">
+  <meta name="description" content="Оформление подписки ARVEX на 30 дней через Telegram Stars.">
+  <title>Подписка ARVEX — покупка доступа</title>
+  <link rel="canonical" href="https://blessedmrasul-code.github.io/trading-app/subscribe.html">
+  <meta http-equiv="refresh" content="0;url=./subscribe.html">
+  <script>location.replace("./subscribe.html");</script>
 </head>
-<body>
-  <div id="splash">
-    <div class="splash-glow"></div>
-    <img class="splash-logo" src="logo.png" alt="ARVEX">
-    <div class="splash-title">ARVEX</div>
-    <div class="splash-sub" id="splashSub">Добро пожаловать</div>
-    <div class="splash-bar"><i></i></div>
-    <div class="splash-by">By Mrasulv</div>
-  </div>
-
-  <div class="app" id="app">
-    <header class="topbar">
-      <div class="brand"><img class="brand-mark" src="logo.png" alt=""><b>ARVEX</b><em>DEMO</em></div>
-      <div class="top-right">
-        <div class="balance-chip"><small>Счёт</small><b id="topBalance">$10,000.00</b></div>
-        <button class="avatar-btn" data-go="profile" aria-label="Профиль"><span class="avatar" id="topAvatar">A</span><span class="lvl-badge" id="topLvl">1</span></button>
-      </div>
-    </header>
-
-    <nav class="nav" id="nav">
-      <button class="active" data-go="trade"><svg viewBox="0 0 24 24"><path d="M4 19V5M4 19h16M8 15l3-4 3 2 5-7"/></svg><span>Торговля</span></button>
-      <button data-go="portfolio"><svg viewBox="0 0 24 24"><path d="M3 7h18v12H3zM3 7l2-3h12M16 13h2"/></svg><span>Портфель</span></button>
-      <button data-go="school"><svg viewBox="0 0 24 24"><path d="M3 9l9-5 9 5-9 5zM7 12v4c0 1.5 2.2 3 5 3s5-1.5 5-3v-4"/></svg><span>Школа</span></button>
-      <button data-go="tools"><svg viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M8 12h1M12 12h1M16 12h0M8 16h1M12 16h1M16 16h0"/></svg><span>Инструменты</span></button>
-      <button data-go="profile"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/></svg><span>Профиль</span></button>
-    </nav>
-
-    <main class="main">
-      <!-- ТОРГОВЛЯ -->
-      <section class="screen active" id="screen-trade">
-        <div class="ticker-row" id="tickerRow"></div>
-        <div class="price-head">
-          <div><div class="pair" id="pairName">Bitcoin · BTC / USDT</div><div class="big-price" id="bigPrice">$0.00</div></div>
-          <div class="price-meta"><span class="chg" id="chgBadge">+0.00%</span><span class="live" id="liveStatus">DEMO</span></div>
-        </div>
-
-        <div class="card chart-card" id="chartCard">
-          <div class="chart-bar">
-            <div class="seg small" id="tfSeg">
-              <button data-tf="1m">1м</button><button data-tf="5m">5м</button><button data-tf="15m" class="on">15м</button><button data-tf="1h">1ч</button><button data-tf="4h">4ч</button><button data-tf="1d">1Д</button>
-            </div>
-            <div class="chart-tools">
-              <button class="tool on" data-ind="ma" title="Скользящая средняя 20">MA</button>
-              <button class="tool" data-ind="ema" title="Экспоненциальная средняя 50">EMA</button>
-              <button class="tool on" data-ind="vol" title="Объём">VOL</button>
-              <button class="tool icon" id="zoomOut" aria-label="Уменьшить">−</button>
-              <button class="tool icon" id="zoomIn" aria-label="Увеличить">+</button>
-              <button class="tool icon" id="fsBtn" aria-label="На весь экран"><svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
-            </div>
-          </div>
-          <div class="ohlc" id="ohlcLine"></div>
-          <div class="chart-wrap" id="chartWrap"><canvas id="chartCanvas"></canvas></div>
-          <div class="chart-foot"><span id="chartSrc">Данные: Binance</span><span>Свайп — прокрутка · нажатие — перекрестие</span></div>
-          <div class="fs-actions">
-            <button class="buy" data-open="LONG">LONG ↗</button>
-            <button class="sell" data-open="SHORT">SHORT ↘</button>
-            <button class="ghost" id="fsClose" aria-label="Закрыть">✕</button>
-          </div>
-        </div>
-
-        <div class="card order-card">
-          <div class="card-title">Новая сделка <small>Только виртуальные средства</small></div>
-          <label class="lbl" for="amount">Маржа (своя сумма)</label>
-          <div class="input-row"><span>$</span><input id="amount" type="number" inputmode="decimal" min="1" step="1" value="100"></div>
-          <div class="chips" id="pctChips"><button data-pct="10">10%</button><button data-pct="25">25%</button><button data-pct="50">50%</button><button data-pct="100">MAX</button></div>
-          <label class="lbl">Плечо <b id="levLabel">1x</b></label>
-          <input type="hidden" id="leverage" value="1">
-          <div class="chips lev" id="levChips"><button data-lev="1" class="on">1x</button><button data-lev="2">2x</button><button data-lev="3">3x</button><button data-lev="5">5x</button><button data-lev="10">10x</button><button data-lev="20">20x</button></div>
-          <div class="row2"><div><label class="lbl" for="tpPct">Тейк-профит, %</label><input id="tpPct" class="field" inputmode="decimal" placeholder="нет"></div><div><label class="lbl" for="slPct">Стоп-лосс, %</label><input id="slPct" class="field" inputmode="decimal" placeholder="нет"></div></div>
-          <div class="kvs">
-            <div><span>Доступно</span><b id="available">$10,000.00</b></div>
-            <div><span>Размер позиции</span><b id="posSize">$100.00</b></div>
-            <div><span>Ликвидация LONG</span><b id="liqLong" class="neg">—</b></div>
-            <div><span>Ликвидация SHORT</span><b id="liqShort" class="neg">—</b></div>
-            <div><span>Funding Rate</span><b>0.0100% / 8ч</b></div>
-          </div>
-          <div class="dir-btns"><button class="buy" id="buyBtn"><b>LONG</b><small>рост ↗</small></button><button class="sell" id="sellBtn"><b>SHORT</b><small>падение ↘</small></button></div>
-          <p class="note">Учебный симулятор: ликвидация и funding упрощены (поддерживающая маржа 0,5%, funding 0,01% за 8 часов). Сделки не отправляются на биржу и не являются финансовой рекомендацией.</p>
-        </div>
-
-        <div class="card">
-          <div class="card-title">Открытые позиции <span class="badge" id="posBadge">0</span></div>
-          <div id="positionsList"></div>
-        </div>
-      </section>
-
-      <!-- ПОРТФЕЛЬ -->
-      <section class="screen" id="screen-portfolio">
-        <h2 class="screen-title">Портфель</h2>
-        <div id="portfolioStats"></div>
-        <div class="card"><div class="card-title">Открытые позиции</div><div id="portfolioPositions"></div></div>
-        <div class="card"><div class="card-title">История сделок</div><div id="historyContent"></div></div>
-      </section>
-
-      <!-- ШКОЛА -->
-      <section class="screen" id="screen-school">
-        <h2 class="screen-title">Школа ARVEX</h2>
-        <div class="seg" id="schoolSeg"><button data-tab="lessons" class="on">Уроки</button><button data-tab="exam">Экзамен</button><button data-tab="glossary">Словарь</button></div>
-        <div id="schoolBody"></div>
-      </section>
-
-      <!-- ИНСТРУМЕНТЫ -->
-      <section class="screen" id="screen-tools">
-        <h2 class="screen-title">Инструменты</h2>
-        <div class="seg" id="toolsSeg"><button data-tab="calc" class="on">Калькулятор</button><button data-tab="ai">Помощник</button></div>
-        <div id="toolsBody"></div>
-      </section>
-
-      <!-- ПРОФИЛЬ -->
-      <section class="screen" id="screen-profile">
-        <div id="profileBody"></div>
-      </section>
-
-      <footer class="foot">ARVEX · By Mrasulv<br><span>Обучение · Демо-торговля · Не финансовый совет</span><br><a href="./subscribe.html" style="color:#b9a4ff;text-decoration:none;display:inline-block;margin-top:9px">Оформить подписку · 120 ⭐</a></footer>
-    </main>
-  </div>
-
-  <!-- Создание / редактирование профиля -->
-  <div id="welcomeModal" class="overlay hidden">
-    <div class="modal">
-      <div class="brand big"><img class="brand-mark" src="logo.png" alt=""><b>ARVEX</b></div>
-      <h2 id="welcomeTitle">Добро пожаловать в ARVEX</h2>
-      <p class="muted" id="welcomeText">Создай профиль: сохраним демо-баланс, сделки, XP и прогресс школы на этом устройстве.</p>
-      <label class="lbl">Аватар</label>
-      <div class="avatar-grid" id="welcomeAvatars"></div>
-      <label class="lbl" for="welcomeName">Имя</label>
-      <input id="welcomeName" class="field" type="text" maxlength="30" placeholder="Например, Алексей" autocomplete="name">
-      <label class="lbl" for="welcomeUsername">Username</label>
-      <input id="welcomeUsername" class="field" type="text" maxlength="21" placeholder="latin_letters_123" autocomplete="username">
-      <button id="createProfile" class="primary" type="button">Создать профиль</button>
-      <button id="cancelProfile" class="ghost hidden" type="button">Отмена</button>
-      <small class="muted">Профиль хранится на устройстве. Для синхронизации между устройствами можно войти в облачный аккаунт в разделе профиля.</small>
-    </div>
-  </div>
-
-  <!-- Универсальная нижняя панель -->
-  <div id="sheet" class="overlay hidden"><div class="modal sheet"><div id="sheetBody"></div></div></div>
-
-  <div id="toast" class="toast"></div>
-  <script src="lessons.js"></script>
-  <script src="exam.js"></script>
-  <script src="glossary.js"></script>
-  <script src="chart.js"></script>
-  <script src="app.js"></script>
-  <script src="cloud-config.js"></script>
-  <script src="cloud.js"></script>
-  <script src="shop-config.js"></script>
-  <script src="access.js"></script>
-  <script src="school.js"></script>
-  <script src="tools.js"></script>
+<body style="margin:0;background:#080a12;color:#f4f6ff;font:16px system-ui;padding:24px">
+  <p>Открываем страницу покупки подписки ARVEX…</p>
+  <p><a href="./subscribe.html" style="color:#c8b5ff">Перейти к покупке</a></p>
 </body>
 </html>
