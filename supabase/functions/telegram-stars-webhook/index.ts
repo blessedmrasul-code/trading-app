@@ -1,5 +1,5 @@
 // Telegram Stars webhook for ARVEX.
-// Verify the X-Telegram-Bot-Api-Secret-Token header before processing updates.
+// Payment activation is processed atomically by a service-role-only Postgres RPC.
 const botToken = () => Deno.env.get("TELEGRAM_BOT_TOKEN") || "";
 const webhookSecret = () => Deno.env.get("TELEGRAM_WEBHOOK_SECRET") || "";
 const serviceKey = () => {
@@ -50,6 +50,7 @@ async function answerPreCheckout(query: any) {
   try {
     const intent = await getIntent(String(query.invoice_payload || ""));
     valid = !!intent &&
+      intent.status === "pending" &&
       intent.currency === query.currency &&
       Number(intent.stars_amount) === Number(query.total_amount) &&
       query.currency === "XTR";
@@ -59,7 +60,7 @@ async function answerPreCheckout(query: any) {
   await telegram("answerPreCheckoutQuery", {
     pre_checkout_query_id: query.id,
     ok: valid,
-    ...(!valid ? { error_message: "Счёт недействителен. Создайте новый платёж в ARVEX." } : {}),
+    ...(!valid ? { error_message: "Счёт недействителен или уже оплачен. Создайте новый платёж в ARVEX." } : {}),
   });
 }
 
@@ -68,74 +69,27 @@ async function applySuccessfulPayment(message: any) {
   if (!payment || payment.currency !== "XTR" || !payment.telegram_payment_charge_id) {
     throw new Error("Invalid Telegram Stars payment object");
   }
-  const intent = await getIntent(String(payment.invoice_payload || ""));
-  if (!intent || intent.currency !== "XTR" || Number(intent.stars_amount) !== Number(payment.total_amount)) {
-    throw new Error("Payment does not match a valid ARVEX invoice");
-  }
 
-  const previous = await db(
-    `telegram_star_payments?telegram_payment_charge_id=eq.${encodeURIComponent(payment.telegram_payment_charge_id)}&select=id&limit=1`,
-  );
-  if (Array.isArray(previous) && previous.length) return;
-
-  const ownerId = Deno.env.get("ARVEX_OWNER_USER_ID") || "";
-  const isOwner = ownerId && intent.user_id === ownerId;
+  const paidAt = new Date((Number(message.date) || Math.floor(Date.now() / 1000)) * 1000).toISOString();
   const telegramExpiry = Number(payment.subscription_expiration_date || 0);
   const expiresAt = telegramExpiry > 0
     ? new Date(telegramExpiry * 1000).toISOString()
-    : new Date((Number(message.date) || Math.floor(Date.now() / 1000)) * 1000 + 30 * 24 * 60 * 60 * 1000).toISOString();
+    : new Date(new Date(paidAt).getTime() + 30 * 24 * 60 * 60 * 1000).toISOString();
 
-  // Telegram supplies the authoritative expiration timestamp for recurring Stars payments.
-  // A duplicate webhook writes the same expiry and the unique charge ID prevents duplicate receipts.
-  if (isOwner) {
-    await db("arvex_subscriptions?on_conflict=user_id", {
-      method: "POST",
-      headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
-      body: JSON.stringify({
-        user_id: intent.user_id, starts_at: new Date().toISOString(), expires_at: null,
-        is_forever: true, auto_renew: false, updated_at: new Date().toISOString(), updated_by: null,
-      }),
-    });
-  } else {
-    const current = await db(
-      `arvex_subscriptions?user_id=eq.${encodeURIComponent(intent.user_id)}&select=is_forever,expires_at&limit=1`,
-    );
-    const existing = Array.isArray(current) ? current[0] : null;
-    if (existing?.is_forever !== true) {
-      await db("arvex_subscriptions?on_conflict=user_id", {
-        method: "POST",
-        headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
-        body: JSON.stringify({
-          user_id: intent.user_id, starts_at: new Date().toISOString(), expires_at: expiresAt,
-          is_forever: false, auto_renew: true, updated_at: new Date().toISOString(), updated_by: null,
-        }),
-      });
-    }
-  }
-
-  await db("telegram_star_payments?on_conflict=telegram_payment_charge_id", {
+  // Locks the invoice row, validates status/amount, inserts the unique charge,
+  // marks the intent paid and grants Premium in one database transaction.
+  await db("rpc/arvex_process_stars_payment", {
     method: "POST",
-    headers: { Prefer: "resolution=ignore-duplicates,return=minimal" },
     body: JSON.stringify({
-      intent_id: intent.id,
-      user_id: intent.user_id,
-      telegram_user_id: message.from?.id || null,
-      telegram_payment_charge_id: payment.telegram_payment_charge_id,
-      stars_amount: payment.total_amount,
-      currency: payment.currency,
-      is_recurring: !!payment.is_recurring,
-      is_first_recurring: !!payment.is_first_recurring,
-      expires_at: telegramExpiry > 0 ? expiresAt : null,
-    }),
-  });
-
-  await db(`telegram_payment_intents?id=eq.${encodeURIComponent(intent.id)}`, {
-    method: "PATCH",
-    headers: { Prefer: "return=minimal" },
-    body: JSON.stringify({
-      status: "paid",
-      telegram_user_id: message.from?.id || null,
-      updated_at: new Date().toISOString(),
+      p_invoice_payload: String(payment.invoice_payload || ""),
+      p_charge_id: String(payment.telegram_payment_charge_id),
+      p_telegram_user_id: message.from?.id || null,
+      p_stars_amount: Number(payment.total_amount),
+      p_currency: String(payment.currency),
+      p_is_recurring: !!payment.is_recurring,
+      p_is_first_recurring: !!payment.is_first_recurring,
+      p_expires_at: expiresAt,
+      p_paid_at: paidAt,
     }),
   });
 }
