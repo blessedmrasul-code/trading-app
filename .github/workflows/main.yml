@@ -84,6 +84,7 @@ jobs:
         run: npm run build:web
 
       - name: Deploy website to Netlify
+        continue-on-error: true
         working-directory: .
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
