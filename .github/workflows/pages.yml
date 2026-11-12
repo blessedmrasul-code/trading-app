@@ -9,8 +9,8 @@ on:
       - "app.js"
       - "access.js"
       - "shop-config.js"
-      - "offer.html"
       - "subscribe.html"
+      - "sw.js"
       - "cloud.js"
       - "cloud-config.js"
       - "chart.js"
@@ -54,7 +54,7 @@ jobs:
             index.html style.css app.js access.js shop-config.js offer.html subscribe.html \
             cloud.js cloud-config.js chart.js school.js tools.js lessons.js \
             exam.js glossary.js logo.png favicon.png icon-192.png icon-512.png \
-            manifest.webmanifest; do
+            manifest.webmanifest sw.js; do
             test -f "$file" || { echo "Missing site file: $file"; exit 1; }
             cp "$file" _site/
           done
