@@ -110,7 +110,8 @@ jobs:
             echo
           fi
           echo "=== End Netlify token diagnostic"
-          npx --yes netlify-cli deploy --prod --dir . --site a78b925e-f43c-4e3f-a9de-873439ac6e85 --auth "$NETLIFY_AUTH_TOKEN" --message "ARVEX production deploy from GitHub Actions"
+          echo "=== Netlify CLI debug deploy (credentials redacted by CLI)"
+          npx --yes netlify-cli deploy --debug --prod --dir . --site a78b925e-f43c-4e3f-a9de-873439ac6e85 --auth "$NETLIFY_AUTH_TOKEN" --message "ARVEX production deploy from GitHub Actions"
 
       - name: Create Android project (if missing)
         run: |
