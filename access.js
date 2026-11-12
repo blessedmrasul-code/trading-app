@@ -30,9 +30,9 @@ const Access=(()=>{
    return `<div class="card"><div class="card-title">Доступ <span class="badge">Premium</span></div><p style="margin:0">${until}</p>${renew}<p class="muted" id="accStarsMsg" style="margin:8px 0 0"></p></div>`;
   }
   if(s.starsEnabled){
-   if(typeof Cloud==="undefined"||!Cloud.enabled())return `<div class="card"><div class="card-title">ARVEX Premium</div><p class="muted" style="margin:0 0 8px">Автоматическая оплата — через Telegram-бота. Если нужна помощь, напиши владельцу.</p>${contactHTML()}</div>`;
-   if(!Cloud.isIn())return `<div class="card"><div class="card-title">ARVEX Premium</div><p class="muted" style="margin:0 0 8px">Войди в аккаунт ARVEX, чтобы получить персональный счёт и привязать Premium к своему профилю. Можно также обратиться напрямую.</p>${contactHTML()}</div>`;
-   return `<div class="card"><div class="card-title">ARVEX Premium</div><p style="margin:0 0 8px"><b>${Number(s.stars)||120} ⭐ / 30 дней</b> · автоматическое продление через Telegram Stars. Управляй автопродлением здесь или в Telegram.</p><div class="btn-row"><button class="primary" id="accStarsBuy">Оплатить 120 ⭐</button><button class="ghost" id="accStarsCheck">Проверить доступ</button></div>${contactHTML()}<p class="muted" id="accStarsMsg" style="margin:8px 0 0"></p></div>`;
+   if(typeof Cloud==="undefined"||!Cloud.enabled())return `<div class="card"><div class="card-title">ARVEX Premium</div><p class="muted" style="margin:0 0 8px">Для автоматической оплаты войди в аккаунт ARVEX. Если нужна помощь, напиши владельцу.</p><a class="ghost" href="https://t.me/mrasulv?text=Помогите%20войти%20в%20ARVEX%20для%20оплаты%20Premium." target="_blank" rel="noopener">Помощь со входом · @mrasulv</a></div>`
+   if(!Cloud.isIn())return `<div class="card"><div class="card-title">ARVEX Premium</div><p class="muted" style="margin:0 0 8px">Сначала войди в аккаунт ARVEX. После входа нажми «Оплатить через бота» — бот пришлёт персональный счёт, привязанный к твоему профилю.</p><a class="ghost" href="https://t.me/mrasulv?text=Нужна%20помощь%20с%20входом%20в%20ARVEX." target="_blank" rel="noopener">Написать @mrasulv</a></div>`
+   return `<div class="card"><div class="card-title">ARVEX Premium</div><p style="margin:0 0 8px"><b>${Number(s.stars)||120} ⭐ / 30 дней</b> · автоматическая оплата в Telegram-боте. Управляй автопродлением здесь или в Telegram.</p><div class="btn-row"><button class="primary" id="accStarsBuy">Оплатить через бота · 120 ⭐</button><button class="ghost" id="accStarsCheck">Проверить доступ</button></div>${contactHTML()}<p class="muted" id="accStarsMsg" style="margin:8px 0 0"></p></div>`;
   }
   if(!s.enabled&&!s.starsEnabled){const stars=Number(s.stars)||120,days=Number(s.subscriptionDays)||30,tg=String(s.telegram||"mrasulv").replace(/^@/,"");return `<div class="card"><div class="card-title">ARVEX Premium</div><p style="margin:0 0 8px"><b>${stars} ⭐ / ${days} дней</b> · оплата Telegram Stars напрямую администратору.</p><button class="primary" id="accManualStars">Купить подписку</button><p class="muted" style="margin:8px 0 0">После подтверждения оплаты доступ будет активирован вручную.</p></div>`;}
   const old=s.promoPrice>0&&s.promoPrice<s.price?` <s class="muted">${s.price} ₽</s>`:"";
@@ -79,13 +79,13 @@ const Access=(()=>{
   if(m)m.textContent="";
   try{
    if(typeof Cloud==="undefined"||!Cloud.createStarsInvoice)throw new Error("Облачный сервер не подключён.");
-   const result=await Cloud.createStarsInvoice();
+   const result=await Cloud.createStarsBotLink();
    if(result.lifetime){if(paymentWindow)paymentWindow.close();await refresh();return}
-   if(!result.url)throw new Error("Telegram не вернул ссылку на оплату.");
+   if(!result.url)throw new Error("Telegram не вернул ссылку на бота.");
    if(paymentWindow)paymentWindow.location.href=result.url;else window.location.href=result.url;
-   if(m)m.textContent="Счёт открыт в Telegram. После оплаты вернись сюда и нажми «Проверить доступ».";
+   if(m)m.textContent="Открылся бот ARVEX. Он пришлёт персональный счёт на 120 ⭐. После оплаты вернись сюда и нажми «Проверить доступ».";
   }catch(e){if(paymentWindow)paymentWindow.close();if(m)m.textContent=e.message}
-  finally{if(b){b.disabled=false;b.textContent="Оформить подписку"}}
+  finally{if(b){b.disabled=false;b.textContent="Оплатить через бота · 120 ⭐"}}
  }
  async function toggleStarsRenew(){
   const enabled=entitlement?.auto_renew===false;
