@@ -104,7 +104,7 @@ jobs:
           SITE_CODE=$(curl -sS -o /tmp/netlify-site.json -w "%{http_code}" -H "Authorization: Bearer $NETLIFY_AUTH_TOKEN" https://api.netlify.com/api/v1/sites/a78b925e-f43c-4e3f-a9de-873439ac6e85 || true)
           echo "Netlify /sites/{ARVEX_SITE_ID} HTTP: $SITE_CODE"
           if [ "$SITE_CODE" = "200" ]; then
-            jq '{id, name, account_id, url, ssl_url}' /tmp/netlify-site.json
+            jq '{id, name, account_id, url, ssl_url, prevent_non_git_prod_deploys, git_provider, repo, build_settings}' /tmp/netlify-site.json
           else
             jq -c '{message, code, error}' /tmp/netlify-site.json 2>/dev/null || head -c 300 /tmp/netlify-site.json
             echo
