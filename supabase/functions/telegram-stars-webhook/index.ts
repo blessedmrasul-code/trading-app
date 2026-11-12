@@ -183,7 +183,9 @@ Deno.serve(async (req: Request) => {
 
   try {
     const update = await req.json();
-    if (update.message?.text) {\n      await handleBotCommand(update.message);\n    } else if (update.pre_checkout_query) {
+    if (update.message?.text) {
+      await handleBotCommand(update.message);
+    } else if (update.pre_checkout_query) {
       await answerPreCheckout(update.pre_checkout_query);
     } else if (update.message?.successful_payment) {
       await applySuccessfulPayment(update.message);
