@@ -283,6 +283,7 @@ function renderProfile(){
   <div class="card"><div class="card-title">Достижения <span class="badge">${ach}/${ACHIEVEMENTS.length}</span></div><div class="ach-grid">${ACHIEVEMENTS.map(a=>`<div class="ach ${a.ok()?"on":""}"><i>${a.i}</i><b>${a.t}</b><small>${a.d}</small></div>`).join("")}</div></div>
   <div class="card"><div class="card-title">Аккаунт</div>${typeof Cloud!=="undefined"?Cloud.accountHTML():""}</div>${typeof Access!=="undefined"?Access.cardHTML():""}${typeof Cloud!=="undefined"?Cloud.userToolsHTML():""}`;
  applyAvatar($("profAvatar"),p.avatar,p.name,p.photo);
+ if(typeof Cloud!=="undefined"&&Cloud.loadProfileData)Cloud.loadProfileData();
 }
 function openProfileModal(edit){
  editingProfile=!!edit;pendingAvatar=profile?.avatar||0;pendingPhoto=profile?.photo||"";
