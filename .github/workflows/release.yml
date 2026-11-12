@@ -75,6 +75,14 @@ jobs:
           echo "$KEYSTORE_B64" | base64 --decode > mobile/arvex-release.keystore
           test -s mobile/arvex-release.keystore
 
+      - name: Check application JavaScript syntax and smoke tests
+        working-directory: .
+        run: |
+          for file in app.js cloud.js access.js shop-config.js cloud-config.js chart.js school.js tools.js lessons.js exam.js glossary.js scripts/verify-app.js; do
+            node --check "$file"
+          done
+          node scripts/verify-app.js
+
       - name: Install dependencies
         run: npm install
 
@@ -89,6 +97,10 @@ jobs:
 
       - name: Sync Capacitor
         run: npx cap sync android
+
+      - name: Apply ARVEX Android launcher icons
+        working-directory: mobile
+        run: bash ./apply-android-icons.sh
 
       - name: Build signed release APK and AAB
         working-directory: mobile/android
