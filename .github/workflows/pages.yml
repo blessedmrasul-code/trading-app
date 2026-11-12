@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - "index.html"
+      - "app/**"
       - "style.css"
       - "app.js"
       - "access.js"
@@ -57,6 +58,12 @@ jobs:
             manifest.webmanifest sw.js; do
             test -f "$file" || { echo "Missing site file: $file"; exit 1; }
             cp "$file" _site/
+          done
+          mkdir -p _site/app
+          cp app/index.html _site/app/index.html
+          for file in style.css app.js access.js shop-config.js cloud.js cloud-config.js chart.js school.js tools.js lessons.js exam.js glossary.js logo.png favicon.png icon-192.png icon-512.png manifest.webmanifest; do
+            test -f "$file" || { echo "Missing app asset: $file"; exit 1; }
+            cp "$file" _site/app/
           done
           touch _site/.nojekyll
           echo "Prepared ARVEX static site"
