@@ -18,6 +18,9 @@ const Access=(()=>{
   if(link)link.hidden=active;
   if(status)status.hidden=!active;
  }
+ function contactHTML(){
+  return `<div class="btn-row" style="margin-top:12px"><a class="ghost" href="https://t.me/ArvexPremiumBot" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;justify-content:center;text-decoration:none">Открыть бота @ArvexPremiumBot</a><a class="ghost" href="https://t.me/mrasulv?text=Здравствуйте!%20Хочу%20оформить%20ARVEX%20Premium." target="_blank" rel="noopener" style="display:inline-flex;align-items:center;justify-content:center;text-decoration:none">Написать @mrasulv</a></div>`;
+ }
  function cardHTML(){
   const s=shop();
   if(isPremium()){
@@ -27,9 +30,9 @@ const Access=(()=>{
    return `<div class="card"><div class="card-title">Доступ <span class="badge">Premium</span></div><p style="margin:0">${until}</p>${renew}<p class="muted" id="accStarsMsg" style="margin:8px 0 0"></p></div>`;
   }
   if(s.starsEnabled){
-   if(typeof Cloud==="undefined"||!Cloud.enabled())return `<div class="card"><div class="card-title">ARVEX Premium</div><p class="muted" style="margin:0">Подписка через Telegram Stars скоро появится после подключения сервера.</p></div>`;
-   if(!Cloud.isIn())return `<div class="card"><div class="card-title">ARVEX Premium</div><p class="muted" style="margin:0">Войди в аккаунт ARVEX, чтобы оформить подписку и привязать её к своему прогрессу.</p></div>`;
-   return `<div class="card"><div class="card-title">ARVEX Premium</div><p style="margin:0 0 8px"><b>${Number(s.stars)||120} ⭐ / 30 дней</b> · автоматическое продление через Telegram Stars. Управляй автопродлением здесь или в Telegram.</p><div class="btn-row"><button class="primary" id="accStarsBuy">Оформить подписку</button><button class="ghost" id="accStarsCheck">Проверить доступ</button></div><p class="muted" id="accStarsMsg" style="margin:8px 0 0"></p></div>`;
+   if(typeof Cloud==="undefined"||!Cloud.enabled())return `<div class="card"><div class="card-title">ARVEX Premium</div><p class="muted" style="margin:0 0 8px">Автоматическая оплата — через Telegram-бота. Если нужна помощь, напиши владельцу.</p>${contactHTML()}</div>`;
+   if(!Cloud.isIn())return `<div class="card"><div class="card-title">ARVEX Premium</div><p class="muted" style="margin:0 0 8px">Войди в аккаунт ARVEX, чтобы получить персональный счёт и привязать Premium к своему профилю. Можно также обратиться напрямую.</p>${contactHTML()}</div>`;
+   return `<div class="card"><div class="card-title">ARVEX Premium</div><p style="margin:0 0 8px"><b>${Number(s.stars)||120} ⭐ / 30 дней</b> · автоматическое продление через Telegram Stars. Управляй автопродлением здесь или в Telegram.</p><div class="btn-row"><button class="primary" id="accStarsBuy">Оплатить 120 ⭐</button><button class="ghost" id="accStarsCheck">Проверить доступ</button></div>${contactHTML()}<p class="muted" id="accStarsMsg" style="margin:8px 0 0"></p></div>`;
   }
   if(!s.enabled&&!s.starsEnabled){const stars=Number(s.stars)||120,days=Number(s.subscriptionDays)||30,tg=String(s.telegram||"mrasulv").replace(/^@/,"");return `<div class="card"><div class="card-title">ARVEX Premium</div><p style="margin:0 0 8px"><b>${stars} ⭐ / ${days} дней</b> · оплата Telegram Stars напрямую администратору.</p><button class="primary" id="accManualStars">Купить подписку</button><p class="muted" style="margin:8px 0 0">После подтверждения оплаты доступ будет активирован вручную.</p></div>`;}
   const old=s.promoPrice>0&&s.promoPrice<s.price?` <s class="muted">${s.price} ₽</s>`:"";
