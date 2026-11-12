@@ -157,21 +157,45 @@ async function applyRefund(message: any) {
 
 async function handleBotCommand(message: any) {
   const text = String(message?.text || "").trim();
-  const match = text.match(/^\/(start|help|premium|support)(?:@\w+)?(?:\s|$)/i);
+  const match = text.match(/^\/(start|help|premium|support)(?:@\w+)?(?:\s+([^\s]+))?/i);
   if (!match || !message?.chat?.id) return;
   const command = match[1].toLowerCase();
-  const body = command === "support"
-    ? "Нужна помощь с ARVEX? Напиши владельцу проекта — @mrasulv. Он поможет с оплатой и доступом."
-    : "Добро пожаловать в ARVEX Premium!\n\nПодписка стоит 120 ⭐ на 30 дней. Чтобы оплатить автоматически и привязать Premium к своему аккаунту, открой приложение ARVEX, войди в аккаунт и перейди в Профиль → ARVEX Premium → «Оплатить 120 ⭐».\n\nЕсли нужна помощь или хочешь оформить доступ напрямую — напиши владельцу @mrasulv.";
-  await telegram("sendMessage", {
-    chat_id: message.chat.id,
-    text: body,
-    reply_markup: {
-      inline_keyboard: [[
-        { text: "Открыть ARVEX", url: "https://blessedmrasul-code.github.io/trading-app/" },
-        { text: "Написать владельцу", url: "https://t.me/mrasulv" }
-      ]]
+  const startPayload = command === "start" ? String(match[2] || "") : "";
+
+  if (startPayload.startsWith("arvex_")) {
+    const intent = await getIntent(startPayload);
+    if (!intent || intent.status !== "pending" || Number(intent.stars_amount) !== 120 || intent.currency !== "XTR") {
+      await telegram("sendMessage", { chat_id: message.chat.id, text: "Ссылка на оплату недействительна или устарела. Вернись в приложение ARVEX, войди в аккаунт и создай новый счёт." });
+      return;
     }
+    const invoiceResponse = await fetch(\`https://api.telegram.org/bot\${botToken()}/createInvoiceLink\`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: "ARVEX Premium",
+        description: "Полный доступ к ARVEX на 30 дней. Автопродление через Telegram Stars.",
+        payload: startPayload, provider_token: "", currency: "XTR",
+        prices: [{ label: "ARVEX Premium · 30 дней", amount: Number(intent.stars_amount) }],
+        subscription_period: 2592000
+      })
+    });
+    const invoice = await invoiceResponse.json();
+    if (!invoiceResponse.ok || !invoice.ok || typeof invoice.result !== "string") throw new Error("Telegram could not create bot invoice");
+    await telegram("sendMessage", {
+      chat_id: message.chat.id,
+      text: "Твой персональный счёт ARVEX Premium готов: 120 ⭐ за 30 дней. После оплаты Premium автоматически активируется в аккаунте, из которого ты начал оформление.",
+      reply_markup: { inline_keyboard: [[{ text: "Оплатить 120 ⭐", url: invoice.result }]] }
+    });
+    return;
+  }
+  const body = command === "support"
+    ? "Нужна помощь с ARVEX? Напиши владельцу проекта — @mrasulv."
+    : "Добро пожаловать в ARVEX Premium!\n\nЧтобы бот выставил персональный счёт на 120 ⭐, открой приложение ARVEX, войди в свой аккаунт и нажми «Оплатить через бота». Бот пришлёт счёт прямо сюда, а после оплаты Premium активируется автоматически.\n\nЕсли нужна помощь — @mrasulv.";
+  await telegram("sendMessage", {
+    chat_id: message.chat.id, text: body,
+    reply_markup: { inline_keyboard: [[
+      { text: "Открыть ARVEX", url: "https://blessedmrasul-code.github.io/trading-app/" },
+      { text: "Написать владельцу", url: "https://t.me/mrasulv" }
+    ]] }
   });
 }
 
