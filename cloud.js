@@ -11,7 +11,7 @@ const Cloud=(()=>{
  async function req(path,opt){
   const r=await fetch(cfg().url.replace(/\/$/,"")+path,opt);
   let j=null;try{j=await r.json()}catch(e){}
-  if(!r.ok)throw new Error((j&&(j.msg||j.error_description||j.message||j.error))||("HTTP "+r.status));
+  if(!r.ok){const err=new Error((j&&(j.msg||j.error_description||j.message||j.error))||("HTTP "+r.status));err.status=r.status;err.code=j&&j.code;err.details=j&&j.details;err.hint=j&&j.hint;throw err}
   return j;
  }
  function adopt(j){
@@ -87,10 +87,12 @@ const Cloud=(()=>{
   if(t.closest("#cloudOut")){signOut();renderProfile();return true}
   if(t.closest("#arvexPromoApply")){const m=document.getElementById("arvexPromoMsg");m.textContent="Проверяю…";redeemPromo(document.getElementById("arvexPromoCode").value).then(()=>{m.textContent="Промокод активирован!";if(typeof renderProfile==="function")renderProfile()}).catch(e=>m.textContent=e.message);return true}
   if(t.closest("#arvexPaymentsLoad")){loadPayments();return true}
-  if(t.closest("#arvexSupportSend")){const m=document.getElementById("arvexSupportMsg"),s=document.getElementById("arvexSupportSubject").value,v=document.getElementById("arvexSupportMessage").value;if(s.trim().length<3||v.trim().length<10){m.textContent="Заполни тему и сообщение (минимум 10 символов).";return true}m.textContent="Отправляю…";createSupport(s,v).then(()=>{m.textContent="Обращение отправлено.";document.getElementById("arvexSupportSubject").value="";document.getElementById("arvexSupportMessage").value="";loadSupport()}).catch(e=>m.textContent=e.message);return true}
   if(t.closest("#arvexNotificationsLoad")){loadNotifications();return true}
   if(t.closest("#arvexAdminPromoCreate")){createAdminPromo();return true}
   if(t.closest("#arvexAdminPromoRefresh")){loadAdminPromos();return true}
+  if(t.closest("#arvexAdminSupportRefresh")){loadAdminSupport();return true}
+  const supportUpdate=t.closest("[data-support-update]");
+  if(supportUpdate){const row=supportUpdate.closest("[data-support-row]"),select=row&&row.querySelector("select");if(select)updateSupportStatus(supportUpdate.dataset.supportUpdate,select.value);return true}
   return false;
  }
 async function insertOrder(o){
@@ -139,12 +141,65 @@ async function insertOrder(o){
   return await req("/rest/v1/arvex_support_tickets?select=id,subject,message,status,created_at&user_id=eq."+encodeURIComponent(session.uid)+"&order=created_at.desc&limit=20",{headers:hdr(tok)});
  }
  async function createSupport(subject,message){
+  if(!session||!session.uid)throw new Error("Войди в аккаунт ARVEX и попробуй ещё раз.");
+  const cleanSubject=String(subject||"").trim(),cleanMessage=String(message||"").trim();
+  if(cleanSubject.length<3||cleanSubject.length>120)throw new Error("Тема должна содержать от 3 до 120 символов.");
+  if(cleanMessage.length<10||cleanMessage.length>4000)throw new Error("Сообщение должно содержать от 10 до 4000 символов.");
   const tok=await token();
-  await req("/rest/v1/arvex_support_tickets",{method:"POST",headers:{...hdr(tok),"Prefer":"return=minimal"},body:JSON.stringify({user_id:session.uid,subject:String(subject||"").trim(),message:String(message||"").trim()})});
+  const rows=await req("/rest/v1/arvex_support_tickets?select=id,created_at,status",{method:"POST",headers:{...hdr(tok),"Prefer":"return=representation"},body:JSON.stringify({user_id:session.uid,subject:cleanSubject,message:cleanMessage})});
+  if(!Array.isArray(rows)||!rows[0]||!rows[0].id)throw new Error("Сервер не подтвердил сохранение обращения. Попробуй ещё раз или напиши @mrasulv.");
+  return rows[0];
+ }
+ async function submitSupportForm(form){
+  const subject=form.querySelector("#arvexSupportSubject"),message=form.querySelector("#arvexSupportMessage"),status=form.querySelector("#arvexSupportMsg"),button=form.querySelector("#arvexSupportSend");
+  const s=subject?subject.value:"",m=message?message.value:"";
+  if(s.trim().length<3){if(status)status.textContent="Тема должна содержать минимум 3 символа.";if(subject)subject.focus();return}
+  if(m.trim().length<10){if(status)status.textContent="Сообщение должно содержать минимум 10 видимых символов.";if(message)message.focus();return}
+  if(button){button.disabled=true;button.textContent="Отправляем…"}
+  if(status)status.textContent="Отправляем обращение в поддержку…";
+  try{
+   const ticket=await createSupport(s,m);
+   if(subject)subject.value="";
+   if(message)message.value="";
+   if(status)status.textContent="✓ Обращение №"+ticket.id.slice(0,8)+" отправлено. Мы увидим его в панели поддержки.";
+   await loadSupport();
+  }catch(e){
+   const extra=e.details?(" "+e.details):"";
+   if(status)status.textContent="Не удалось отправить ("+(e.status||"сеть") + "): "+e.message+extra+" Напиши напрямую @mrasulv, если ошибка повторится.";
+  }finally{
+   if(button){button.disabled=false;button.textContent="Отправить обращение"}
+  }
  }
  async function adminStatus(){
   const tok=await token();
   return (await req("/rest/v1/rpc/arvex_admin_is_admin",{method:"POST",headers:hdr(tok),body:"{}"}))===true;
+ }
+ async function loadAdminSupport(){
+  const box=document.getElementById("arvexAdminSupportList");if(!box)return;
+  box.textContent="Загрузка обращений…";
+  try{
+   const tok=await token(),rows=await req("/rest/v1/rpc/arvex_admin_list_support_tickets",{method:"POST",headers:hdr(tok),body:JSON.stringify({p_limit:50})});
+   box.textContent="";
+   if(!Array.isArray(rows)||!rows.length){box.textContent="Обращений пока нет.";return}
+   rows.forEach(ticket=>{
+    const card=document.createElement("div");card.className="res-link";card.dataset.supportRow="1";
+    const head=document.createElement("b");head.textContent=(ticket.subject||"Без темы")+" · "+(ticket.user_email||"аккаунт");card.appendChild(head);
+    const body=document.createElement("span");body.textContent=(ticket.message||"")+" · "+new Date(ticket.created_at).toLocaleString("ru-RU");card.appendChild(body);
+    const controls=document.createElement("div");controls.className="btn-row";controls.style.marginTop="8px";
+    const select=document.createElement("select");select.className="field";
+    [["open","Открыто"],["in_progress","В работе"],["closed","Закрыто"]].forEach(([value,label])=>{const option=document.createElement("option");option.value=value;option.textContent=label;select.appendChild(option)});
+    select.value=ticket.status||"open";
+    const save=document.createElement("button");save.className="ghost";save.type="button";save.dataset.supportUpdate=ticket.ticket_id;save.textContent="Сохранить статус";
+    controls.append(select,save);card.appendChild(controls);box.appendChild(card);
+   });
+  }catch(e){box.textContent="Не удалось загрузить обращения: "+e.message}
+ }
+ async function updateSupportStatus(ticketId,status){
+  const box=document.getElementById("arvexAdminSupportList");
+  try{
+   const tok=await token();await req("/rest/v1/rpc/arvex_admin_set_support_status",{method:"POST",headers:hdr(tok),body:JSON.stringify({p_ticket_id:ticketId,p_status:status})});
+   showToast("Статус обращения обновлён");await loadAdminSupport();
+  }catch(e){if(box)box.textContent="Не удалось обновить статус: "+e.message}
  }
  async function loadAdminPromos(){
   const box=document.getElementById("arvexAdminPromoList");if(!box)return;
@@ -161,7 +216,7 @@ async function insertOrder(o){
  }
  async function loadAdminTools(){
   if(!session)return;
-  try{if(await adminStatus()){const box=document.getElementById("arvexAdminTools");if(box){box.classList.remove("hidden");await loadAdminPromos()}}}catch(e){}
+  try{if(await adminStatus()){const box=document.getElementById("arvexAdminTools");if(box){box.classList.remove("hidden");await Promise.all([loadAdminPromos(),loadAdminSupport()])}}}catch(e){}
  }
  async function loadProfileData(force=false){
   if(!session||profileDataLoading||(!force&&Date.now()-profileDataLoadedAt<15000))return;
@@ -174,7 +229,7 @@ async function insertOrder(o){
   if(!session)return '<div class="card"><div class="card-title">Сервисы аккаунта</div><p class="muted">Войди в аккаунт, чтобы использовать промокоды, смотреть платежи и обращаться в поддержку.</p></div>';
   return '<div class="card"><div class="card-title">Промокод</div><div class="btn-row"><input class="field" id="arvexPromoCode" maxlength="32" placeholder="Введи промокод"><button class="primary" id="arvexPromoApply">Активировать</button></div><p class="muted" id="arvexPromoMsg"></p></div>'+
    '<div class="card"><div class="card-title">История платежей</div><button class="ghost" id="arvexPaymentsLoad">Показать платежи</button><div id="arvexPaymentsList"></div></div>'+
-   '<div class="card"><div class="card-title">Поддержка ARVEX</div><p class="muted">Можешь оставить обращение здесь или написать напрямую в Telegram: <a href="https://t.me/mrasulv" target="_blank" rel="noopener" style="color:var(--purple2)">@mrasulv</a></p><input class="field" id="arvexSupportSubject" maxlength="120" placeholder="Тема обращения"><textarea class="field" id="arvexSupportMessage" maxlength="4000" rows="4" placeholder="Опиши вопрос (минимум 10 символов)" style="margin-top:8px"></textarea><button class="primary" id="arvexSupportSend" style="margin-top:8px">Отправить обращение</button><p class="muted" id="arvexSupportMsg"></p><div id="arvexSupportList"></div></div>'+
+   '<div class="card"><div class="card-title">Поддержка ARVEX</div><p class="muted">Опиши вопрос — обращение сохранится в аккаунте и появится в панели администратора. Если срочно, <a href="https://t.me/mrasulv" target="_blank" rel="noopener" style="color:var(--purple2)">@mrasulv</a>.</p><form id="arvexSupportForm" novalidate><label class="lbl" for="arvexSupportSubject">Тема обращения</label><input class="field" id="arvexSupportSubject" name="subject" maxlength="120" required placeholder="Например: проблема с подпиской"><label class="lbl" for="arvexSupportMessage">Сообщение</label><textarea class="field" id="arvexSupportMessage" name="message" minlength="10" maxlength="4000" rows="5" required placeholder="Опиши проблему подробно (минимум 10 символов)" style="margin-top:4px"></textarea><button class="primary" type="submit" id="arvexSupportSend" style="margin-top:8px">Отправить обращение</button><p class="muted" id="arvexSupportMsg" aria-live="polite" role="status"></p></form><div id="arvexSupportList"></div></div>'+
    '<div class="card hidden" id="arvexAdminTools"><div class="card-title">Управление промокодами</div><input class="field" id="arvexAdminCode" maxlength="32" placeholder="Код, например START30"><div class="btn-row"><select class="field" id="arvexAdminDays"><option value="7">7 дней</option><option value="30" selected>30 дней</option><option value="90">90 дней</option><option value="365">365 дней</option></select><input class="field" id="arvexAdminLimit" type="number" min="1" max="10000" value="1" placeholder="Лимит"></div><button class="primary" id="arvexAdminPromoCreate">Создать промокод</button><p id="arvexAdminPromoMsg" class="muted"></p><div id="arvexAdminPromoList"></div><button class="ghost" id="arvexAdminPromoRefresh">Обновить список</button></div>'+
    '<div class="card"><div class="card-title">Уведомления</div><button class="ghost" id="arvexNotificationsLoad">Проверить уведомления</button><div id="arvexNotificationsList"></div></div>';
  }
