@@ -92,6 +92,24 @@ jobs:
             echo "::warning::NETLIFY_AUTH_TOKEN is not configured; website deploy skipped."
             exit 0
           fi
+          echo "=== Netlify token diagnostic (token value is never printed)"
+          USER_CODE=$(curl -sS -o /tmp/netlify-user.json -w "%{http_code}" -H "Authorization: Bearer $NETLIFY_AUTH_TOKEN" https://api.netlify.com/api/v1/user || true)
+          echo "Netlify /user HTTP: $USER_CODE"
+          if [ "$USER_CODE" = "200" ]; then
+            jq '{id, email, account_id}' /tmp/netlify-user.json
+          else
+            jq -c '{message, code, error}' /tmp/netlify-user.json 2>/dev/null || head -c 300 /tmp/netlify-user.json
+            echo
+          fi
+          SITE_CODE=$(curl -sS -o /tmp/netlify-site.json -w "%{http_code}" -H "Authorization: Bearer $NETLIFY_AUTH_TOKEN" https://api.netlify.com/api/v1/sites/a78b925e-f43c-4e3f-a9de-873439ac6e85 || true)
+          echo "Netlify /sites/{ARVEX_SITE_ID} HTTP: $SITE_CODE"
+          if [ "$SITE_CODE" = "200" ]; then
+            jq '{id, name, account_id, url, ssl_url}' /tmp/netlify-site.json
+          else
+            jq -c '{message, code, error}' /tmp/netlify-site.json 2>/dev/null || head -c 300 /tmp/netlify-site.json
+            echo
+          fi
+          echo "=== End Netlify token diagnostic"
           npx --yes netlify-cli deploy --prod --dir . --site a78b925e-f43c-4e3f-a9de-873439ac6e85 --auth "$NETLIFY_AUTH_TOKEN" --message "ARVEX production deploy from GitHub Actions"
 
       - name: Create Android project (if missing)
