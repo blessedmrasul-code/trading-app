@@ -89,6 +89,8 @@ const Cloud=(()=>{
   if(t.closest("#arvexPaymentsLoad")){loadPayments();return true}
   if(t.closest("#arvexSupportSend")){const m=document.getElementById("arvexSupportMsg"),s=document.getElementById("arvexSupportSubject").value,v=document.getElementById("arvexSupportMessage").value;if(s.trim().length<3||v.trim().length<10){m.textContent="Заполни тему и сообщение (минимум 10 символов).";return true}m.textContent="Отправляю…";createSupport(s,v).then(()=>{m.textContent="Обращение отправлено.";document.getElementById("arvexSupportSubject").value="";document.getElementById("arvexSupportMessage").value="";loadSupport()}).catch(e=>m.textContent=e.message);return true}
   if(t.closest("#arvexNotificationsLoad")){loadNotifications();return true}
+  if(t.closest("#arvexAdminPromoCreate")){createAdminPromo();return true}
+  if(t.closest("#arvexAdminPromoRefresh")){loadAdminPromos();return true}
   return false;
  }
 async function insertOrder(o){
@@ -140,10 +142,31 @@ async function insertOrder(o){
   const tok=await token();
   await req("/rest/v1/arvex_support_tickets",{method:"POST",headers:{...hdr(tok),"Prefer":"return=minimal"},body:JSON.stringify({user_id:session.uid,subject:String(subject||"").trim(),message:String(message||"").trim()})});
  }
+ async function adminStatus(){
+  const tok=await token();
+  return (await req("/rest/v1/rpc/arvex_admin_is_admin",{method:"POST",headers:hdr(tok),body:"{}"}))===true;
+ }
+ async function loadAdminPromos(){
+  const box=document.getElementById("arvexAdminPromoList");if(!box)return;
+  try{const tok=await token();const rows=await req("/rest/v1/rpc/arvex_admin_list_promos",{method:"POST",headers:hdr(tok),body:"{}"});
+   box.textContent="";
+   if(!rows.length){box.textContent="Промокодов пока нет.";return}
+   rows.forEach(p=>{const el=document.createElement("p");el.textContent=p.code+" — "+p.days+" дн. · "+p.redeemed_count+"/"+p.max_redemptions+" · "+(p.active?"активен":"выключен");box.appendChild(el)});
+  }catch(e){box.textContent=e.message}
+ }
+ async function createAdminPromo(){
+  const code=document.getElementById("arvexAdminCode"),days=document.getElementById("arvexAdminDays"),limit=document.getElementById("arvexAdminLimit"),msg=document.getElementById("arvexAdminPromoMsg");
+  msg.textContent="Создаю…";
+  try{const tok=await token();await req("/rest/v1/rpc/arvex_admin_create_promo",{method:"POST",headers:hdr(tok),body:JSON.stringify({p_code:code.value,p_days:Number(days.value),p_max_redemptions:Number(limit.value),p_expires_at:null})});msg.textContent="Промокод создан.";code.value="";await loadAdminPromos()}catch(e){msg.textContent=e.message}
+ }
+ async function loadAdminTools(){
+  if(!session)return;
+  try{if(await adminStatus()){const box=document.getElementById("arvexAdminTools");if(box){box.classList.remove("hidden");await loadAdminPromos()}}}catch(e){}
+ }
  async function loadProfileData(force=false){
   if(!session||profileDataLoading||(!force&&Date.now()-profileDataLoadedAt<15000))return;
   profileDataLoading=true;
-  try{await Promise.all([loadSupport(),loadNotifications()]);profileDataLoadedAt=Date.now()}
+  try{await Promise.all([loadSupport(),loadNotifications(),loadAdminTools()]);profileDataLoadedAt=Date.now()}
   finally{profileDataLoading=false}
  }
  function userToolsHTML(){
@@ -152,6 +175,7 @@ async function insertOrder(o){
   return '<div class="card"><div class="card-title">Промокод</div><div class="btn-row"><input class="field" id="arvexPromoCode" maxlength="32" placeholder="Введи промокод"><button class="primary" id="arvexPromoApply">Активировать</button></div><p class="muted" id="arvexPromoMsg"></p></div>'+
    '<div class="card"><div class="card-title">История платежей</div><button class="ghost" id="arvexPaymentsLoad">Показать платежи</button><div id="arvexPaymentsList"></div></div>'+
    '<div class="card"><div class="card-title">Поддержка ARVEX</div><p class="muted">Можешь оставить обращение здесь или написать напрямую в Telegram: <a href="https://t.me/mrasulv" target="_blank" rel="noopener" style="color:var(--purple2)">@mrasulv</a></p><input class="field" id="arvexSupportSubject" maxlength="120" placeholder="Тема обращения"><textarea class="field" id="arvexSupportMessage" maxlength="4000" rows="4" placeholder="Опиши вопрос (минимум 10 символов)" style="margin-top:8px"></textarea><button class="primary" id="arvexSupportSend" style="margin-top:8px">Отправить обращение</button><p class="muted" id="arvexSupportMsg"></p><div id="arvexSupportList"></div></div>'+
+   '<div class="card hidden" id="arvexAdminTools"><div class="card-title">Управление промокодами</div><input class="field" id="arvexAdminCode" maxlength="32" placeholder="Код, например START30"><div class="btn-row"><select class="field" id="arvexAdminDays"><option value="7">7 дней</option><option value="30" selected>30 дней</option><option value="90">90 дней</option><option value="365">365 дней</option></select><input class="field" id="arvexAdminLimit" type="number" min="1" max="10000" value="1" placeholder="Лимит"></div><button class="primary" id="arvexAdminPromoCreate">Создать промокод</button><p id="arvexAdminPromoMsg" class="muted"></p><div id="arvexAdminPromoList"></div><button class="ghost" id="arvexAdminPromoRefresh">Обновить список</button></div>'+
    '<div class="card"><div class="card-title">Уведомления</div><button class="ghost" id="arvexNotificationsLoad">Проверить уведомления</button><div id="arvexNotificationsList"></div></div>';
  }
  async function loadPayments(){
