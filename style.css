@@ -7,7 +7,7 @@
 html,body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:15px;line-height:1.45}
 body.noscroll{overflow:hidden}
 button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
-input,select{font:inherit;color:var(--text)}
+input,select,textarea{font:inherit;color:var(--text)}
 h2,h3{margin:0}
 .hidden{display:none!important}
 .muted{color:var(--muted)}.pos,.positive{color:var(--green)}.neg,.negative{color:var(--red)}
@@ -67,6 +67,9 @@ small{font-size:12px}
 .lbl{display:flex;justify-content:space-between;margin:14px 0 6px;color:var(--muted);font-size:13px}.lbl b{color:var(--text)}
 .field,.input-row{width:100%;background:#0a0b12;border:1px solid var(--border);border-radius:12px;padding:12px 14px;outline:0}
 .field:focus,.input-row:focus-within{border-color:var(--purple)}
+textarea.field{display:block;color:var(--text);-webkit-text-fill-color:var(--text);caret-color:var(--purple2);line-height:1.5;min-height:112px;resize:vertical;white-space:pre-wrap}
+.field::placeholder{color:#778098;opacity:1}
+textarea.field::placeholder{-webkit-text-fill-color:#778098}
 .input-row{display:flex;align-items:center;gap:6px;padding:0 14px}.input-row span{color:var(--muted)}.input-row input{flex:1;min-width:0;background:none;border:0;outline:0;padding:12px 0;font-size:17px;font-weight:600}
 select.field{appearance:none}
 .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
