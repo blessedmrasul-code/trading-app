@@ -10,6 +10,7 @@ button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
 input,select,textarea{font:inherit;color:var(--text)}
 h2,h3{margin:0}
 .hidden{display:none!important}
+[hidden]{display:none!important}
 .muted{color:var(--muted)}.pos,.positive{color:var(--green)}.neg,.negative{color:var(--red)}
 small{font-size:12px}
 
