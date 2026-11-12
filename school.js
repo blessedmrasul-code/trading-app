@@ -33,7 +33,8 @@ function roadmapHTML(){
   ["Пройти первый урок",Object.keys(progress.lessons).length>=1],
   ["Сдать первый тест",Object.keys(progress.quizzes).length>=1],
   ["Открыть первую демо-сделку",history.length+positions.length>=1],
-  ["Сдать экзамен новичка",!!progress.exams.novice?.passed]
+  ["Сдать экзамен новичка",!!progress.exams.novice?.passed],
+  ["Сдать экспертный экзамен",!!progress.exams.expert?.passed]
  ],done=steps.filter(s=>s[1]).length;
  return `<div class="card roadmap"><div class="card-title">Путь новичка <span class="badge">${done}/${steps.length}</span></div><div class="bar"><i style="width:${done/steps.length*100}%"></i></div>
   <div class="steps">${steps.map(s=>`<div class="${s[1]?"ok":""}"><span class="dot">${s[1]?"✓":""}</span>${s[0]}</div>`).join("")}</div></div>`;
