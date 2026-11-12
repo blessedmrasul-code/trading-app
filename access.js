@@ -12,6 +12,12 @@ const Access=(()=>{
   return Number.isFinite(expiry)&&expiry>Date.now();
  };
  const locked=f=>!!((shop().enabled||shop().starsEnabled)&&(shop().lockedFeatures||[]).includes(f)&&!isPremium());
+ function syncFooterCTA(){
+  const link=document.getElementById("subscribeFooterLink"),status=document.getElementById("footerPremiumStatus");
+  const active=isPremium();
+  if(link)link.hidden=active;
+  if(status)status.hidden=!active;
+ }
  function cardHTML(){
   const s=shop();
   if(isPremium()){
@@ -92,6 +98,7 @@ const Access=(()=>{
  async function refresh(){
   entitlement=null;
   if(typeof Cloud==="undefined"||!Cloud.isIn()){
+   syncFooterCTA();
    if(typeof activeScreen!=="undefined"&&activeScreen==="profile")renderProfile();
    return;
   }
@@ -99,6 +106,7 @@ const Access=(()=>{
    const row=await Cloud.myEntitlement();
    entitlement=row||null;
   }catch(e){entitlement=null}
+  syncFooterCTA();
   if(typeof activeScreen!=="undefined"&&activeScreen==="profile")renderProfile();
  }
  function click(t){

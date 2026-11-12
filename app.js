@@ -266,6 +266,7 @@ const ACHIEVEMENTS=[
  {i:"✅",t:"Отличник",d:"Сдать все тесты",ok:()=>typeof LESSONS!=="undefined"&&LESSONS.every(l=>progress.quizzes[l.id])},
  {i:"🏅",t:"Экзамен новичка",d:"Сдать экзамен",ok:()=>!!progress.exams.novice?.passed},
  {i:"🏆",t:"Экзамен трейдера",d:"Сдать экзамен",ok:()=>!!progress.exams.advanced?.passed},
+ {i:"👑",t:"Экзамен эксперта",d:"Сдать экспертный экзамен",ok:()=>!!progress.exams.expert?.passed},
  {i:"🎯",t:"Автозакрытие",d:"Сработал стоп или тейк",ok:()=>history.some(h=>h.reason==="sl"||h.reason==="tp")},
  {i:"⭐",t:"Уровень 5",d:"Достичь 5 уровня",ok:()=>level>=5}
 ];
@@ -279,7 +280,7 @@ function renderProfile(){
   <div class="btn-row"><button class="ghost" id="editProfile">✎ Редактировать</button><button class="ghost" id="showTour">? Обучающий тур</button><button class="danger" id="resetAccount">Сбросить демо-счёт</button></div></div>
   <div class="stat-grid"><div class="stat"><small>Сделок</small><b>${st.n}</b></div><div class="stat"><small>Винрейт</small><b>${st.n?st.winrate.toFixed(0)+"%":"—"}</b></div>
   <div class="stat"><small>Результат</small><b class="${closedPnl>=0?"pos":"neg"}">${closedPnl>=0?"+":""}${money(closedPnl)}</b></div><div class="stat"><small>Лучшая сделка</small><b class="${st.best>0?"pos":""}">${st.n?signed(st.best):"—"}</b></div>
-  <div class="stat"><small>Уроков</small><b>${lessonsDone}/${total}</b></div><div class="stat"><small>Экзаменов сдано</small><b>${exams}/2</b></div></div>
+  <div class="stat"><small>Уроков</small><b>${lessonsDone}/${total}</b></div><div class="stat"><small>Экзаменов сдано</small><b>${exams}/${typeof EXAMS!=="undefined"?Object.keys(EXAMS).length:2}</b></div></div>
   <div class="card"><div class="card-title">Достижения <span class="badge">${ach}/${ACHIEVEMENTS.length}</span></div><div class="ach-grid">${ACHIEVEMENTS.map(a=>`<div class="ach ${a.ok()?"on":""}"><i>${a.i}</i><b>${a.t}</b><small>${a.d}</small></div>`).join("")}</div></div>
   <div class="card"><div class="card-title">Аккаунт</div>${typeof Cloud!=="undefined"?Cloud.accountHTML():""}</div>${typeof Access!=="undefined"?Access.cardHTML():""}${typeof Cloud!=="undefined"?Cloud.userToolsHTML():""}`;
  applyAvatar($("profAvatar"),p.avatar,p.name,p.photo);

@@ -7,6 +7,7 @@ on:
     branches: [main]
     paths:
       - "mobile/**"
+      - "scripts/**"
       - ".github/workflows/main.yml"
       - "index.html"
       - "style.css"
@@ -77,6 +78,10 @@ jobs:
             node --check "$file"
           done
 
+      - name: Run ARVEX smoke tests
+        working-directory: .
+        run: node scripts/verify-app.js
+
       - name: Install dependencies
         run: npm install
 
@@ -122,6 +127,10 @@ jobs:
 
       - name: Sync web files into Android project
         run: npx cap sync android
+
+      - name: Apply ARVEX Android launcher icons
+        working-directory: mobile
+        run: bash ./apply-android-icons.sh
 
       - name: Build debug APK
         working-directory: mobile/android
