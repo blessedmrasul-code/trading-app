@@ -1,0 +1,73 @@
+name: Publish ARVEX to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "index.html"
+      - "style.css"
+      - "app.js"
+      - "access.js"
+      - "shop-config.js"
+      - "offer.html"
+      - "cloud.js"
+      - "cloud-config.js"
+      - "chart.js"
+      - "school.js"
+      - "tools.js"
+      - "lessons.js"
+      - "exam.js"
+      - "glossary.js"
+      - "logo.png"
+      - "favicon.png"
+      - "icon-192.png"
+      - "icon-512.png"
+      - "manifest.webmanifest"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Prepare static website
+        run: |
+          set -e
+          mkdir -p _site
+          for file in \
+            index.html style.css app.js access.js shop-config.js offer.html \
+            cloud.js cloud-config.js chart.js school.js tools.js lessons.js \
+            exam.js glossary.js logo.png favicon.png icon-192.png icon-512.png \
+            manifest.webmanifest; do
+            test -f "$file" || { echo "Missing site file: $file"; exit 1; }
+            cp "$file" _site/
+          done
+          touch _site/.nojekyll
+          echo "Prepared ARVEX static site"
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload website
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - name: Publish website
+        id: deployment
+        uses: actions/deploy-pages@v4
