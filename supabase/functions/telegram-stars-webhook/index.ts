@@ -154,6 +154,27 @@ async function applyRefund(message: any) {
   }
 }
 
+
+async function handleBotCommand(message: any) {
+  const text = String(message?.text || "").trim();
+  const match = text.match(/^\/(start|help|premium|support)(?:@\w+)?(?:\s|$)/i);
+  if (!match || !message?.chat?.id) return;
+  const command = match[1].toLowerCase();
+  const body = command === "support"
+    ? "Нужна помощь с ARVEX? Напиши владельцу проекта — @mrasulv. Он поможет с оплатой и доступом."
+    : "Добро пожаловать в ARVEX Premium!\n\nПодписка стоит 120 ⭐ на 30 дней. Чтобы оплатить автоматически и привязать Premium к своему аккаунту, открой приложение ARVEX, войди в аккаунт и перейди в Профиль → ARVEX Premium → «Оплатить 120 ⭐».\n\nЕсли нужна помощь или хочешь оформить доступ напрямую — напиши владельцу @mrasulv.";
+  await telegram("sendMessage", {
+    chat_id: message.chat.id,
+    text: body,
+    reply_markup: {
+      inline_keyboard: [[
+        { text: "Открыть ARVEX", url: "https://blessedmrasul-code.github.io/trading-app/" },
+        { text: "Написать владельцу", url: "https://t.me/mrasulv" }
+      ]]
+    }
+  });
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method !== "POST") return new Response("Method not allowed", { status: 405 });
   const expected = webhookSecret();
@@ -162,7 +183,7 @@ Deno.serve(async (req: Request) => {
 
   try {
     const update = await req.json();
-    if (update.pre_checkout_query) {
+    if (update.message?.text) {\n      await handleBotCommand(update.message);\n    } else if (update.pre_checkout_query) {
       await answerPreCheckout(update.pre_checkout_query);
     } else if (update.message?.successful_payment) {
       await applySuccessfulPayment(update.message);
