@@ -59,6 +59,7 @@ jobs:
         working-directory: .
         run: |
           deno check supabase/functions/create-stars-invoice/index.ts
+          deno check supabase/functions/create-stars-bot-link/index.ts
           deno check supabase/functions/telegram-stars-webhook/index.ts
           deno check supabase/functions/cancel-stars-subscription/index.ts
 
