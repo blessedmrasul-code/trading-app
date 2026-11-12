@@ -25,7 +25,7 @@ const Access=(()=>{
    if(!Cloud.isIn())return `<div class="card"><div class="card-title">ARVEX Premium</div><p class="muted" style="margin:0">Войди в аккаунт ARVEX, чтобы оформить подписку и привязать её к своему прогрессу.</p></div>`;
    return `<div class="card"><div class="card-title">ARVEX Premium</div><p style="margin:0 0 8px"><b>${Number(s.stars)||120} ⭐ / 30 дней</b> · автоматическое продление через Telegram Stars. Управляй автопродлением здесь или в Telegram.</p><div class="btn-row"><button class="primary" id="accStarsBuy">Оформить подписку</button><button class="ghost" id="accStarsCheck">Проверить доступ</button></div><p class="muted" id="accStarsMsg" style="margin:8px 0 0"></p></div>`;
   }
-  if(!s.enabled)return `<div class="card"><div class="card-title">Premium</div><p class="muted" style="margin:0">Платный доступ с онлайн-уроками готовится. Разовая оплата, без подписок и автопродления.</p></div>`;
+  if(!s.enabled&&!s.starsEnabled){const stars=Number(s.stars)||120,days=Number(s.subscriptionDays)||30,tg=String(s.telegram||"mrasulv").replace(/^@/,"");return `<div class="card"><div class="card-title">ARVEX Premium</div><p style="margin:0 0 8px"><b>${stars} ⭐ / ${days} дней</b> · оплата Telegram Stars напрямую администратору.</p><button class="primary" id="accManualStars">Купить подписку</button><p class="muted" style="margin:8px 0 0">После подтверждения оплаты доступ будет активирован вручную.</p></div>`;}
   const old=s.promoPrice>0&&s.promoPrice<s.price?` <s class="muted">${s.price} ₽</s>`:"";
   return `<div class="card"><div class="card-title">Premium</div><p style="margin:0 0 8px">Разовая оплата <b>${price()} ₽</b>${old} — доступ навсегда, без подписок и автопродления.</p><div class="btn-row"><button class="primary" id="accBuy">Получить доступ</button><button class="ghost" id="accOffer">Оферта</button></div></div>`;
  }
@@ -102,6 +102,7 @@ const Access=(()=>{
   if(typeof activeScreen!=="undefined"&&activeScreen==="profile")renderProfile();
  }
  function click(t){
+  if(t.closest("#accManualStars")){const s=shop(),tg=String(s.telegram||"mrasulv").replace(/^@/,""),stars=Number(s.stars)||120,days=Number(s.subscriptionDays)||30;const msg=`Здравствуйте! Хочу оформить ARVEX Premium на ${days} дней за ${stars} Telegram Stars. Подскажите, как оплатить. Мой email аккаунта ARVEX: `;window.open(`https://t.me/${encodeURIComponent(tg)}?text=${encodeURIComponent(msg)}`,"_blank","noopener");return true}
   if(t.closest("#accStarsToggle")){toggleStarsRenew();return true}
   if(t.closest("#accStarsBuy")){buyStars();return true}
   if(t.closest("#accStarsCheck")){refresh();const m=document.getElementById("accStarsMsg");if(m)m.textContent="Проверка завершена. Если платёж только что прошёл, подожди несколько секунд и проверь ещё раз.";return true}
