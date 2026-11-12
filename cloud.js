@@ -85,6 +85,10 @@ const Cloud=(()=>{
   if(t.closest("#cloudUp")){form("up");return true}
   if(t.closest("#cloudSync")){sync();return true}
   if(t.closest("#cloudOut")){signOut();renderProfile();return true}
+  if(t.closest("#arvexPromoApply")){const m=document.getElementById("arvexPromoMsg");m.textContent="Проверяю…";redeemPromo(document.getElementById("arvexPromoCode").value).then(()=>{m.textContent="Промокод активирован!";if(typeof renderProfile==="function")renderProfile()}).catch(e=>m.textContent=e.message);return true}
+  if(t.closest("#arvexPaymentsLoad")){loadPayments();return true}
+  if(t.closest("#arvexSupportSend")){const m=document.getElementById("arvexSupportMsg"),s=document.getElementById("arvexSupportSubject").value,v=document.getElementById("arvexSupportMessage").value;if(s.trim().length<3||v.trim().length<10){m.textContent="Заполни тему и сообщение (минимум 10 символов).";return true}m.textContent="Отправляю…";createSupport(s,v).then(()=>{m.textContent="Обращение отправлено.";document.getElementById("arvexSupportSubject").value="";document.getElementById("arvexSupportMessage").value="";loadSupport()}).catch(e=>m.textContent=e.message);return true}
+  if(t.closest("#arvexNotificationsLoad")){loadNotifications();return true}
   return false;
  }
 async function insertOrder(o){
@@ -117,7 +121,55 @@ async function insertOrder(o){
   const rows=await req(`/rest/v1/arvex_subscriptions?user_id=eq.${session.uid}&select=is_forever,expires_at,auto_renew`,{headers:hdr(tok)});
   return rows&&rows[0]?{plan:rows[0].is_forever?"lifetime":"monthly",expires_at:rows[0].expires_at,auto_renew:rows[0].auto_renew}:null;
  }
- return {insertOrder,myEntitlement,createStarsInvoice,setStarsAutoRenew,enabled,accountHTML,click,schedule,sync,isIn:()=>!!session};
+
+ async function redeemPromo(code){
+  const tok=await token();
+  const rows=await req("/rest/v1/rpc/arvex_redeem_promo",{method:"POST",headers:hdr(tok),body:JSON.stringify({p_code:String(code||"").trim()})});
+  if(typeof Access!=="undefined")await Access.refresh();
+  return rows;
+ }
+ async function paymentHistory(){
+  const tok=await token();
+  return await req("/rest/v1/telegram_star_payments?select=stars_amount,currency,is_recurring,expires_at,refunded_at,created_at&user_id=eq."+encodeURIComponent(session.uid)+"&order=created_at.desc&limit=30",{headers:hdr(tok)});
+ }
+ async function supportTickets(){
+  const tok=await token();
+  return await req("/rest/v1/arvex_support_tickets?select=id,subject,message,status,created_at&user_id=eq."+encodeURIComponent(session.uid)+"&order=created_at.desc&limit=20",{headers:hdr(tok)});
+ }
+ async function createSupport(subject,message){
+  const tok=await token();
+  await req("/rest/v1/arvex_support_tickets",{method:"POST",headers:{...hdr(tok),"Prefer":"return=minimal"},body:JSON.stringify({user_id:session.uid,subject:String(subject||"").trim(),message:String(message||"").trim()})});
+ }
+ function userToolsHTML(){
+  if(!enabled())return "";
+  if(!session)return '<div class="card"><div class="card-title">Сервисы аккаунта</div><p class="muted">Войди в аккаунт, чтобы использовать промокоды, смотреть платежи и обращаться в поддержку.</p></div>';
+  return '<div class="card"><div class="card-title">Промокод</div><div class="btn-row"><input class="field" id="arvexPromoCode" maxlength="32" placeholder="Введи промокод"><button class="primary" id="arvexPromoApply">Активировать</button></div><p class="muted" id="arvexPromoMsg"></p></div>'+
+   '<div class="card"><div class="card-title">История платежей</div><button class="ghost" id="arvexPaymentsLoad">Показать платежи</button><div id="arvexPaymentsList"></div></div>'+
+   '<div class="card"><div class="card-title">Поддержка ARVEX</div><input class="field" id="arvexSupportSubject" maxlength="120" placeholder="Тема обращения"><textarea class="field" id="arvexSupportMessage" maxlength="4000" rows="4" placeholder="Опиши вопрос (минимум 10 символов)" style="margin-top:8px"></textarea><button class="primary" id="arvexSupportSend" style="margin-top:8px">Отправить обращение</button><p class="muted" id="arvexSupportMsg"></p><div id="arvexSupportList"></div></div>'+
+   '<div class="card"><div class="card-title">Уведомления</div><button class="ghost" id="arvexNotificationsLoad">Проверить уведомления</button><div id="arvexNotificationsList"></div></div>';
+ }
+ async function loadPayments(){
+  const box=document.getElementById("arvexPaymentsList");if(!box)return;
+  box.textContent="Загрузка…";
+  try{const rows=await paymentHistory();box.innerHTML=rows.length?rows.map(x=>'<div class="res-link"><b>'+Number(x.stars_amount)+' ⭐ · '+(x.refunded_at?'Возврат':'Оплачено')+'</b><span>'+new Date(x.created_at).toLocaleString("ru-RU")+(x.expires_at?' · до '+new Date(x.expires_at).toLocaleDateString("ru-RU"):'')+'</span></div>').join(""):'<p class="muted">Платежей пока нет.</p>'}
+  catch(e){box.textContent="Не удалось загрузить историю: "+e.message}
+ }
+ async function loadSupport(){
+  const box=document.getElementById("arvexSupportList");if(!box)return;
+  box.textContent="Загрузка…";
+  try{const rows=await supportTickets();box.innerHTML=rows.length?rows.map(x=>'<div class="res-link"><b>'+esc(x.subject)+' · '+({open:"Открыто",in_progress:"В работе",closed:"Закрыто"}[x.status]||x.status)+'</b><span>'+esc(x.message)+' · '+new Date(x.created_at).toLocaleString("ru-RU")+'</span></div>').join(""):'<p class="muted">Обращений пока нет.</p>'}
+  catch(e){box.textContent="Не удалось загрузить обращения: "+e.message}
+ }
+ async function loadNotifications(){
+  const box=document.getElementById("arvexNotificationsList");if(!box)return;
+  box.textContent="Загрузка…";
+  try{const tok=await token(),rows=await req("/rest/v1/arvex_notifications?select=id,title,body,kind,created_at,read_at&user_id=eq."+encodeURIComponent(session.uid)+"&order=created_at.desc&limit=30",{headers:hdr(tok)});
+   box.innerHTML=rows.length?rows.map(x=>'<div class="res-link"><b>'+esc(x.title)+'</b><span>'+esc(x.body)+' · '+new Date(x.created_at).toLocaleString("ru-RU")+(x.read_at?' · Прочитано':'')+'</span></div>').join(""):'<p class="muted">Новых уведомлений нет.</p>';
+   const unread=rows.filter(x=>!x.read_at).map(x=>x.id);if(unread.length){await req("/rest/v1/arvex_notifications?id=in.("+unread.join(",")+")",{method:"PATCH",headers:{...hdr(tok),"Prefer":"return=minimal"},body:JSON.stringify({read_at:new Date().toISOString()})})}
+  }catch(e){box.textContent="Не удалось загрузить уведомления: "+e.message}
+ }
+
+ return {insertOrder,myEntitlement,createStarsInvoice,setStarsAutoRenew,enabled,accountHTML,userToolsHTML,click,schedule,sync,isIn:()=>!!session};
 })();
 
 // Netlify production redeploy trigger: email confirmation redirects to the public site.
