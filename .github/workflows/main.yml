@@ -150,3 +150,4 @@ jobs:
           gh release create "apk-${GITHUB_RUN_NUMBER}" "${{ steps.apk.outputs.path }}" \
             --title "ARVEX APK ${GITHUB_RUN_NUMBER}" \
             --notes "Debug APK, собран GitHub Actions. Учебный симулятор, виртуальные средства."
+# ARVEX workflow verification trigger 2026-11-12
