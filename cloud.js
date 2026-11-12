@@ -3,7 +3,7 @@
 const Cloud=(()=>{
  const cfg=()=>window.ARVEX_CLOUD||{};
  const SK="arvex_cloud_session";
- let session=null,timer=null,busy=false,status="";
+ let session=null,timer=null,busy=false,status="",profileDataLoading=false,profileDataLoadedAt=0;
  try{session=JSON.parse(localStorage.getItem(SK)||"null")}catch(e){}
  const enabled=()=>!!(cfg().url&&cfg().anonKey);
  const keep=s=>{session=s;try{s?localStorage.setItem(SK,JSON.stringify(s)):localStorage.removeItem(SK)}catch(e){}};
@@ -140,12 +140,18 @@ async function insertOrder(o){
   const tok=await token();
   await req("/rest/v1/arvex_support_tickets",{method:"POST",headers:{...hdr(tok),"Prefer":"return=minimal"},body:JSON.stringify({user_id:session.uid,subject:String(subject||"").trim(),message:String(message||"").trim()})});
  }
+ async function loadProfileData(force=false){
+  if(!session||profileDataLoading||(!force&&Date.now()-profileDataLoadedAt<15000))return;
+  profileDataLoading=true;
+  try{await Promise.all([loadSupport(),loadNotifications()]);profileDataLoadedAt=Date.now()}
+  finally{profileDataLoading=false}
+ }
  function userToolsHTML(){
   if(!enabled())return "";
   if(!session)return '<div class="card"><div class="card-title">Сервисы аккаунта</div><p class="muted">Войди в аккаунт, чтобы использовать промокоды, смотреть платежи и обращаться в поддержку.</p></div>';
   return '<div class="card"><div class="card-title">Промокод</div><div class="btn-row"><input class="field" id="arvexPromoCode" maxlength="32" placeholder="Введи промокод"><button class="primary" id="arvexPromoApply">Активировать</button></div><p class="muted" id="arvexPromoMsg"></p></div>'+
    '<div class="card"><div class="card-title">История платежей</div><button class="ghost" id="arvexPaymentsLoad">Показать платежи</button><div id="arvexPaymentsList"></div></div>'+
-   '<div class="card"><div class="card-title">Поддержка ARVEX</div><input class="field" id="arvexSupportSubject" maxlength="120" placeholder="Тема обращения"><textarea class="field" id="arvexSupportMessage" maxlength="4000" rows="4" placeholder="Опиши вопрос (минимум 10 символов)" style="margin-top:8px"></textarea><button class="primary" id="arvexSupportSend" style="margin-top:8px">Отправить обращение</button><p class="muted" id="arvexSupportMsg"></p><div id="arvexSupportList"></div></div>'+
+   '<div class="card"><div class="card-title">Поддержка ARVEX</div><p class="muted">Можешь оставить обращение здесь или написать напрямую в Telegram: <a href="https://t.me/mrasulv" target="_blank" rel="noopener" style="color:var(--purple2)">@mrasulv</a></p><input class="field" id="arvexSupportSubject" maxlength="120" placeholder="Тема обращения"><textarea class="field" id="arvexSupportMessage" maxlength="4000" rows="4" placeholder="Опиши вопрос (минимум 10 символов)" style="margin-top:8px"></textarea><button class="primary" id="arvexSupportSend" style="margin-top:8px">Отправить обращение</button><p class="muted" id="arvexSupportMsg"></p><div id="arvexSupportList"></div></div>'+
    '<div class="card"><div class="card-title">Уведомления</div><button class="ghost" id="arvexNotificationsLoad">Проверить уведомления</button><div id="arvexNotificationsList"></div></div>';
  }
  async function loadPayments(){
@@ -169,7 +175,7 @@ async function insertOrder(o){
   }catch(e){box.textContent="Не удалось загрузить уведомления: "+e.message}
  }
 
- return {insertOrder,myEntitlement,createStarsInvoice,setStarsAutoRenew,enabled,accountHTML,userToolsHTML,click,schedule,sync,isIn:()=>!!session};
+ return {insertOrder,myEntitlement,createStarsInvoice,setStarsAutoRenew,enabled,accountHTML,userToolsHTML,loadProfileData,click,schedule,sync,isIn:()=>!!session};
 })();
 
 // Netlify production redeploy trigger: email confirmation redirects to the public site.
