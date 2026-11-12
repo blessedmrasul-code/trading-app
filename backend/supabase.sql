@@ -150,3 +150,112 @@ create index if not exists telegram_star_payments_intent_id_idx
   on public.telegram_star_payments (intent_id);
 
 -- Edge Functions use the server-only service role key to write these records.
+
+
+-- ARVEX user features v1: private payment history, support, notifications and promo redemption.
+drop policy if exists "Users read own Telegram Star payments" on public.telegram_star_payments;
+create policy "Users read own Telegram Star payments"
+  on public.telegram_star_payments for select to authenticated
+  using ((select auth.uid()) = user_id);
+grant select on public.telegram_star_payments to authenticated;
+
+create table if not exists public.arvex_support_tickets (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  subject text not null check (char_length(subject) between 3 and 120),
+  message text not null check (char_length(message) between 10 and 4000),
+  status text not null default 'open' check (status in ('open','in_progress','closed')),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+alter table public.arvex_support_tickets enable row level security;
+drop policy if exists "Users create own support tickets" on public.arvex_support_tickets;
+create policy "Users create own support tickets" on public.arvex_support_tickets
+  for insert to authenticated with check ((select auth.uid()) = user_id);
+drop policy if exists "Users read own support tickets" on public.arvex_support_tickets;
+create policy "Users read own support tickets" on public.arvex_support_tickets
+  for select to authenticated using ((select auth.uid()) = user_id);
+grant select, insert on public.arvex_support_tickets to authenticated;
+
+create table if not exists public.arvex_notifications (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  title text not null check (char_length(title) between 1 and 120),
+  body text not null check (char_length(body) between 1 and 1000),
+  kind text not null default 'info' check (kind in ('info','subscription','payment','support')),
+  read_at timestamptz,
+  created_at timestamptz not null default now()
+);
+alter table public.arvex_notifications enable row level security;
+drop policy if exists "Users read own notifications" on public.arvex_notifications;
+create policy "Users read own notifications" on public.arvex_notifications
+  for select to authenticated using ((select auth.uid()) = user_id);
+drop policy if exists "Users mark own notifications read" on public.arvex_notifications;
+create policy "Users mark own notifications read" on public.arvex_notifications
+  for update to authenticated using ((select auth.uid()) = user_id)
+  with check ((select auth.uid()) = user_id);
+grant select on public.arvex_notifications to authenticated;
+revoke update on public.arvex_notifications from authenticated;
+grant update (read_at) on public.arvex_notifications to authenticated;
+
+create table if not exists public.arvex_promo_codes (
+  code text primary key check (code = upper(code) and code ~ '^[A-Z0-9_-]{4,32}$'),
+  days integer not null check (days in (7,30,90,365)),
+  max_redemptions integer not null default 1 check (max_redemptions > 0),
+  redeemed_count integer not null default 0 check (redeemed_count >= 0),
+  active boolean not null default true,
+  expires_at timestamptz,
+  created_at timestamptz not null default now()
+);
+alter table public.arvex_promo_codes enable row level security;
+revoke all on public.arvex_promo_codes from anon, authenticated;
+grant all on public.arvex_promo_codes to service_role;
+
+create table if not exists public.arvex_promo_redemptions (
+  id uuid primary key default gen_random_uuid(),
+  code text not null references public.arvex_promo_codes(code),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  redeemed_at timestamptz not null default now(),
+  unique(code,user_id)
+);
+alter table public.arvex_promo_redemptions enable row level security;
+revoke all on public.arvex_promo_redemptions from anon, authenticated;
+grant all on public.arvex_promo_redemptions to service_role;
+
+create or replace function public.arvex_redeem_promo(p_code text)
+returns timestamptz
+language plpgsql
+security definer
+set search_path = public, auth
+as $$
+declare
+  v_code text := upper(trim(coalesce(p_code,'')));
+  v_days integer;
+  v_exp timestamptz;
+  v_uid uuid := auth.uid();
+begin
+  if v_uid is null then raise exception 'Войди в аккаунт ARVEX'; end if;
+  if char_length(v_code) < 4 or char_length(v_code) > 32 then raise exception 'Промокод не найден'; end if;
+  select days into v_days from public.arvex_promo_codes
+   where code = v_code and active = true
+     and (expires_at is null or expires_at > now())
+     and redeemed_count < max_redemptions
+   for update;
+  if not found then raise exception 'Промокод недействителен или лимит исчерпан'; end if;
+  insert into public.arvex_promo_redemptions(code,user_id) values(v_code,v_uid);
+  update public.arvex_promo_codes set redeemed_count = redeemed_count + 1 where code = v_code;
+  insert into public.arvex_subscriptions(user_id,starts_at,expires_at,is_forever,auto_renew,updated_at,updated_by)
+  values(v_uid,now(),now() + make_interval(days => v_days),false,false,now(),null)
+  on conflict(user_id) do update set
+    expires_at = greatest(now(), coalesce(public.arvex_subscriptions.expires_at,now())) + make_interval(days => v_days),
+    is_forever = false, auto_renew = false, updated_at = now(), updated_by = null
+  returning expires_at into v_exp;
+  insert into public.arvex_notifications(user_id,title,body,kind)
+  values(v_uid,'Промокод активирован','Доступ продлён на ' || v_days || ' дней.','subscription');
+  return v_exp;
+exception when unique_violation then
+  raise exception 'Этот промокод уже использован в аккаунте';
+end;
+$$;
+revoke all on function public.arvex_redeem_promo(text) from public, anon;
+grant execute on function public.arvex_redeem_promo(text) to authenticated;
