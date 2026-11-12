@@ -281,7 +281,7 @@ function renderProfile(){
   <div class="stat"><small>Результат</small><b class="${closedPnl>=0?"pos":"neg"}">${closedPnl>=0?"+":""}${money(closedPnl)}</b></div><div class="stat"><small>Лучшая сделка</small><b class="${st.best>0?"pos":""}">${st.n?signed(st.best):"—"}</b></div>
   <div class="stat"><small>Уроков</small><b>${lessonsDone}/${total}</b></div><div class="stat"><small>Экзаменов сдано</small><b>${exams}/2</b></div></div>
   <div class="card"><div class="card-title">Достижения <span class="badge">${ach}/${ACHIEVEMENTS.length}</span></div><div class="ach-grid">${ACHIEVEMENTS.map(a=>`<div class="ach ${a.ok()?"on":""}"><i>${a.i}</i><b>${a.t}</b><small>${a.d}</small></div>`).join("")}</div></div>
-  <div class="card"><div class="card-title">Аккаунт</div>${typeof Cloud!=="undefined"?Cloud.accountHTML():""}</div>${typeof Access!=="undefined"?Access.cardHTML():""}`;
+  <div class="card"><div class="card-title">Аккаунт</div>${typeof Cloud!=="undefined"?Cloud.accountHTML():""}</div>${typeof Access!=="undefined"?Access.cardHTML():""}${typeof Cloud!=="undefined"?Cloud.userToolsHTML():""}`;
  applyAvatar($("profAvatar"),p.avatar,p.name,p.photo);
 }
 function openProfileModal(edit){
