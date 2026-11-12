@@ -1,6 +1,10 @@
 name: Release (signed APK + AAB)
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - ".release-trigger.json"
   workflow_dispatch:
     inputs:
       version_name:
@@ -42,6 +46,27 @@ jobs:
           distribution: temurin
           java-version: 21
 
+      - name: Resolve release version
+        id: release
+        working-directory: .
+        env:
+          VERSION_NAME_INPUT: ${{ inputs.version_name }}
+          VERSION_CODE_INPUT: ${{ inputs.version_code }}
+          PUBLISH_RELEASE_INPUT: ${{ inputs.publish_release }}
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = "push" ]; then
+            VERSION_NAME=$(jq -r '.version_name' .release-trigger.json)
+            VERSION_CODE=$(jq -r '.version_code' .release-trigger.json)
+            PUBLISH_RELEASE=true
+          else
+            VERSION_NAME="$VERSION_NAME_INPUT"
+            VERSION_CODE="$VERSION_CODE_INPUT"
+            PUBLISH_RELEASE="$PUBLISH_RELEASE_INPUT"
+          fi
+          echo "version_name=$VERSION_NAME" >> "$GITHUB_OUTPUT"
+          echo "version_code=$VERSION_CODE" >> "$GITHUB_OUTPUT"
+          echo "publish=$PUBLISH_RELEASE" >> "$GITHUB_OUTPUT"
+
       - name: Validate signing secrets
         working-directory: .
         env:
@@ -49,8 +74,8 @@ jobs:
           STORE_PASSWORD: ${{ secrets.ARVEX_STORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.ARVEX_KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.ARVEX_KEY_PASSWORD }}
-          VERSION_NAME: ${{ inputs.version_name }}
-          VERSION_CODE: ${{ inputs.version_code }}
+          VERSION_NAME: ${{ steps.release.outputs.version_name }}
+          VERSION_CODE: ${{ steps.release.outputs.version_code }}
         run: |
           for name in KEYSTORE_B64 STORE_PASSWORD KEY_ALIAS KEY_PASSWORD; do
             if [ -z "${!name}" ]; then
@@ -109,8 +134,8 @@ jobs:
           ARVEX_STORE_PASSWORD: ${{ secrets.ARVEX_STORE_PASSWORD }}
           ARVEX_KEY_ALIAS: ${{ secrets.ARVEX_KEY_ALIAS }}
           ARVEX_KEY_PASSWORD: ${{ secrets.ARVEX_KEY_PASSWORD }}
-          ARVEX_VERSION_CODE: ${{ inputs.version_code }}
-          ARVEX_VERSION_NAME: ${{ inputs.version_name }}
+          ARVEX_VERSION_CODE: ${{ steps.release.outputs.version_code }}
+          ARVEX_VERSION_NAME: ${{ steps.release.outputs.version_name }}
         run: |
           chmod +x ./gradlew
           ./gradlew --no-daemon \
@@ -125,16 +150,16 @@ jobs:
       - name: Upload signed release files
         uses: actions/upload-artifact@v4
         with:
-          name: arvex-release-${{ inputs.version_name }}
+          name: arvex-release-${{ steps.release.outputs.version_name }}
           path: mobile/release-output/*
           if-no-files-found: error
           retention-days: 30
 
       - name: Publish GitHub Release
-        if: ${{ inputs.publish_release }}
+        if: ${{ steps.release.outputs.publish == 'true' }}
         env:
           GH_TOKEN: ${{ github.token }}
-          VERSION_NAME: ${{ inputs.version_name }}
+          VERSION_NAME: ${{ steps.release.outputs.version_name }}
         working-directory: .
         run: |
           if gh release view "v$VERSION_NAME" >/dev/null 2>&1; then
