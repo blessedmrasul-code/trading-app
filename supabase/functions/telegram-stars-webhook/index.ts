@@ -168,7 +168,7 @@ async function handleBotCommand(message: any) {
       await telegram("sendMessage", { chat_id: message.chat.id, text: "Ссылка на оплату недействительна или устарела. Вернись в приложение ARVEX, войди в аккаунт и создай новый счёт." });
       return;
     }
-    const invoiceResponse = await fetch(\`https://api.telegram.org/bot\${botToken()}/createInvoiceLink\`, {
+    const invoiceResponse = await fetch(`https://api.telegram.org/bot${botToken()}/createInvoiceLink`, {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         title: "ARVEX Premium",
