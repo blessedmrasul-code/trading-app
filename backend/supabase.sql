@@ -385,3 +385,8 @@ revoke all on function public.arvex_admin_set_support_status(uuid,text) from pub
 grant execute on function public.arvex_admin_set_support_status(uuid,text) to authenticated;
 
 -- Existing admin management RPCs and their permissions are maintained by the migration history.
+
+
+-- Support tickets contain private user messages. Do not expose the table to anon.
+revoke all on table public.arvex_support_tickets from anon;
+grant select, insert on table public.arvex_support_tickets to authenticated;
