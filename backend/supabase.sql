@@ -259,3 +259,71 @@ end;
 $$;
 revoke all on function public.arvex_redeem_promo(text) from public, anon;
 grant execute on function public.arvex_redeem_promo(text) to authenticated;
+
+
+-- ARVEX subscription expiry reminders: deduplicated in-app notifications.
+create extension if not exists pg_cron with schema pg_catalog;
+grant usage on schema cron to postgres;
+grant all privileges on all tables in schema cron to postgres;
+
+alter table public.arvex_notifications
+  add column if not exists dedupe_key text;
+
+create unique index if not exists arvex_notifications_dedupe_key_uidx
+  on public.arvex_notifications(dedupe_key)
+  where dedupe_key is not null;
+
+create or replace function public.arvex_create_expiry_notifications()
+returns integer
+language plpgsql
+security definer
+set search_path = pg_catalog, public
+as $$
+declare
+  inserted_count integer := 0;
+begin
+  with due as (
+    select s.user_id, s.expires_at,
+      case
+        when s.expires_at::date = (now() at time zone 'UTC')::date + 3 then 3
+        when s.expires_at::date = (now() at time zone 'UTC')::date + 1 then 1
+      end as days_left
+    from public.arvex_subscriptions s
+    where coalesce(s.is_forever, false) = false
+      and s.expires_at is not null
+      and s.expires_at > now()
+      and s.expires_at::date in (
+        (now() at time zone 'UTC')::date + 3,
+        (now() at time zone 'UTC')::date + 1
+      )
+  ),
+  added as (
+    insert into public.arvex_notifications
+      (user_id, title, body, kind, dedupe_key)
+    select
+      d.user_id,
+      'Подписка скоро закончится',
+      case when d.days_left = 3
+        then 'До окончания подписки осталось 3 дня. Продли её заранее, чтобы не потерять доступ.'
+        else 'До окончания подписки остался 1 день. Продли её, чтобы сохранить доступ.'
+      end,
+      'subscription_expiry',
+      'subscription-expiry:' || d.user_id::text || ':' || d.days_left::text || ':' || d.expires_at::date::text
+    from due d
+    on conflict (dedupe_key) where dedupe_key is not null do nothing
+    returning 1
+  )
+  select count(*) into inserted_count from added;
+
+  return inserted_count;
+end;
+$$;
+
+revoke all on function public.arvex_create_expiry_notifications() from public, anon, authenticated;
+grant execute on function public.arvex_create_expiry_notifications() to postgres;
+
+select cron.schedule(
+  'arvex-subscription-expiry-notifications',
+  '0 9 * * *',
+  'select public.arvex_create_expiry_notifications();'
+);
