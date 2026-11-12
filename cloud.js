@@ -110,6 +110,17 @@ async function insertOrder(o){
   if(!r.ok)throw new Error((j&&j.error)||("HTTP "+r.status));
   return j||{};
  }
+ async function createStarsBotLink(){
+  if(!enabled()||!session)throw new Error("Сначала войди в аккаунт ARVEX.");
+  const tok=await token();
+  const r=await fetch(cfg().url.replace(/\/$/,"")+"/functions/v1/create-stars-bot-link",{
+   method:"POST",headers:hdr(tok),body:"{}"
+  });
+  let j=null;try{j=await r.json()}catch(e){}
+  if(!r.ok)throw new Error((j&&j.error)||("HTTP "+r.status));
+  if(!j||!j.url)throw new Error("Не удалось подготовить переход к оплате.");
+  return j;
+ }
  async function setStarsAutoRenew(enabled){
   if(!session)throw new Error("Сначала войди в аккаунт ARVEX.");
   const tok=await token();
@@ -256,7 +267,7 @@ async function insertOrder(o){
 
  document.addEventListener("submit",e=>{const form=e.target;if(!form||form.id!=="arvexSupportForm")return;e.preventDefault();submitSupportForm(form)});
 
- return {insertOrder,myEntitlement,createStarsInvoice,setStarsAutoRenew,createSupport,enabled,accountHTML,userToolsHTML,loadProfileData,click,schedule,sync,isIn:()=>!!session};
+ return {insertOrder,myEntitlement,createStarsInvoice,createStarsBotLink,setStarsAutoRenew,createSupport,enabled,accountHTML,userToolsHTML,loadProfileData,click,schedule,sync,isIn:()=>!!session};
 })();
 
 // Netlify production redeploy trigger: email confirmation redirects to the public site.
