@@ -152,3 +152,5 @@ jobs:
             --notes "Debug APK, собран GitHub Actions. Учебный симулятор, виртуальные средства."
 # ARVEX workflow verification trigger 2026-11-12
 # token recheck
+
+# ARVEX token verification 2026-11-12 second retry
