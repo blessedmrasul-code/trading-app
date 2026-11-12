@@ -151,3 +151,4 @@ jobs:
             --title "ARVEX APK ${GITHUB_RUN_NUMBER}" \
             --notes "Debug APK, собран GitHub Actions. Учебный симулятор, виртуальные средства."
 # ARVEX workflow verification trigger 2026-11-12
+# token recheck
