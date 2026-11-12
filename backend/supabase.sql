@@ -384,20 +384,4 @@ grant execute on function public.arvex_admin_list_support_tickets(integer) to au
 revoke all on function public.arvex_admin_set_support_status(uuid,text) from public,anon;
 grant execute on function public.arvex_admin_set_support_status(uuid,text) to authenticated;
 
--- Admin RPC functions are never callable by anonymous visitors.
-revoke all on function public.arvex_admin_is_admin() from public,anon;
-grant execute on function public.arvex_admin_is_admin() to authenticated;
-revoke all on function public.arvex_admin_create_promo(text,integer,integer,timestamptz) from public,anon;
-grant execute on function public.arvex_admin_create_promo(text,integer,integer,timestamptz) to authenticated;
-revoke all on function public.arvex_admin_list_promos() from public,anon;
-grant execute on function public.arvex_admin_list_promos() to authenticated;
-revoke all on function public.arvex_admin_stats() from public,anon;
-grant execute on function public.arvex_admin_stats() to authenticated;
-revoke all on function public.arvex_admin_history(integer) from public,anon;
-grant execute on function public.arvex_admin_history(integer) to authenticated;
-revoke all on function public.arvex_admin_search_users(text) from public,anon;
-grant execute on function public.arvex_admin_search_users(text) to authenticated;
-revoke all on function public.arvex_admin_set_subscription(uuid,integer,boolean) from public,anon;
-grant execute on function public.arvex_admin_set_subscription(uuid,integer,boolean) to authenticated;
-revoke all on function public.arvex_admin_revoke_subscription(uuid) from public,anon;
-grant execute on function public.arvex_admin_revoke_subscription(uuid) to authenticated;
+-- Existing admin management RPCs and their permissions are maintained by the migration history.
