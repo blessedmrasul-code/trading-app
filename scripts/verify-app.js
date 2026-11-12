@@ -46,6 +46,7 @@ for (const id of ["novice", "advanced", "expert"]) {
 
 const css = read("style.css");
 assert.ok(css.includes("textarea.field{display:block;color:var(--text)"), "Textarea must explicitly use readable foreground color");
+assert.ok(css.includes("[hidden]{display:none!important}"), "The hidden attribute must override inline display styles");
 const cloud = read("cloud.js");
 assert.ok(cloud.includes('document.addEventListener("submit"'), "Support form must use delegated submit handling");
 assert.ok(cloud.includes('Prefer":"return=representation'), "Support creation must verify a returned row");
