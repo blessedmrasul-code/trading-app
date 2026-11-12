@@ -28,7 +28,7 @@ const Cloud=(()=>{
   return session.access;
  }
  async function signUp(email,pw){
-  const redirect=encodeURIComponent("https://sage-peony.netlify.app");
+  const redirect=encodeURIComponent("https://blessedmrasul-code.github.io/trading-app/");
   const j=await req("/auth/v1/signup?redirect_to="+redirect,{method:"POST",headers:hdr(),body:JSON.stringify({email,password:pw})});
   if(adopt(j))return {ok:true};
   return {ok:false,confirm:true}; // включено подтверждение почты
