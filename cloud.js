@@ -319,10 +319,56 @@ async function insertOrder(o){
  document.addEventListener("change",e=>{if(e.target&&e.target.id==="arvexLanguage"){localStorage.setItem("arvex_language",e.target.value);applyLanguage(e.target.value)}});
  function applyLanguage(lang){
   const en=lang==="en";
+  const dict={
+   "Торговля":"Trading","Портфель":"Portfolio","Школа":"Academy","Инструменты":"Tools","Профиль":"Profile","Счёт":"Balance",
+   "Настройки":"Settings","Язык интерфейса":"Interface language","Сервисы аккаунта":"Account services","Войти":"Sign in","Регистрация":"Create account","Забыли пароль?":"Forgot password?",
+   "Смена пароля":"Change password","Изменить пароль":"Change password","Новый пароль (от 8 символов)":"New password (8+ characters)","Сохранить пароль":"Save password",
+   "История платежей":"Payment history","Поддержка ARVEX":"ARVEX Support","Уведомления":"Notifications","Промокод":"Promo code","Активировать":"Activate",
+   "Добро пожаловать":"Welcome","Новая сделка":"New trade","Только виртуальные средства":"Virtual funds only","Маржа (своя сумма)":"Margin (custom amount)",
+   "Плечо":"Leverage","Тейк-профит, %":"Take profit, %","Стоп-лосс, %":"Stop loss, %","Доступно":"Available","Размер позиции":"Position size",
+   "Ликвидация LONG":"LONG liquidation","Ликвидация SHORT":"SHORT liquidation","Открытые позиции":"Open positions","История сделок":"Trade history",
+   "Школа ARVEX":"ARVEX Academy","Уроки":"Lessons","Экзамен":"Exam","Словарь":"Glossary","Калькулятор":"Calculator","Помощник":"Assistant",
+   "Аккаунт":"Account","Редактировать":"Edit","Сбросить демо-счёт":"Reset demo balance","Обучающий тур":"Guided tour","Результат":"Result",
+   "Лучшая сделка":"Best trade","Уроков":"Lessons","Экзаменов сдано":"Exams passed","Достижения":"Achievements","Создать профиль":"Create profile",
+   "Добро пожаловать в ARVEX":"Welcome to ARVEX","Аватар":"Avatar","Имя":"Name","Отмена":"Cancel","Сохранить":"Save",
+   "Убрать фото":"Remove photo","Выбери картинку.":"Choose an image.","Не удалось открыть фото.":"Could not open the photo.",
+   "Введи имя.":"Enter a name.","Профиль обновлён.":"Profile updated.","Цена входа":"Entry price","Маржа":"Margin","Размер позиции":"Position size",
+   "Ликвидация":"Liquidation","Тейк-профит":"Take profit","Стоп-лосс":"Stop loss","Открыть":"Open","Закрыть":"Close",
+   "Отмена":"Cancel","Сбросить":"Reset","Нет открытых позиций.":"No open positions.","История пуста. Закрытые сделки появятся здесь.":"History is empty. Closed trades will appear here.",
+   "Выбери направление и открой первую демо-сделку.":"Choose a direction and open your first demo trade.","Капитал":"Equity","Свободно":"Available",
+   "Закрытый результат":"Realized P&L","Открытый результат":"Unrealized P&L","Сделок":"Trades","Винрейт":"Win rate",
+   "Проверь email.":"Check your email address.","Отправляю…":"Sending…","Сохраняем…":"Saving…","Пароли не совпадают.":"Passwords do not match.",
+   "Пароль должен содержать минимум 8 символов.":"Password must contain at least 8 characters.",
+   "Пароль успешно изменён.":"Password changed successfully.","Пароль изменён. Теперь можно войти в ARVEX.":"Password changed. You can now sign in to ARVEX.",
+   "Если аккаунт существует, письмо со ссылкой отправлено.":"If an account exists, a recovery link has been sent.",
+   "Не удалось изменить пароль:":"Could not change password:","Новый пароль":"New password","Повтори новый пароль":"Repeat new password",
+   "Язык сохраняется на этом устройстве.":"Language is saved on this device.","🇷🇺 Русский":"🇷🇺 Russian","🇬🇧 English":"🇬🇧 English"
+  };
   document.documentElement.lang=en?"en":"ru";
-  const map=en?{"Торговля":"Trading","Портфель":"Portfolio","Школа":"Academy","Инструменты":"Tools","Профиль":"Profile","Счёт":"Balance","Настройки":"Settings","Язык интерфейса":"Interface language","Сервисы аккаунта":"Account services","Войти":"Sign in","Регистрация":"Sign up","Забыли пароль?":"Forgot password?","Смена пароля":"Change password","Изменить пароль":"Change password","Новый пароль (от 8 символов)":"New password (8+ characters)","Сохранить пароль":"Save password","История платежей":"Payment history","Поддержка ARVEX":"ARVEX Support","Уведомления":"Notifications","Промокод":"Promo code","Активировать":"Activate"}:{"Trading":"Торговля","Portfolio":"Портфель","Academy":"Школа","Tools":"Инструменты","Profile":"Профиль","Balance":"Счёт","Settings":"Настройки","Interface language":"Язык интерфейса","Account services":"Сервисы аккаунта","Sign in":"Войти","Sign up":"Регистрация","Forgot password?":"Забыли пароль?","Change password":"Смена пароля","New password (8+ characters)":"Новый пароль (от 8 символов)","Save password":"Сохранить пароль","Payment history":"История платежей","ARVEX Support":"Поддержка ARVEX","Notifications":"Уведомления","Promo code":"Промокод","Activate":"Активировать"};
-  document.querySelectorAll(".nav button span,.balance-chip small,.card-title,.lbl").forEach(el=>{const original=el.dataset.ruText||(el.dataset.ruText=el.textContent.trim());if(map[original])el.textContent=map[original]});
+  const translateNode=node=>{
+   if(node.nodeType===Node.TEXT_NODE){
+    const parent=node.parentElement;
+    if(!parent||/^(SCRIPT|STYLE|TEXTAREA|CODE|PRE)$/i.test(parent.tagName))return;
+    const raw=node.nodeValue;
+    const key=(node.__arvexRuText||(node.__arvexRuText=raw)).trim();
+    if(!key)return;
+    const value=en?(dict[key]||key):key;
+    if(raw.trim()!==value)node.nodeValue=raw.replace(key,value);
+   }else if(node.nodeType===Node.ELEMENT_NODE){
+    if(node.matches("input,textarea")){
+     const ph=node.getAttribute("placeholder");
+     if(ph){const key=node.dataset.arvexRuPlaceholder||(node.dataset.arvexRuPlaceholder=ph);node.setAttribute("placeholder",en?(dict[key]||key):key)}
+    }
+    ["title","aria-label"].forEach(attr=>{const val=node.getAttribute(attr);if(val){const key=node.dataset["arvexRu"+attr.replace(/-([a-z])/g,(_,x)=>x.toUpperCase())]||(node.dataset["arvexRu"+attr.replace(/-([a-z])/g,(_,x)=>x.toUpperCase())]=val);node.setAttribute(attr,en?(dict[key]||key):key)}});
+    if(node.childNodes)Array.from(node.childNodes).forEach(translateNode);
+   }
+  };
+  translateNode(document.body);
   const select=document.getElementById("arvexLanguage");if(select)select.value=en?"en":"ru";
+  if(!window.__arvexLanguageObserver){
+   window.__arvexLanguageObserver=new MutationObserver(records=>{if(localStorage.getItem("arvex_language")==="en")records.forEach(r=>{r.type==="childList"?r.addedNodes.forEach(translateNode):r.type==="characterData"&&translateNode(r.target)})});
+   window.__arvexLanguageObserver.observe(document.body,{subtree:true,childList:true,characterData:true});
+  }
  }
  function initLanguage(){const lang=localStorage.getItem("arvex_language")==="en"?"en":"ru";applyLanguage(lang)}
  document.addEventListener("DOMContentLoaded",initLanguage);
