@@ -1,6 +1,7 @@
 // Собирает отдельную точку входа ARVEX app/ в mobile/www; корень остаётся магазином подписки.
 const fs = require('fs');
 const path = require('path');
+const esbuild = require('esbuild');
 
 const root = path.resolve(__dirname, '..');
 const out = path.resolve(__dirname, 'www');
@@ -22,4 +23,11 @@ for (const f of FILES) {
   }
   fs.copyFileSync(src, path.join(out, f));
 }
-console.log('www готов: app/index.html + ' + FILES.join(', '));
+esbuild.buildSync({
+  entryPoints: [path.join(__dirname, 'capacitor-app-bridge.js')],
+  bundle: true,
+  platform: 'browser',
+  format: 'iife',
+  outfile: path.join(out, 'capacitor-app-bridge.bundle.js')
+});
+console.log('www готов: app/index.html + ' + FILES.join(', ') + ' + Google OAuth bridge');
