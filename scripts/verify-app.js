@@ -54,7 +54,7 @@ assert.ok(app.includes("Cloud.loadNotifications()") && cloud.includes("loadNotif
 assert.ok(cloud.includes('const GOOGLE_REDIRECT="app.arvex.trading://auth/callback"'), "Google OAuth must return to the ARVEX Android deep link");
 assert.ok(cloud.includes('id="cloudGoogle"'), "Profile must render the Google sign-in button");
 assert.ok(cloud.includes("startGoogleSignIn") && cloud.includes("acceptOAuthCallback"), "Google OAuth start and callback handlers must exist");
-assert.ok(cloud.includes('callbackHash.get("type")==="signup"') && cloud.includes("acceptEmailConfirmation(location.href)"), "Web email confirmation must be processed automatically on return to the app");
+assert.ok(app.includes("Cloud.acceptEmailConfirmation()") && cloud.includes("async function acceptEmailConfirmation"), "Email confirmation must be processed automatically during app initialization");
 assert.ok(cloud.includes("/auth/v1/recover?redirect_to=") && cloud.includes("recoveryType"), "Password recovery must return to the app and support native callback tokens");
 assert.ok(cloud.includes("cleanOAuthCallbackUrl") && cloud.includes('searchParams.delete(key)'), "OAuth code, state and error parameters must be removed from browser history");
 
