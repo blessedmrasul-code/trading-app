@@ -144,7 +144,7 @@ const Cloud=(()=>{
   return acceptOAuthCallback(rawUrl);
  }
  async function startGoogleSignIn(){
-  if(!enabled())throw new Error("Облачная авторизация сейчас недоступна.");
+  if(!enabled())throw new Error(localStorage.getItem("arvex_language")==="en"?"Cloud sign-in is currently unavailable.":"Облачная авторизация сейчас недоступна.");
   const native=typeof window.ARVEX_CAP_IS_NATIVE==="function"?window.ARVEX_CAP_IS_NATIVE():!!(window.Capacitor&&window.Capacitor.isNativePlatform());
   const redirect=native?GOOGLE_REDIRECT:(location.origin+location.pathname);
   const pkce=await makePkce(),u=new URL(cfg().url.replace(/\/$/,"")+"/auth/v1/authorize");
@@ -347,8 +347,9 @@ const Cloud=(()=>{
   }
   if(t.closest("#cloudGoogle")){
    const m=document.getElementById("cloudMsg");
-   if(m)m.textContent="Открываем безопасный вход Google…";
-   startGoogleSignIn().catch(e=>{if(m)m.textContent=e.message;status=e.message;});
+   const en=localStorage.getItem("arvex_language")==="en";
+   if(m)m.textContent=en?"Opening secure Google sign-in…":"Открываем безопасный вход Google…";
+   startGoogleSignIn().catch(e=>{if(m)m.textContent=(en?"Google sign-in could not start: ":"Не удалось начать вход Google: ")+e.message;status=e.message;});
    return true;
   }
 
@@ -640,19 +641,19 @@ async function insertOrder(o){
  }
  async function loadNotifications(){
   const box=document.getElementById("arvexNotificationsList");
-  if(box)box.textContent="Загрузка…";
+  const en=localStorage.getItem("arvex_language")==="en";
+  if(box)box.textContent=en?"Loading…":"Загрузка…";
   if(!session||!enabled())return;
   try{
    const tok=await token(),rows=await req("/rest/v1/arvex_notifications?select=id,title,body,kind,created_at,read_at&user_id=eq."+encodeURIComponent(session.uid)+"&order=created_at.desc&limit=30",{headers:hdr(tok)});
    const systemDelivered=await deliverSystemNotifications(rows);
-   const en=localStorage.getItem("arvex_language")==="en";
    if(box)box.innerHTML=rows.length?rows.map(x=>'<div class="res-link"><b>'+esc(x.title)+'</b><span>'+esc(x.body)+' · '+new Date(x.created_at).toLocaleString(en?"en-US":"ru-RU")+(x.read_at?(en?' · Read':' · Прочитано'):'')+'</span></div>').join(""):'<p class="muted">'+(en?'No new notifications.':'Новых уведомлений нет.')+'</p>';
    let delivered=[];try{delivered=JSON.parse(localStorage.getItem("arvex_delivered_notifications")||"[]")}catch(e){}
    if(!Array.isArray(delivered))delivered=[];
    const deliveredSet=new Set(delivered);
    const unread=rows.filter(x=>!x.read_at&&(box||deliveredSet.has(x.id))).map(x=>x.id);
    if(unread.length&&(box||systemDelivered))await req("/rest/v1/arvex_notifications?id=in.("+unread.join(",")+")&user_id=eq."+encodeURIComponent(session.uid),{method:"PATCH",headers:{...hdr(tok),"Prefer":"return=minimal"},body:JSON.stringify({read_at:new Date().toISOString()})});
-  }catch(e){if(box)box.textContent="Не удалось загрузить уведомления: "+e.message}
+  }catch(e){if(box)box.textContent=(en?"Could not load notifications: ":"Не удалось загрузить уведомления: ")+e.message}
  }
 
  document.addEventListener("submit",e=>{const form=e.target;if(!form||form.id!=="arvexSupportForm")return;e.preventDefault();submitSupportForm(form)});
