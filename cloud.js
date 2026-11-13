@@ -86,7 +86,7 @@ const Cloud=(()=>{
   try{
    const u=new URL(rawUrl,location.href),hash=new URLSearchParams((u.hash||"").replace(/^#/,""));
    const error=u.searchParams.get("error_description")||u.searchParams.get("error")||hash.get("error_description")||hash.get("error");
-   if(error){localStorage.removeItem(PKCE_KEY);cleanOAuthCallbackUrl();status="Ошибка входа Google: "+error;if(typeof renderProfile==="function")renderProfile();return false;}
+   if(error){localStorage.removeItem(PKCE_KEY);cleanOAuthCallbackUrl();const en=localStorage.getItem("arvex_language")==="en";status=(en?"Google sign-in error: ":"Ошибка входа Google: ")+error;if(typeof renderProfile==="function")renderProfile();const msg=document.getElementById("cloudMsg");if(msg)msg.textContent=status;return false;}
    let tokens=null;
    const code=u.searchParams.get("code");
    if(code){
@@ -99,8 +99,8 @@ const Cloud=(()=>{
    }else return false;
    if(!tokens.user){tokens.user=await req("/auth/v1/user",{headers:hdr(tokens.access_token)});}
    const ok=adopt(tokens);
-   if(ok){cleanOAuthCallbackUrl();status="Вход через Google выполнен";if(await checkAccountStatus())return true;if(localStorage.getItem(LOCAL_RESET_KEY)==="1"){localStorage.removeItem(LOCAL_RESET_KEY);location.reload();return true}await sync();if(typeof renderProfile==="function")renderProfile();return true;}
-  }catch(e){localStorage.removeItem(PKCE_KEY);cleanOAuthCallbackUrl();status="Не удалось завершить вход Google: "+e.message;if(typeof renderProfile==="function")renderProfile();}
+   if(ok){cleanOAuthCallbackUrl();status=localStorage.getItem("arvex_language")==="en"?"Google sign-in complete":"Вход через Google выполнен";if(await checkAccountStatus())return true;if(localStorage.getItem(LOCAL_RESET_KEY)==="1"){localStorage.removeItem(LOCAL_RESET_KEY);location.reload();return true}await sync();if(typeof renderProfile==="function")renderProfile();return true;}
+  }catch(e){localStorage.removeItem(PKCE_KEY);cleanOAuthCallbackUrl();const en=localStorage.getItem("arvex_language")==="en";status=(en?"Google sign-in could not be completed: ":"Не удалось завершить вход Google: ")+e.message;if(typeof renderProfile==="function")renderProfile();const msg=document.getElementById("cloudMsg");if(msg)msg.textContent=status;}
   return false;
  }
  async function startGoogleSignIn(){
