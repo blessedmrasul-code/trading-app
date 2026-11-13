@@ -282,8 +282,15 @@ function renderProfile(){
   <div class="stat"><small>Результат</small><b class="${closedPnl>=0?"pos":"neg"}">${closedPnl>=0?"+":""}${money(closedPnl)}</b></div><div class="stat"><small>Лучшая сделка</small><b class="${st.best>0?"pos":""}">${st.n?signed(st.best):"—"}</b></div>
   <div class="stat"><small>Уроков</small><b>${lessonsDone}/${total}</b></div><div class="stat"><small>Экзаменов сдано</small><b>${exams}/${typeof EXAMS!=="undefined"?Object.keys(EXAMS).length:2}</b></div></div>
   <div class="card"><div class="card-title">Достижения <span class="badge">${ach}/${ACHIEVEMENTS.length}</span></div><div class="ach-grid">${ACHIEVEMENTS.map(a=>`<div class="ach ${a.ok()?"on":""}"><i>${a.i}</i><b>${a.t}</b><small>${a.d}</small></div>`).join("")}</div></div>
-  <div class="card"><div class="card-title">Аккаунт</div>${typeof Cloud!=="undefined"?Cloud.accountHTML():""}</div>${typeof Access!=="undefined"?Access.cardHTML():""}${typeof Cloud!=="undefined"?Cloud.userToolsHTML():""}`;
+  <div class="card"><div class="card-title">Настройки</div>
+   <label class="lbl" for="arvexLanguage">Язык приложения</label>
+   <select class="field" id="arvexLanguage"><option value="ru">Русский</option><option value="en">English</option></select>
+   <div class="btn-row" style="margin-top:10px"><button class="ghost" id="arvexChangePassword">Изменить пароль</button><button class="ghost" id="arvexNotificationsPermission">Уведомления</button></div>
+   <p class="muted" id="arvexSettingsMsg">Выбери язык и настрой уведомления приложения.</p>
+  </div>
+  <div class="card"><div class="card-title">Аккаунт</div></div>${typeof Cloud!=="undefined"?Cloud.userToolsHTML():""}`;
  applyAvatar($("profAvatar"),p.avatar,p.name,p.photo);
+ const langSelect=$("arvexLanguage");if(langSelect)langSelect.value=localStorage.getItem("arvex_language")||"ru";
  if(typeof Cloud!=="undefined"&&Cloud.loadProfileData)Cloud.loadProfileData();
 }
 function openProfileModal(edit){
@@ -379,9 +386,51 @@ function runSplash(done){
  setTimeout(()=>{clearInterval(iv);s.classList.add("out");setTimeout(done,350)},2000);
 }
 
+
+/* ===== Язык интерфейса RU / EN ===== */
+const UI_EN={
+"Торговля":"Trading","Портфель":"Portfolio","Школа":"Academy","Инструменты":"Tools","Профиль":"Profile",
+"Новая сделка":"New trade","Только виртуальные средства":"Virtual funds only","Маржа (своя сумма)":"Margin (your amount)",
+"Плечо":"Leverage","Тейк-профит, %":"Take profit, %","Стоп-лосс, %":"Stop loss, %","Доступно":"Available",
+"Размер позиции":"Position size","Ликвидация LONG":"LONG liquidation","Ликвидация SHORT":"SHORT liquidation",
+"Открытые позиции":"Open positions","Нет открытых позиций.":"No open positions.",
+"История сделок":"Trade history","Достижения":"Achievements","Аккаунт":"Account","Настройки":"Settings",
+"Язык приложения":"App language","Русский":"Russian","Изменить пароль":"Change password","Уведомления":"Notifications",
+"Выбери язык и настрой уведомления приложения.":"Choose the app language and configure notifications.",
+"Редактировать":"Edit profile","Обучающий тур":"Guided tour","Сбросить демо-счёт":"Reset demo account",
+"Сделок":"Trades","Винрейт":"Win rate","Результат":"Result","Лучшая сделка":"Best trade",
+"Уроков":"Lessons","Экзаменов сдано":"Exams passed","Опыт":"Experience",
+"Войти":"Sign in","Регистрация":"Sign up","Email":"Email","Пароль (от 8 символов)":"Password (at least 8 characters)",
+"Письмо отправлено. Подтверди почту и нажми «Войти».":"Confirmation email sent. Verify your email, then tap “Sign in”.",
+"Синхронизировать":"Sync","Выйти":"Sign out","Сервисы аккаунта":"Account services",
+"Промокод":"Promo code","Активировать":"Redeem","История платежей":"Payment history",
+"Поддержка ARVEX":"ARVEX Support","Отправить обращение":"Send request","Управление промокодами":"Manage promo codes",
+"Обращения пользователей":"User requests","Проверить уведомления":"Check notifications",
+"Уроки":"Lessons","Экзамен":"Exam","Словарь":"Glossary","Калькулятор":"Calculator","Помощник":"Assistant",
+"Создать профиль":"Create profile","Сохранить":"Save","Отмена":"Cancel","Закрыть":"Close",
+"Добро пожаловать в ARVEX":"Welcome to ARVEX","Имя":"Name","Аватар":"Avatar",
+"Счёт":"Balance","Funding Rate":"Funding Rate","Демо-счёт сброшен.":"Demo account reset."
+};
+function applyLanguage(lang){
+ const en=lang==="en";document.documentElement.lang=en?"en":"ru";
+ const walk=root=>{const w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);let n;while((n=w.nextNode())){
+  const raw=n.nodeValue,trim=raw.trim();if(!trim)continue;
+  if(en&&UI_EN[trim])n.nodeValue=raw.replace(trim,UI_EN[trim]);
+  else if(!en){const back=Object.entries(UI_EN).find(([ru,eng])=>eng===trim);if(back)n.nodeValue=raw.replace(trim,back[0])}
+ }};
+ walk(document.body);
+ document.querySelectorAll("input[placeholder],textarea[placeholder],button[aria-label]").forEach(el=>{
+  const key=el.getAttribute("placeholder")||el.getAttribute("aria-label");if(en&&UI_EN[key]){if(el.hasAttribute("placeholder"))el.setAttribute("placeholder",UI_EN[key]);else el.setAttribute("aria-label",UI_EN[key])}
+  else if(!en){const back=Object.entries(UI_EN).find(([ru,eng])=>eng===key);if(back){if(el.hasAttribute("placeholder"))el.setAttribute("placeholder",back[0]);else el.setAttribute("aria-label",back[0])}}
+ });
+}
+
 /* ===== Запуск ===== */
 function bind(){
- document.addEventListener("change",e=>{if(e.target&&e.target.id==="avPhoto")pickPhoto(e.target.files&&e.target.files[0])});
+ document.addEventListener("change",e=>{
+  if(e.target&&e.target.id==="avPhoto")pickPhoto(e.target.files&&e.target.files[0]);
+  if(e.target&&e.target.id==="arvexLanguage"){localStorage.setItem("arvex_language",e.target.value);applyLanguage(e.target.value);const m=$("arvexSettingsMsg");if(m)m.textContent=e.target.value==="en"?"Language changed to English.":"Язык изменён на русский."}
+ });
  document.addEventListener("click",e=>{
   const t=e.target;
   if(typeof Cloud!=="undefined"&&Cloud.click(t))return;
@@ -402,6 +451,8 @@ function bind(){
   if(t.closest("#sheetCancel")){closeSheet();return}
   const sc=t.closest("#sheetConfirm");if(sc){closeSheet();openTrade(sc.dataset.dir);return}
   if(t.closest("#resetConfirm")){balance=10000;closedPnl=0;positions=[];history=[];saveState();closeSheet();renderTop();renderPositions();renderPortfolio();updateOrderPreview();showToast("Демо-счёт сброшен.");return}
+  if(t.closest("#arvexChangePassword")){if(typeof Cloud!=="undefined"&&Cloud.isIn())Cloud.changePasswordPrompt();else showToast("Сначала войди в аккаунт ARVEX.");return}
+  if(t.closest("#arvexNotificationsPermission")){const m=$("arvexSettingsMsg");if(!("Notification" in window)){if(m)m.textContent="Этот браузер не поддерживает уведомления.";return}Notification.requestPermission().then(v=>{if(m)m.textContent=v==="granted"?"Уведомления разрешены.":"Уведомления не разрешены."});return}
   if(t.closest("#editProfile")){openProfileModal(true);return}
   if(t.closest("#resetAccount")){resetAccount();return}
   if(t.id==="sheet"){closeSheet();return}
@@ -419,6 +470,7 @@ function bind(){
 }
 function init(){
  try{loadState()}catch(e){}
+ applyLanguage(localStorage.getItem("arvex_language")||"ru");
  chart=new CandleChart($("chartCanvas"),{onCross:c=>updateOhlc(c)});
  bind();
  renderTop();renderTicker();renderHead();renderPositions();renderPortfolio();updateOrderPreview();
