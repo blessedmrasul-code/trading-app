@@ -128,7 +128,7 @@ const Cloud=(()=>{
      acceptOAuthCallback(e.url);
     }
    });
-   app.addListener("appStateChange",state=>{if(state&&state.isActive)checkAccountStatus();});
+   app.addListener("appStateChange",state=>{if(state&&state.isActive){checkAccountStatus();loadNotifications();}});
    app.getLaunchUrl().then(r=>{if(r&&r.url)acceptOAuthCallback(r.url);}).catch(()=>{});
   }catch(e){console.warn("ARVEX Google OAuth deep-link listener:",e);}
  }
