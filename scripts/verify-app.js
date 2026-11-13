@@ -247,6 +247,7 @@ assert.ok(fs.existsSync(path.join(root, "mobile/apply-android-icons.sh")), "Andr
     window: { ARVEX_CLOUD: { url: "https://example.supabase.co", anonKey: "public-test-key" } },
     document: { addEventListener() {}, getElementById() { return null; } },
     location: { href: "https://arvex.example/app/?code=test-code&state=temporary", hash: "", pathname: "/app/", search: "?code=test-code&state=temporary", reload() { switchReloads++; } },
+    setTimeout() { return 0; },
     history: { replaceState(_state, _title, url) { switchCleanedUrl = url; } },
     localStorage: {
       getItem(key) { return switchStorage.get(key) ?? null; },
