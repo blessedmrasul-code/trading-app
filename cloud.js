@@ -211,24 +211,25 @@ const Cloud=(()=>{
   return `<p class="muted" style="margin:0 0 10px">Войди, чтобы сохранить прогресс в облаке и открыть его на другом устройстве.</p><input class="field" id="cEmail" type="email" placeholder="Email" autocomplete="email"><input class="field" id="cPass" type="password" placeholder="Пароль (от 8 символов)" autocomplete="current-password" style="margin-top:8px"><div class="btn-row" style="margin-top:10px"><button class="primary" id="cloudIn">Войти</button><button class="ghost" id="cloudUp">Регистрация</button><button class="ghost" id="cloudGoogle">G Продолжить с Google</button><button class="ghost" id="cloudForgot">Забыли пароль?</button></div><p class="muted" id="cloudMsg" style="margin:8px 0 0"></p>`;
  }
  async function form(kind){
-  const e=($("cEmail").value||"").trim(),p=$("cPass").value||"",m=$("cloudMsg");
-  if(!/^\S+@\S+\.\S+$/.test(e)){m.textContent="Проверь email.";return}
-  if(p.length<8){m.textContent="Пароль — минимум 8 символов.";return}
-  m.textContent="Подождите…";
+  const e=($("cEmail").value||"").trim(),p=$("cPass").value||"",m=$("cloudMsg"),en=localStorage.getItem("arvex_language")==="en";
+  const say=(ru,english)=>en?english:ru;
+  if(!/^\S+@\S+\.\S+$/.test(e)){m.textContent=say("Проверь email.","Check your email address.");return}
+  if(p.length<8){m.textContent=say("Пароль — минимум 8 символов.","Password must be at least 8 characters.");return}
+  m.textContent=say("Подождите…","Please wait…");
   try{
    if(kind==="up"){
     const r=await signUp(e,p);
-    if(r.exists){m.textContent="Этот email уже зарегистрирован. Нажми «Войти» или «Забыли пароль?».";return}
-    if(r.confirm){m.textContent="Письмо отправлено. Подтверди почту и нажми «Войти».";return}
+    if(r.exists){m.textContent=say("Этот email уже зарегистрирован. Нажми «Войти» или «Забыли пароль?» .","This email is already registered. Sign in or reset your password.");return}
+    if(r.confirm){m.textContent=say("Письмо отправлено. Подтверди почту и нажми «Войти».","Confirmation email sent. Verify it, then sign in.");return}
    }else await signIn(e,p);
    if(await checkAccountStatus())return;
    showToast("Вход выполнен");await sync();
   }catch(err){
    const code=String(err.code||"").toLowerCase(),msg=String(err.message||"");
-   if(/ban/i.test(msg))m.textContent="Аккаунт заблокирован администратором Mrasulv. Для обжалования напиши @mrasulv.";
-   else if(code==="email_not_confirmed"||/email not confirmed/i.test(msg))m.textContent="Сначала подтверди email по ссылке из письма, затем войди.";
-   else if(code==="invalid_credentials"||/invalid login credentials/i.test(msg))m.textContent="Неверный email или пароль. Если входил через Google, нажми кнопку Google.";
-   else if(/provider.*not enabled|unsupported provider/i.test(msg))m.textContent="Вход Google пока не настроен в Supabase. Попробуй позже или войди по email.";
+   if(/ban/i.test(msg))m.textContent=say("Аккаунт заблокирован администратором Mrasulv. Для обжалования напиши @mrasulv.","Your account is restricted by administrator Mrasulv. Contact @mrasulv to appeal.");
+   else if(code==="email_not_confirmed"||/email not confirmed/i.test(msg))m.textContent=say("Сначала подтверди email по ссылке из письма, затем войди.","Verify your email using the link we sent, then sign in.");
+   else if(code==="invalid_credentials"||/invalid login credentials/i.test(msg))m.textContent=say("Неверный email или пароль. Если входил через Google, нажми кнопку Google.","Incorrect email or password. If you used Google, choose Continue with Google.");
+   else if(/provider.*not enabled|unsupported provider/i.test(msg))m.textContent=say("Вход Google пока не настроен в Supabase. Попробуй позже или войди по email.","Google sign-in is not configured in Supabase yet. Try later or use email sign-in.");
    else m.textContent=msg;
   }
  }
