@@ -285,7 +285,8 @@ async function insertOrder(o){
  }
  function userToolsHTML(){
   if(!enabled())return "";
-  const settings='<div class="card"><div class="card-title">Настройки</div><label class="lbl" for="arvexLanguage">Язык интерфейса</label><select class="field" id="arvexLanguage"><option value="ru">🇷🇺 Русский</option><option value="en">🇬🇧 English</option></select><p class="muted">Язык сохраняется на этом устройстве.</p></div>';
+  const currentLanguage=localStorage.getItem("arvex_language")==="en"?"en":"ru";
+  const settings=`<div class="card"><div class="card-title">Настройки</div><label class="lbl" for="arvexLanguage">Язык интерфейса</label><select class="field" id="arvexLanguage"><option value="ru" ${currentLanguage==="ru"?"selected":""}>🇷🇺 Русский</option><option value="en" ${currentLanguage==="en"?"selected":""}>🇬🇧 English</option></select><p class="muted">Язык сохраняется на этом устройстве.</p></div>`;
   if(!session)return settings+'<div class="card"><div class="card-title">Сервисы аккаунта</div><p class="muted">Войди в аккаунт, чтобы использовать промокоды, смотреть платежи и обращаться в поддержку.</p></div>';
   return settings+'<div class="card"><div class="card-title">Смена пароля</div><input class="field" id="arvexChangePasswordInput" type="password" minlength="8" autocomplete="new-password" placeholder="Новый пароль (от 8 символов)"><button class="ghost" id="arvexChangePassword" type="button" style="margin-top:8px">Изменить пароль</button><p class="muted" id="arvexChangePasswordMsg"></p></div><div class="card"><div class="card-title">Промокод</div><div class="btn-row"><input class="field" id="arvexPromoCode" maxlength="32" placeholder="Введи промокод"><button class="primary" id="arvexPromoApply">Активировать</button></div><p class="muted" id="arvexPromoMsg"></p></div>'+
    '<div class="card"><div class="card-title">История платежей</div><button class="ghost" id="arvexPaymentsLoad">Показать платежи</button><div id="arvexPaymentsList"></div></div>'+
@@ -325,7 +326,7 @@ async function insertOrder(o){
  }
  function initLanguage(){const lang=localStorage.getItem("arvex_language")==="en"?"en":"ru";applyLanguage(lang)}
  document.addEventListener("DOMContentLoaded",initLanguage);
- if(recoverySessionFromUrl()){document.addEventListener("DOMContentLoaded",()=>{const box=document.getElementById("profileBody");if(box)box.insertAdjacentHTML("afterbegin",recoveryHTML());});}
+ if(recoverySessionFromUrl()){document.addEventListener("DOMContentLoaded",()=>{const box=document.getElementById("profileBody");if(box){box.insertAdjacentHTML("afterbegin",recoveryHTML());if(typeof go==="function")go("profile");}});}
 
 
  return {insertOrder,myEntitlement,createStarsInvoice,createStarsBotLink,setStarsAutoRenew,createSupport,enabled,accountHTML,userToolsHTML,loadProfileData,click,schedule,sync,isIn:()=>!!session};
