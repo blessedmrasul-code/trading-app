@@ -458,9 +458,9 @@ function bind(){
  document.addEventListener("change",e=>{
   if(e.target&&e.target.id==="avPhoto")pickPhoto(e.target.files&&e.target.files[0]);
   if(e.target&&e.target.id==="arvexLanguage"){localStorage.setItem("arvex_language",e.target.value);applyLanguage(e.target.value);const m=$("arvexSettingsMsg");if(m)m.textContent=e.target.value==="en"?"Language changed to English.":"Язык изменён на русский.";if(typeof Cloud!=="undefined"&&Cloud.loadProfileData)Cloud.loadProfileData(true)}
-  if(e.target&&e.target.id==="arvexNotificationsToggle"){localStorage.setItem("arvex_notifications_enabled",String(e.target.checked));const m=$("arvexSettingsMsg");if(m)m.textContent=e.target.checked?"Уведомления включены.":"Уведомления выключены."}
-  if(e.target&&e.target.id==="arvexSoundToggle"){localStorage.setItem("arvex_sound_enabled",String(e.target.checked));const m=$("arvexSettingsMsg");if(m)m.textContent=e.target.checked?"Звуки включены.":"Звуки выключены.";if(e.target.checked)appFeedback()}
-  if(e.target&&e.target.id==="arvexVibrationToggle"){localStorage.setItem("arvex_vibration_enabled",String(e.target.checked));const m=$("arvexSettingsMsg");if(m)m.textContent=e.target.checked?"Вибрация включена.":"Вибрация выключена.";if(e.target.checked)appFeedback()}
+  if(e.target&&e.target.id==="arvexNotificationsToggle"){localStorage.setItem("arvex_notifications_enabled",String(e.target.checked));const m=$("arvexSettingsMsg"),en=localStorage.getItem("arvex_language")==="en";if(m)m.textContent=e.target.checked?(en?"Notifications enabled.":"Уведомления включены."):(en?"Notifications disabled.":"Уведомления выключены.")}
+  if(e.target&&e.target.id==="arvexSoundToggle"){localStorage.setItem("arvex_sound_enabled",String(e.target.checked));const m=$("arvexSettingsMsg"),en=localStorage.getItem("arvex_language")==="en";if(m)m.textContent=e.target.checked?(en?"Sounds enabled.":"Звуки включены."):(en?"Sounds disabled.":"Звуки выключены.");if(e.target.checked)appFeedback()}
+  if(e.target&&e.target.id==="arvexVibrationToggle"){localStorage.setItem("arvex_vibration_enabled",String(e.target.checked));const m=$("arvexSettingsMsg"),en=localStorage.getItem("arvex_language")==="en";if(m)m.textContent=e.target.checked?(en?"Vibration enabled.":"Вибрация включена."):(en?"Vibration disabled.":"Вибрация выключена.");if(e.target.checked)appFeedback()}
  });
  document.addEventListener("click",e=>{
   const t=e.target;
@@ -485,9 +485,9 @@ function bind(){
   if(t.closest("#arvexChangePassword")){if(typeof Cloud!=="undefined"&&Cloud.isIn())Cloud.changePasswordPrompt();else showToast("Сначала войди в аккаунт ARVEX.");return}
   if(t.closest("#arvexNotificationsPermission")){
    const m=$("arvexSettingsMsg"),native=typeof window.ARVEX_CAP_IS_NATIVE==="function"?window.ARVEX_CAP_IS_NATIVE():!!(window.Capacitor&&window.Capacitor.isNativePlatform()),plugin=window.ARVEX_CAP_LOCAL_NOTIFICATIONS;
-   if(native&&plugin){plugin.requestPermissions().then(v=>{if(m)m.textContent=v&&v.display==="granted"?"Системные уведомления разрешены.":"Разрешение на уведомления не получено."}).catch(e=>{if(m)m.textContent="Не удалось запросить разрешение: "+e.message});return}
-   if(!("Notification" in window)){if(m)m.textContent="Этот браузер не поддерживает системные уведомления.";return}
-   Notification.requestPermission().then(v=>{if(m)m.textContent=v==="granted"?"Системные уведомления разрешены.":"Разрешение на уведомления не получено."});
+   if(native&&plugin){plugin.requestPermissions().then(v=>{if(m)m.textContent=v&&v.display==="granted"?(localStorage.getItem("arvex_language")==="en"?"System notifications are allowed.":"Системные уведомления разрешены."):(localStorage.getItem("arvex_language")==="en"?"Notification permission was not granted.":"Разрешение на уведомления не получено.")}).catch(e=>{if(m)m.textContent="Не удалось запросить разрешение: "+e.message});return}
+   if(!("Notification" in window)){if(m)m.textContent=localStorage.getItem("arvex_language")==="en"?"This browser does not support system notifications.":"Этот браузер не поддерживает системные уведомления.";return}
+   Notification.requestPermission().then(v=>{if(m)m.textContent=v==="granted"?(localStorage.getItem("arvex_language")==="en"?"System notifications are allowed.":"Системные уведомления разрешены."):(localStorage.getItem("arvex_language")==="en"?"Notification permission was not granted.":"Разрешение на уведомления не получено.")});
    return;
   }
   if(t.closest("#editProfile")){openProfileModal(true);return}
