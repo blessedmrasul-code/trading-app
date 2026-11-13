@@ -236,6 +236,27 @@ assert.ok(fs.existsSync(path.join(root, "mobile/apply-android-icons.sh")), "Andr
   await vm.runInNewContext(cloud + "\n;Cloud.deliverSystemNotifications([unreadNotification]);", { ...notificationContext, unreadNotification });
   assert.equal(scheduledNotifications.length, 1, "Delivered notifications must not be scheduled twice");
 
+  const oauthErrorStorage = new Map([["arvex_google_pkce_verifier", "test-verifier"]]);
+  const oauthErrorMessage = { textContent: "" };
+  let oauthErrorCleanedUrl = "";
+  const oauthErrorContext = {
+    window: { ARVEX_CLOUD: { url: "https://example.supabase.co", anonKey: "public-test-key" }, ARVEX_CAP_IS_NATIVE: () => false },
+    location: { href: "https://arvex.example/app/?error=access_denied&error_description=OAuth%20state%20parameter%20missing", origin: "https://arvex.example", pathname: "/app/", search: "?error=access_denied&error_description=OAuth%20state%20parameter%20missing", hash: "" },
+    history: { replaceState(_state, _title, url) { oauthErrorCleanedUrl = url; } },
+    document: { addEventListener() {}, getElementById(id) { return id === "cloudMsg" ? oauthErrorMessage : null; } },
+    localStorage: {
+      getItem(key) { return oauthErrorStorage.get(key) ?? null; },
+      setItem(key, value) { oauthErrorStorage.set(key, value); },
+      removeItem(key) { oauthErrorStorage.delete(key); }
+    },
+    renderProfile() {},
+    URL, URLSearchParams
+  };
+  await vm.runInNewContext(cloud + "\n;Cloud.acceptOAuthCallback('https://arvex.example/app/?error=access_denied&error_description=OAuth%20state%20parameter%20missing');", oauthErrorContext);
+  assert.match(oauthErrorMessage.textContent, /OAuth state parameter missing/, "Google OAuth errors must be visible in the account form");
+  assert.equal(oauthErrorCleanedUrl, "/app/", "Failed OAuth callback parameters must be removed from browser history");
+  assert.equal(oauthErrorStorage.has("arvex_google_pkce_verifier"), false, "Failed OAuth must clear its one-time PKCE verifier");
+
   const switchStorage = new Map([
     ["arvex_cloud_session", JSON.stringify({ access: "old-access", refresh: "old-refresh", exp: Date.now() + 3600000, uid: "old-user", email: "old@example.com" })],
     ["arvex_local_state_owner", "old-user"],
