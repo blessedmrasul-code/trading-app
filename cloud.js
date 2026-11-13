@@ -171,7 +171,7 @@ const Cloud=(()=>{
  async function deleteOwnAccount(){
   if(!session)throw new Error("Сначала войди в аккаунт.");
   const tok=await token();
-  const r=await fetch(cfg().url.replace(/\/$/,"")+"/functions/v1/delete-own-account",{method:"POST",headers:hdr(tok),body:"{}"});
+  const r=await fetch(cfg().url.replace(/\/$/,"")+"/functions/v1/delete-own-account",{method:"POST",headers:hdr(tok),body:JSON.stringify({confirm:"DELETE"})});
   const j=await r.json().catch(()=>null);
   if(!r.ok)throw new Error((j&&j.error)||"Не удалось удалить аккаунт.");
   keep(null);localStorage.removeItem("arvex_v3_state");localStorage.removeItem("arvex_google_pkce_verifier");
