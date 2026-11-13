@@ -58,6 +58,7 @@ assert.ok(cloud.includes("cleanOAuthCallbackUrl") && cloud.includes('searchParam
 
 assert.ok(cloud.includes('setAttribute("aria-modal","true")') && cloud.includes("child.inert=true") && cloud.includes('e.key==="Tab"'), "Ban overlay must trap keyboard focus and disable background controls");
 assert.ok(cloud.includes('id="arvexBanAppeal"') && cloud.includes("Mrasulv"), "Ban overlay must show the administrator and provide an appeal link");
+assert.ok(cloud.includes('browser.open({url:appealLink.href})'), "Android ban appeals must open in the system browser");
 
 assert.ok(cloud.includes('/^\\S+@\\S+\\.\\S+$/'), "Password recovery must validate email with a working non-whitespace regex");
 assert.ok(read("mobile/package.json").includes('"@capacitor/app"'), "Capacitor App plugin is required for native OAuth callbacks");
