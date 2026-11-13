@@ -124,6 +124,10 @@ assert.ok(read("supabase/functions/delete-own-account/index.ts").includes("/auth
 assert.ok(read("supabase/functions/delete-own-account/index.ts").includes("arvex_user_bans") && read("supabase/functions/delete-own-account/index.ts").includes("Аккаунт заблокирован"), "Banned users must not bypass their restriction by deleting the account");
 assert.ok(access.includes("link.hidden=active"), "Active Premium users must not see the purchase CTA");
 const appHtml = read("app/index.html");
+
+assert.ok(appHtml.indexOf('src="cloud.js"') < appHtml.indexOf('src="app.js"'), "Cloud auth must load before app initialization");
+assert.ok(appHtml.indexOf('src="access.js"') < appHtml.indexOf('src="app.js"'), "Premium entitlement must load before app initialization");
+
 assert.ok(appHtml.includes('id="subscribeFooterLink"') && appHtml.includes('id="footerPremiumStatus"'), "Footer must switch to Premium status");
 const manifest = JSON.parse(read("manifest.webmanifest"));
 for (const icon of manifest.icons) assert.ok(fs.existsSync(path.join(root, icon.src)), `Missing PWA icon: ${icon.src}`);
