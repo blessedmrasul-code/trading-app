@@ -292,6 +292,7 @@ function renderProfile(){
  applyAvatar($("profAvatar"),p.avatar,p.name,p.photo);
  const langSelect=$("arvexLanguage");if(langSelect)langSelect.value=localStorage.getItem("arvex_language")||"ru";
  if(typeof Cloud!=="undefined"&&Cloud.loadProfileData)Cloud.loadProfileData();
+ applyLanguage(localStorage.getItem("arvex_language")||"ru");
 }
 function openProfileModal(edit){
  editingProfile=!!edit;pendingAvatar=profile?.avatar||0;pendingPhoto=profile?.photo||"";
@@ -329,7 +330,7 @@ function submitProfile(){
 }
 
 /* ===== Нижняя панель (sheet) ===== */
-function openSheet(html){$("sheetBody").innerHTML=html;$("sheet").classList.remove("hidden")}
+function openSheet(html){$("sheetBody").innerHTML=html;$("sheet").classList.remove("hidden");applyLanguage(localStorage.getItem("arvex_language")||"ru")}
 function closeSheet(){$("sheet").classList.add("hidden")}
 function confirmTrade(direction){
  const margin=Number($("amount").value),lev=Number($("leverage").value)||1;
@@ -372,6 +373,7 @@ function go(screen){
  if(screen==="school"&&typeof renderSchool==="function")renderSchool();
  if(screen==="tools"&&typeof renderTools==="function")renderTools();
  if(screen==="profile")renderProfile();
+ applyLanguage(localStorage.getItem("arvex_language")||"ru");
 }
 function setFullscreen(on){
  const card=$("chartCard");if(!card||card.classList.contains("fs")===on)return;
