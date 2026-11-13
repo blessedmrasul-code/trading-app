@@ -101,7 +101,7 @@ const Cloud=(()=>{
   if(native&&browser)await browser.open({url:u.toString()});
   else location.href=u.toString();
  }
- if(typeof window!=="undefined"&&(/[?&]code=/.test(location.search)||/access_token=/.test(location.hash||""))){
+ if(typeof window!=="undefined"&&typeof location!=="undefined"&&(/[?&]code=/.test(location.search)||/access_token=/.test(location.hash||""))){
   setTimeout(()=>acceptOAuthCallback(location.href),0);
  }
  function installOAuthDeepLink(){
