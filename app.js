@@ -486,7 +486,7 @@ function bind(){
  $("welcomeName").addEventListener("input",renderAvatarPicker);
  document.addEventListener("keydown",e=>{if(e.key==="Escape"){setFullscreen(false);closeSheet()}});
  window.addEventListener("resize",()=>chart&&chart.resize());
- document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden")saveState()});
+ document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden")saveState();else if(typeof Cloud!=="undefined"&&Cloud.checkAccountStatus)Cloud.checkAccountStatus()});
  window.addEventListener("pagehide",saveState);
 }
 function init(){
