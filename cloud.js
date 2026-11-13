@@ -204,6 +204,12 @@ const Cloud=(()=>{
     else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus()}
    }
   };
+  const appealLink=el.querySelector("#arvexBanAppeal");
+  if(appealLink)appealLink.addEventListener("click",e=>{
+   const native=typeof window.ARVEX_CAP_IS_NATIVE==="function"?window.ARVEX_CAP_IS_NATIVE():!!(window.Capacitor&&window.Capacitor.isNativePlatform());
+   const browser=window.ARVEX_CAP_BROWSER;
+   if(native&&browser){e.preventDefault();browser.open({url:appealLink.href}).catch(err=>console.warn("ARVEX appeal link:",err));}
+  });
   const exitButton=el.querySelector("#arvexBanExit");if(exitButton)exitButton.focus();
  }
  async function exitBlockedApp(){
