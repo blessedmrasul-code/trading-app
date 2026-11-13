@@ -1,8 +1,10 @@
 # Google-вход ARVEX — настройка Supabase
 
-В Android-клиенте используется Supabase OAuth и callback:
+ARVEX использует Google OAuth с PKCE (без передачи access token в адресной строке).
 
-`app.arvex.trading://auth/callback`
+Redirect URI:
+- Android: `app.arvex.trading://auth/callback`
+- GitHub Pages web app: `https://blessedmrasul-code.github.io/trading-app/app/`
 
 ## 1. Google Cloud Console
 
@@ -22,11 +24,13 @@
 - вставьте Client Secret;
 - сохраните настройки.
 
-В Authentication → URL Configuration → Redirect URLs добавьте:
+В Authentication → URL Configuration → Redirect URLs добавьте обе строки:
 
 `app.arvex.trading://auth/callback`
 
-Site URL и существующие redirect URL не удаляйте.
+`https://blessedmrasul-code.github.io/trading-app/app/`
+
+Site URL и существующие redirect URL не удаляйте. Веб-версия возвращает пользователя на текущий путь приложения; Android — по custom scheme.
 
 ## 3. Проверка
 
