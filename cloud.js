@@ -21,7 +21,7 @@ const Cloud=(()=>{
  async function req(path,opt){
   const r=await fetch(cfg().url.replace(/\/$/,"")+path,opt);
   let j=null;try{j=await r.json()}catch(e){}
-  if(!r.ok){const err=new Error((j&&(j.msg||j.error_description||j.message||j.error))||("HTTP "+r.status));err.status=r.status;err.code=j&&j.code;err.details=j&&j.details;err.hint=j&&j.hint;throw err}
+  if(!r.ok){const err=new Error((j&&(j.msg||j.error_description||j.message||j.error))||("HTTP "+r.status));err.status=r.status;err.code=j&&(j.code||j.error_code);err.details=j&&j.details;err.hint=j&&j.hint;throw err}
   return j;
  }
  function adopt(j){
