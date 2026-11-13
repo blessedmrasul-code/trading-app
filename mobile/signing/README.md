@@ -41,8 +41,8 @@ Keystore не публикуется в репозитории и не загр�
 ## 4. Собрать релиз
 
 Откройте **Actions → Release (signed APK + AAB) → Run workflow**:
-- version name: `1.0.0`
-- version code: `1`
+- version name: `1.1.2`
+- version code: `13`
 - publish release: `true`
 
 Для каждого следующего релиза увеличивайте version code. После успешной сборки APK и AAB появятся в GitHub Releases и в Artifacts.
