@@ -437,7 +437,8 @@ const UI_EN={
 "Звуки включены.":"Sounds enabled.","Звуки выключены.":"Sounds disabled.",
 "Вибрация включена.":"Vibration enabled.","Вибрация выключена.":"Vibration disabled.",
 "Системные уведомления разрешены.":"System notifications are allowed.","Разрешение на уведомления не получено.":"Notification permission was not granted.",
-"Этот браузер не поддерживает системные уведомления.":"This browser does not support system notifications.","Уведомления включены.":"Notifications enabled.","Уведомления выключены.":"Notifications disabled."
+"Этот браузер не поддерживает системные уведомления.":"This browser does not support system notifications.","Уведомления включены.":"Notifications enabled.","Уведомления выключены.":"Notifications disabled.",
+"Заблокировать аккаунт":"Ban account","Подробно укажи причину (минимум 5 символов)":"Enter a detailed reason (at least 5 characters)","Подтвердить блокировку":"Confirm ban","Снять блокировку?":"Remove the ban?","Пользователь снова сможет войти в ARVEX.":"The user will be able to sign in to ARVEX again.","Удалить аккаунт ARVEX?":"Delete ARVEX account?","Это действие необратимо. Удалятся облачный аккаунт и связанные с ним данные. Если Premium продлевается автоматически, автопродление сначала будет отключено. Для подтверждения введи DELETE.":"This action cannot be undone. Your cloud account and related data will be deleted. If Premium renews automatically, renewal will be cancelled first. Enter DELETE to confirm.","Введи DELETE для подтверждения.":"Enter DELETE to confirm.","Удаляем аккаунт…":"Deleting account…","Применяю блокировку…":"Applying ban…","Аккаунт заблокирован.":"Account blocked.","Блокировка снята.":"Ban removed.","Укажи причину минимум из 5 символов.":"Enter a reason of at least 5 characters."
 };
 function applyLanguage(lang){
  const en=lang==="en";document.documentElement.lang=en?"en":"ru";
