@@ -152,7 +152,8 @@ const Cloud=(()=>{
  }
  if(typeof window!=="undefined"&&typeof location!=="undefined"){
   const callbackHash=typeof URLSearchParams==="function"?new URLSearchParams(String(location.hash||"").replace(/^#/,"")):null;
-  const callbackType=callbackHash&&callbackHash.get("type")||new URLSearchParams(location.search||"").get("type");
+  const callbackSearch=typeof URLSearchParams==="function"?new URLSearchParams(String(location.search||"")):null;
+  const callbackType=callbackHash&&callbackHash.get("type")||callbackSearch&&callbackSearch.get("type");
   if(callbackType==="signup"||callbackType==="email")setTimeout(()=>acceptEmailConfirmation(location.href),0);
   else if(callbackType==="recovery")setTimeout(()=>acceptRecoveryCallback(location.href),0);
  }
