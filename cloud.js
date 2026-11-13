@@ -102,7 +102,8 @@ const Cloud=(()=>{
  }
  async function resetPassword(email){
   const e=String(email||"").trim();if(!/^\S+@\S+\.\S+$/.test(e))throw new Error("Укажи корректный email.");
-  await req("/auth/v1/recover",{method:"POST",headers:hdr(),body:JSON.stringify({email:e})});
+  const redirect=authRedirectUrl();
+  await req("/auth/v1/recover?redirect_to="+encodeURIComponent(redirect),{method:"POST",headers:hdr(),body:JSON.stringify({email:e})});
   return true;
  }
  async function verifyRecoveryCode(email,code){
