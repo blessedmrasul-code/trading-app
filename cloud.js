@@ -417,7 +417,7 @@ async function insertOrder(o){
   });
   let j=null;try{j=await r.json()}catch(e){}
   if(!r.ok)throw new Error((j&&j.error)||("HTTP "+r.status));
-  if(!j||!j.url)throw new Error("Не удалось подготовить переход к оплате.");
+  if(!j||(!j.url&&!j.lifetime))throw new Error("Не удалось подготовить переход к оплате.");
   return j;
  }
  async function setStarsAutoRenew(enabled){
