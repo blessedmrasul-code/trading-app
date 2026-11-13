@@ -101,6 +101,10 @@ const supportGrants = read("supabase/migrations/20261113131000_arvex_support_tic
 assert.ok(supportGrants.includes("revoke all on table public.arvex_support_tickets from public, anon, authenticated"), "Anonymous users must not access support ticket storage");
 assert.ok(supportGrants.includes("grant select, insert on table public.arvex_support_tickets to authenticated"), "Users may only create and read support tickets; admin RPCs handle moderation");
 
+const notificationColumnGrants = read("supabase/migrations/20261113132000_arvex_notification_column_privileges.sql");
+assert.ok(notificationColumnGrants.includes("grant update (read_at) on table public.arvex_notifications to authenticated"), "Users must not edit notification content or ownership");
+
+
 
 assert.ok(read("supabase/functions/admin-user-ban/index.ts").includes("arvex_admin_record_ban"), "Ban and unban actions must be recorded by the admin-only RPC");
 assert.ok(read("supabase/migrations/20261113120000_arvex_bans_and_account_controls.sql").includes("arvex_is_banned()"), "Banned accounts must be denied by database RLS");
