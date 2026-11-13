@@ -134,7 +134,7 @@ assert.ok(fs.existsSync(path.join(root, "mobile/apply-android-icons.sh")), "Andr
     btoa,
     fetch: async () => ({ ok: true, status: 200, json: async () => ({}) })
   };
-  await vm.runInNewContext(cloud + "\\n;Cloud.startGoogleSignIn();", oauthContext);
+  await vm.runInNewContext(cloud + "\n;Cloud.startGoogleSignIn();", oauthContext);
   const oauthUrl = new URL(oauthLocation.href);
   assert.equal(oauthUrl.searchParams.get("provider"), "google", "Google OAuth must select the Google provider");
   assert.equal(oauthUrl.searchParams.get("redirect_to"), "https://arvex.example/app/", "Web OAuth must return to the app route");
