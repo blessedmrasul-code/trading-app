@@ -93,7 +93,7 @@ assert.ok(app.includes("Access.cardHTML()"), "Profile must render the subscripti
 assert.ok(app.includes("Cloud.userToolsHTML()"), "Profile must render promo codes and account tools");
 const access = read("access.js");
 assert.ok(cloud.includes('code_challenge_method","s256"'), "Google OAuth must use PKCE instead of exposing tokens in redirects");
-assert.ok(cloud.includes('location.origin+location.pathname'), "Web Google OAuth must return to the current app route");
+assert.ok(cloud.includes("authRedirectUrl()") && cloud.includes("return location.origin+path"), "Web Google OAuth must return to the normalized current app route");
 assert.ok(cloud.includes('app.arvex.trading://auth/callback'), "Android Google OAuth deep link must remain registered");
 assert.ok(cloud.includes("arvex_my_account_status") && cloud.includes("arvexBanOverlay"), "Signed-in users must be checked for account bans and shown the block screen");
 assert.ok(cloud.includes("LOCAL_OWNER_KEY") && cloud.includes("LOCAL_RESET_KEY"), "Local progress must be isolated when users switch accounts");
