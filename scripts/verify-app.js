@@ -13,6 +13,12 @@ const { LESSONS, EXAMS, buildExam } = vm.runInNewContext(
   lessonSource + "\n" + examSource + "\n;({ LESSONS, EXAMS, buildExam })",
   {}
 );
+const schoolSource = read("school.js");
+const schoolLogic = schoolSource.slice(0, schoolSource.indexOf('window.addEventListener("DOMContentLoaded"'));
+const { MASTER_LESSONS, MASTER_FINAL, MASTER_STRESS } = vm.runInNewContext(
+  lessonSource + "\n" + examSource + "\n" + schoolLogic + "\n;({ MASTER_LESSONS, MASTER_FINAL, MASTER_STRESS })",
+  {}
+);
 
 assert.ok(LESSONS.length >= 20, `Expected at least 20 lessons, got ${LESSONS.length}`);
 assert.equal(new Set(LESSONS.map((lesson) => lesson.id)).size, LESSONS.length, "Lesson IDs must be unique");
@@ -138,12 +144,26 @@ for (const feature of ["RSI","EMA","MACD","Боллинджера","Риск-л�
 assert.ok(premium.includes("localStorage.getItem(\"arvex_local_state_owner\")"), "Premium journal and watchlist must be isolated by account owner");
 assert.ok(premium.includes("escapeHTML(entry.body)"), "User journal text must be HTML-escaped before rendering");
 
-const school = read("school.js");
+const school = schoolSource;
 assert.ok(appHtml.includes('data-premium-purchase') && appHtml.includes('https://t.me/ArvexPremiumBot'), "Footer Premium CTA must target the official Telegram bot");
 assert.ok(access.includes('t.closest("[data-premium-purchase]")') && access.includes("openBotPurchase"), "Premium purchase actions must open the bot and create a personalized invoice for signed-in users");
+assert.ok(access.includes('browser.open({url})') && access.includes("isNativeApp()"), "Android Premium checkout must open Telegram externally through Capacitor Browser");
+assert.ok(access.includes("!Cloud.createStarsBotLink"), "Premium payment must validate the exact bot-link function it calls");
 assert.ok(premium.includes('id="proUpgrade"') && !premium.includes('goProfile();return;'), "Premium main CTA must not redirect users to Profile");
-assert.ok(appHtml.includes('data-tab="masterclass"') && school.includes("MASTER_LESSONS") && school.includes("MASTER_FINAL"), "Premium school must contain creator masterclass lessons and final exam");
+assert.ok(appHtml.includes('data-tab="masterclass"') && school.includes("MASTER_LESSONS") && school.includes("MASTER_FINAL") && school.includes("MASTER_STRESS"), "Premium school must contain creator lessons and both advanced exams");
 assert.ok(school.includes("Access.isPremium()") && school.includes("masterSubmit"), "Creator masterclass and exams must be gated by server-verified Premium");
+assert.equal(MASTER_LESSONS.length, 4, "Creator masterclass must contain four advanced lessons");
+for (const lesson of MASTER_LESSONS) {
+  assert.ok(lesson.body.length >= 4 && lesson.points.length >= 4 && lesson.quiz.length >= 5, `Creator lesson ${lesson.id} needs full material and a five-question test`);
+  for (const q of lesson.quiz) assert.ok(Number.isInteger(q.answer) && q.answer >= 0 && q.answer < q.options.length, `Creator lesson ${lesson.id} has an invalid answer`);
+}
+assert.equal(MASTER_FINAL.length, 12, "Creator final exam must contain twelve questions");
+assert.equal(MASTER_STRESS.length, 20, "Premium stress exam must contain twenty questions");
+for (const q of MASTER_STRESS) assert.ok(q.options.length >= 3 && Number.isInteger(q.answer) && q.answer >= 0 && q.answer < q.options.length, "Stress exam question has invalid answer data");
+assert.ok(app.includes("masterclass:{}") && app.includes("masterclass:{...(s.progress.masterclass||{})}"), "Creator masterclass progress must persist without resetting existing progress");
+assert.ok(cloud.includes("arvex_admin_set_subscription") && cloud.includes("arvex_admin_revoke_subscription"), "Admin panel must grant, extend and revoke Premium");
+assert.ok(cloud.includes("data-admin-grant-user") && cloud.includes("data-admin-revoke-user"), "Admin search results must expose Premium management controls");
+assert.ok(!cloud.includes("Continue with Google") && !cloud.includes("входил через Google"), "Email sign-in copy must not mention the removed Google option");
 
 const manifest = JSON.parse(read("manifest.webmanifest"));
 for (const icon of manifest.icons) assert.ok(fs.existsSync(path.join(root, icon.src)), `Missing PWA icon: ${icon.src}`);
@@ -443,7 +463,7 @@ assert.ok(fs.existsSync(path.join(root, "mobile/apply-android-icons.sh")), "Andr
   await vm.runInNewContext(cloud + "\n;Cloud.acceptOAuthCallback(" + JSON.stringify(recoveryUrl) + ");", recoveryContext);
   assert.equal(recoverySheetOpened, 1, "Android password recovery must open the new-password form after callback");
   assert.equal(JSON.parse(recoveryStorage.get("arvex_cloud_session")).uid, "recovery-user", "Password recovery callback must establish the verified session");
-  console.log(`ARVEX checks passed: ${LESSONS.length} lessons, ${Object.keys(EXAMS).length} exams, 30 randomized runs per exam, support submit, ban RPC, account deletion, account isolation, notification delivery/deduplication, OAuth URL cleanup and password recovery, and UI guards.`);
+  console.log(`ARVEX checks passed: ${LESSONS.length} lessons, ${Object.keys(EXAMS).length} standard exams, ${MASTER_LESSONS.length} creator lessons, ${MASTER_FINAL.length} final questions, ${MASTER_STRESS.length} stress questions, 30 randomized runs per standard exam, support submit, bans/unbans, Premium grants/revokes, payment routing, account deletion, notifications, and auth recovery.`);
 })().catch((error) => {
   console.error(error);
   process.exitCode = 1;
