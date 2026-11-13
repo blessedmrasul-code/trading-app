@@ -73,9 +73,9 @@ assert.ok(cloud.includes('location.origin+location.pathname'), "Web Google OAuth
 assert.ok(cloud.includes('app.arvex.trading://auth/callback'), "Android Google OAuth deep link must remain registered");
 assert.ok(cloud.includes("arvex_my_account_status") && cloud.includes("arvexBanOverlay"), "Signed-in users must be checked for account bans and shown the block screen");
 assert.ok(cloud.includes("delete-own-account") && cloud.includes("arvexDeleteConfirm"), "Account deletion must use the protected server endpoint and explicit confirmation");
-assert.ok(cloud.includes("admin-user-ban") && cloud.includes("arvex_admin_list_bans"), "Creator panel must support audited ban and unban management");
+assert.ok(cloud.includes("admin-user-ban") && cloud.includes("arvex_admin_list_bans") && cloud.includes("arvex_admin_ban_history"), "Creator panel must support audited ban and unban management");
 assert.ok(app.includes("arvexSoundToggle") && app.includes("arvexVibrationToggle") && app.includes("arvexNotificationsToggle"), "Settings must expose notification, sound and vibration preferences");
-assert.ok(read("mobile/build-web.js").includes("'offer.html'"), "Android web bundle must include the Premium offer page");
+assert.ok(read("mobile/build-web.js").includes("'offer.html'") && fs.existsSync(path.join(root,"offer.html")), "Android web bundle must include the Premium terms page");
 assert.ok(read("mobile/package.json").includes('"@capacitor/browser": "8.0.0"'), "Native Google OAuth browser dependency must be pinned");
 assert.ok(read("supabase/migrations/20261113120000_arvex_bans_and_account_controls.sql").includes("arvex_user_bans"), "Ban migration must exist");
 assert.ok(read("supabase/functions/admin-user-ban/index.ts").includes("arvex_admin_record_ban"), "Ban and unban actions must be recorded by the admin-only RPC");
