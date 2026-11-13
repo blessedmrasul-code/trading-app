@@ -3,10 +3,10 @@
 const Cloud=(()=>{
  const cfg=()=>window.ARVEX_CLOUD||{};
  const SK="arvex_cloud_session",LOCAL_OWNER_KEY="arvex_local_state_owner",LOCAL_RESET_KEY="arvex_account_state_reset",STATE_KEY="arvex_v3_state";
- const GOOGLE_REDIRECT="app.arvex.trading://auth/callback";
+ const AUTH_REDIRECT="app.arvex.trading://auth/callback";
  function authRedirectUrl(){
   const native=typeof window.ARVEX_CAP_IS_NATIVE==="function"?window.ARVEX_CAP_IS_NATIVE():!!(window.Capacitor&&window.Capacitor.isNativePlatform());
-  if(native)return GOOGLE_REDIRECT;
+  if(native)return AUTH_REDIRECT;
   let path=String(location.pathname||"/").replace(/index\.html$/i,"");
   if(!path.endsWith("/"))path+="/";
   return location.origin+path;
@@ -148,17 +148,7 @@ const Cloud=(()=>{
   const browser=window.ARVEX_CAP_BROWSER;if(browser&&browser.close)browser.close().catch(()=>{});
   return acceptOAuthCallback(rawUrl);
  }
- async function startGoogleSignIn(){
-  if(!enabled())throw new Error(localStorage.getItem("arvex_language")==="en"?"Cloud sign-in is currently unavailable.":"Облачная авторизация сейчас недоступна.");
-  const native=typeof window.ARVEX_CAP_IS_NATIVE==="function"?window.ARVEX_CAP_IS_NATIVE():!!(window.Capacitor&&window.Capacitor.isNativePlatform());
-  const redirect=authRedirectUrl();
-  const pkce=await makePkce(),u=new URL(cfg().url.replace(/\/$/,"")+"/auth/v1/authorize");
-  u.searchParams.set("provider","google");u.searchParams.set("redirect_to",redirect);
-  u.searchParams.set("code_challenge",pkce.challenge);u.searchParams.set("code_challenge_method","s256");
-  const browser=window.ARVEX_CAP_BROWSER;
-  if(native&&browser)await browser.open({url:u.toString()});
-  else location.href=u.toString();
- }
+
  if(typeof window!=="undefined"&&typeof location!=="undefined"){
   const callbackHash=typeof URLSearchParams==="function"?new URLSearchParams(String(location.hash||"").replace(/^#/,"")):null;
   const callbackType=callbackHash&&callbackHash.get("type");
@@ -314,7 +304,7 @@ const Cloud=(()=>{
  function accountHTML(){
   if(!enabled())return `<p class="muted" style="margin:0">Сейчас профиль хранится на этом устройстве.</p><div class="soon">🔒 Облачные аккаунты подключаются владельцем проекта (см. README → «Облако»).</div>`;
   if(session)return `<p style="margin:0 0 8px">Вход выполнен: <b>${esc(session.email)}</b></p><p class="muted" style="margin:0 0 10px">${esc(status||"Прогресс синхронизируется автоматически.")}</p><div class="btn-row"><button class="ghost" id="cloudSync">↻ Синхронизировать</button><button class="danger" id="cloudOut">Выйти</button><button class="ghost" id="arvexDeleteAccount">Удалить аккаунт</button></div>`;
-  return `<p class="muted" style="margin:0 0 10px">Войди, чтобы сохранить прогресс в облаке и открыть его на другом устройстве.</p><input class="field" id="cEmail" type="email" placeholder="Email" autocomplete="email"><input class="field" id="cPass" type="password" placeholder="Пароль (от 8 символов)" autocomplete="current-password" style="margin-top:8px"><div class="btn-row" style="margin-top:10px"><button class="primary" id="cloudIn">Войти</button><button class="ghost" id="cloudUp">Регистрация</button><button class="ghost" id="cloudGoogle">G Продолжить с Google</button><button class="ghost" id="cloudForgot">Забыли пароль?</button></div><p class="muted" id="cloudMsg" style="margin:8px 0 0"></p>`;
+  return `<p class="muted" style="margin:0 0 10px">Войди, чтобы сохранить прогресс в облаке и открыть его на другом устройстве.</p><input class="field" id="cEmail" type="email" placeholder="Email" autocomplete="email"><input class="field" id="cPass" type="password" placeholder="Пароль (от 8 символов)" autocomplete="current-password" style="margin-top:8px"><div class="btn-row" style="margin-top:10px"><button class="primary" id="cloudIn">Войти</button><button class="ghost" id="cloudUp">Регистрация</button><button class="ghost" id="cloudForgot">Забыли пароль?</button></div><p class="muted" id="cloudMsg" style="margin:8px 0 0"></p>`;
  }
  async function form(kind){
   const e=($("cEmail").value||"").trim(),p=$("cPass").value||"",m=$("cloudMsg"),en=localStorage.getItem("arvex_language")==="en";
@@ -354,14 +344,6 @@ const Cloud=(()=>{
    deleteOwnAccount().then(()=>{if(typeof closeSheet==="function")closeSheet();localStorage.removeItem("arvex_v3_state");location.reload()}).catch(e=>{if(m)m.textContent=e.message});
    return true;
   }
-  if(t.closest("#cloudGoogle")){
-   const m=document.getElementById("cloudMsg");
-   const en=localStorage.getItem("arvex_language")==="en";
-   if(m)m.textContent=en?"Opening secure Google sign-in…":"Открываем безопасный вход Google…";
-   startGoogleSignIn().catch(e=>{if(m)m.textContent=(en?"Google sign-in could not start: ":"Не удалось начать вход Google: ")+e.message;status=e.message;});
-   return true;
-  }
-
   if(t.closest("#cloudIn")){form("in");return true}
   if(t.closest("#cloudUp")){form("up");return true}
   if(t.closest("#cloudForgot")){const email=(document.getElementById("cEmail")?.value||"").trim(),m=document.getElementById("cloudMsg");if(!email){if(m)m.textContent="Сначала введи email.";return true}m.textContent="Отправляем ссылку для восстановления…";resetPassword(email).then(()=>m.textContent="Если аккаунт с таким email существует, письмо для сброса пароля отправлено.").catch(e=>m.textContent=e.message);return true}
@@ -667,7 +649,7 @@ async function insertOrder(o){
 
  document.addEventListener("submit",e=>{const form=e.target;if(!form||form.id!=="arvexSupportForm")return;e.preventDefault();submitSupportForm(form)});
 
- return {insertOrder,myEntitlement,createStarsInvoice,createStarsBotLink,setStarsAutoRenew,createSupport,enabled,accountHTML,userToolsHTML,loadProfileData,loadNotifications,deliverSystemNotifications,click,schedule,sync,isIn:()=>!!session,changePasswordPrompt,startGoogleSignIn,acceptOAuthCallback,acceptEmailConfirmation,handleAuthDeepLink,checkAccountStatus,deleteOwnAccount,exitBlockedApp};
+ return {insertOrder,myEntitlement,createStarsInvoice,createStarsBotLink,setStarsAutoRenew,createSupport,enabled,accountHTML,userToolsHTML,loadProfileData,loadNotifications,deliverSystemNotifications,click,schedule,sync,isIn:()=>!!session,changePasswordPrompt,acceptOAuthCallback,acceptEmailConfirmation,handleAuthDeepLink,checkAccountStatus,deleteOwnAccount,exitBlockedApp};
 })();
 
 // Netlify production redeploy trigger: email confirmation redirects to the public site.
