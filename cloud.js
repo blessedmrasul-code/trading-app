@@ -126,7 +126,7 @@ const Cloud=(()=>{
  }
  async function signOut(){
   const old=session;
-  try{if(old&&old.access)await req("/auth/v1/logout?scope=global",{method:"POST",headers:hdr(old.access)});}catch(e){}
+  try{if(old){const current=await token();await req("/auth/v1/logout?scope=global",{method:"POST",headers:hdr(current)});}}catch(e){}
   keep(null);status="";blocked=false;hideBanScreen();
   if(typeof Access!=="undefined")Access.refresh();
  }
