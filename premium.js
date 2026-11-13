@@ -19,7 +19,8 @@
   const write = (value) => localStorage.setItem(key(), JSON.stringify(value));
   const fmt = (value, digits=2) => Number.isFinite(value) ? value.toLocaleString("ru-RU",{maximumFractionDigits:digits,minimumFractionDigits:digits}) : "—";
   const money = (value) => (value < 0 ? "−" : "") + "$" + fmt(Math.abs(value));
-  const premium = () => typeof Access !== "undefined" && Access.isPremium();
+  const PREMIUM_KEYS = ["pro_analytics","pro_risk_lab","pro_journal","pro_watchlist","pro_market_review"];
+  const premium = () => typeof Access !== "undefined" && Access.isPremium() && PREMIUM_KEYS.every(feature => !Access.locked(feature));
   const goProfile = () => { if (typeof go === "function") go("profile"); };
   const gated = () => {
     const labels = [
