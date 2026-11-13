@@ -1,5 +1,5 @@
 {
-  "version_name": "1.1.0",
-  "version_code": 11,
-  "release_note": "Add Russian and English language settings, password recovery, and account security settings"
+  "version_name": "1.1.1",
+  "version_code": 12,
+  "release_note": "Restore account registration and sign-in, Premium purchase card, promo codes, and account tools; retain language and password settings"
 }
