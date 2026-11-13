@@ -81,7 +81,7 @@ const Cloud=(()=>{
   u.searchParams.set("redirect_to",GOOGLE_REDIRECT);
   u.searchParams.set("flow_type","implicit");
   const browser=window.ARVEX_CAP_BROWSER;
-  if(browser&&window.Capacitor&&window.Capacitor.isNativePlatform())browser.open({url:u.toString()});
+  if(browser&&window.Capacitor&&window.Capacitor.isNativePlatform())browser.open({url:u.toString()}).catch(e=>{status="Не удалось открыть браузер: "+e.message;if(typeof renderProfile==="function")renderProfile();});
   else location.href=u.toString();
  }
  function installOAuthDeepLink(){
