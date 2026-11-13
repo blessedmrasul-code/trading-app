@@ -70,6 +70,9 @@ assert.ok(!cloud.includes("async function exitBlockedApp(){\n  await signOut();"
 assert.ok(cloud.includes('browser.open({url:appealLink.href})'), "Android ban appeals must open in the system browser");
 
 assert.ok(cloud.includes('/^\\S+@\\S+\\.\\S+$/'), "Password recovery must validate email with a working non-whitespace regex");
+assert.ok(cloud.includes("/auth/v1/resend") && cloud.includes("resendConfirmation"), "Unconfirmed users must be able to request a fresh confirmation email");
+assert.ok(cloud.includes("/auth/v1/verify") && cloud.includes("cloudEmailCode") && cloud.includes("verifyEmailCode"), "Users must be able to confirm email with an in-app six-digit OTP");
+assert.ok(cloud.includes("id=\"cloudResend\"") && cloud.includes("id=\"cloudVerifyCode\""), "The account screen must expose resend and OTP verification controls");
 assert.ok(read("mobile/package.json").includes('"@capacitor/app"'), "Capacitor App plugin is required for native email-confirmation and recovery callbacks");
 assert.ok(read("mobile/package.json").includes('"@capacitor/local-notifications"'), "Android system notifications plugin must be included");
 assert.ok(read("mobile/capacitor-app-bridge.js").includes("LocalNotifications"), "Native notification plugin must be exposed to the app");
@@ -333,6 +336,37 @@ assert.ok(fs.existsSync(path.join(root, "mobile/apply-android-icons.sh")), "Andr
   };
   await vm.runInNewContext(cloud + "\n;Cloud.loadNotifications();", { ...disabledNotificationContext, unreadNotification });
   assert.equal(disabledNotificationRequests.some(x => x.options.method === "PATCH"), false, "Disabled notifications must remain unread until the user sees them");
+
+  const otpStorage = new Map();
+  const otpRequests = [];
+  const otpContext = {
+    window: { ARVEX_CLOUD: { url: "https://example.supabase.co", anonKey: "public-test-key" }, ARVEX_CAP_IS_NATIVE: () => false },
+    document: { addEventListener() {}, getElementById() { return null; } },
+    location: { href: "https://arvex.example/app/", origin: "https://arvex.example", pathname: "/app/", search: "", hash: "" },
+    history: { replaceState() {} },
+    localStorage: {
+      getItem(key) { return otpStorage.get(key) ?? null; },
+      setItem(key, value) { otpStorage.set(key, value); },
+      removeItem(key) { otpStorage.delete(key); }
+    },
+    fetch: async (url, options = {}) => {
+      otpRequests.push({ url, options });
+      if (url.includes("/auth/v1/verify")) return { ok: true, status: 200, json: async () => ({ access_token: "otp-access", refresh_token: "otp-refresh", expires_in: 3600, user: { id: "otp-user", email: "otp@example.invalid" } }) };
+      if (url.includes("arvex_my_account_status")) return { ok: true, status: 200, json: async () => [{ is_banned: false }] };
+      if (url.includes("/arvex_saves?")) return { ok: true, status: 200, json: async () => [] };
+      return { ok: true, status: 200, json: async () => ({}) };
+    },
+    renderTop() {}, renderTicker() {}, renderHead() {}, renderPositions() {}, renderPortfolio() {}, renderProfile() {},
+    activeScreen: "profile", URL, URLSearchParams
+  };
+  await vm.runInNewContext(cloud + "\n;Cloud.resendConfirmation('otp@example.invalid');", otpContext);
+  const resendRequest = otpRequests.find(x => x.url.includes("/auth/v1/resend"));
+  assert.ok(resendRequest, "Resend must call Supabase Auth resend endpoint");
+  assert.deepEqual(JSON.parse(resendRequest.options.body), { type: "signup", email: "otp@example.invalid" }, "Resend must target the pending signup email");
+  await vm.runInNewContext(cloud + "\n;Cloud.verifyEmailCode('otp@example.invalid', '123456');", otpContext);
+  const verifyRequest = otpRequests.find(x => x.url.includes("/auth/v1/verify"));
+  assert.deepEqual(JSON.parse(verifyRequest.options.body), { type: "signup", email: "otp@example.invalid", token: "123456" }, "OTP verification must send the email and six-digit signup token");
+  assert.equal(JSON.parse(otpStorage.get("arvex_cloud_session")).uid, "otp-user", "A valid email OTP must establish the signed-in session");
 
   const emailConfirmStorage = new Map();
   const emailConfirmMessage = { textContent: "" };
