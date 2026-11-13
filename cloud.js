@@ -160,11 +160,11 @@ const Cloud=(()=>{
   else location.href=u.toString();
  }
  if(typeof window!=="undefined"&&typeof location!=="undefined"){
-  const callbackHash=new URLSearchParams(String(location.hash||"").replace(/^#/,""));
-  const callbackType=callbackHash.get("type");
+  const callbackHash=typeof URLSearchParams==="function"?new URLSearchParams(String(location.hash||"").replace(/^#/,"")):null;
+  const callbackType=callbackHash&&callbackHash.get("type");
   if(callbackType==="signup"||callbackType==="email"){
    setTimeout(()=>acceptEmailConfirmation(location.href),0);
-  }else if(/[?&]code=/.test(location.search)){
+  }else if(/[?&]code=/.test(location.search||"")){
    setTimeout(()=>acceptOAuthCallback(location.href),0);
   }
  }
