@@ -91,7 +91,7 @@ const Cloud=(()=>{
  }
  async function startGoogleSignIn(){
   if(!enabled())throw new Error("Облачная авторизация сейчас недоступна.");
-  const native=!!(window.Capacitor&&window.Capacitor.isNativePlatform());
+  const native=typeof window.ARVEX_CAP_IS_NATIVE==="function"?window.ARVEX_CAP_IS_NATIVE():!!(window.Capacitor&&window.Capacitor.isNativePlatform());
   const redirect=native?GOOGLE_REDIRECT:(location.origin+location.pathname);
   const pkce=await makePkce(),u=new URL(cfg().url.replace(/\/$/,"")+"/auth/v1/authorize");
   u.searchParams.set("provider","google");u.searchParams.set("redirect_to",redirect);
@@ -105,7 +105,8 @@ const Cloud=(()=>{
  }
  function installOAuthDeepLink(){
   const app=window.ARVEX_CAP_APP;
-  if(!app||!window.Capacitor||typeof window.Capacitor.isNativePlatform!=="function"||!window.Capacitor.isNativePlatform())return;
+  const native=typeof window.ARVEX_CAP_IS_NATIVE==="function"?window.ARVEX_CAP_IS_NATIVE():!!(window.Capacitor&&window.Capacitor.isNativePlatform());
+  if(!app||!native)return;
   try{
    app.addListener("appUrlOpen",e=>{
     if(e&&e.url){
@@ -224,8 +225,8 @@ const Cloud=(()=>{
   }
   if(t.closest("#cloudGoogle")){
    const m=document.getElementById("cloudMsg");
-   try{if(m)m.textContent="Открываем безопасный вход Google…";startGoogleSignIn();}
-   catch(e){if(m)m.textContent=e.message;}
+   if(m)m.textContent="Открываем безопасный вход Google…";
+   startGoogleSignIn().catch(e=>{if(m)m.textContent=e.message;status=e.message;});
    return true;
   }
 
