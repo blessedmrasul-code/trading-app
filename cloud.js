@@ -5,6 +5,15 @@ const Cloud=(()=>{
  const SK="arvex_cloud_session";
  let session=null,timer=null,busy=false,status="",profileDataLoading=false,profileDataLoadedAt=0;
  try{session=JSON.parse(localStorage.getItem(SK)||"null")}catch(e){}
+ let recoveryMode=false;
+ try{
+  const hp=new URLSearchParams(String(location.hash||"").replace(/^#/,""));
+  if(hp.get("type")==="recovery"&&hp.get("access_token")){
+   adopt({access_token:hp.get("access_token"),refresh_token:hp.get("refresh_token")||"",expires_in:Number(hp.get("expires_in"))||3600});
+   recoveryMode=true;
+   history.replaceState(null,"",location.pathname+location.search);
+  }
+ }catch(e){}
  const enabled=()=>!!(cfg().url&&cfg().anonKey);
  const keep=s=>{session=s;try{s?localStorage.setItem(SK,JSON.stringify(s)):localStorage.removeItem(SK)}catch(e){}};
  const hdr=(tok)=>({"apikey":cfg().anonKey,"Authorization":"Bearer "+(tok||cfg().anonKey),"Content-Type":"application/json"});
@@ -47,7 +56,6 @@ const Cloud=(()=>{
   return true;
  }
  function changePasswordPrompt(){
-  const email=session&&session.email||"";
   if(typeof openSheet==="function")openSheet('<h3>Изменить пароль</h3><p class="muted">Введи новый пароль (минимум 8 символов).</p><input class="field" id="arvexNewPassword" type="password" autocomplete="new-password" placeholder="Новый пароль"><input class="field" id="arvexNewPassword2" type="password" autocomplete="new-password" placeholder="Повтори новый пароль" style="margin-top:8px"><p class="muted" id="arvexPasswordMsg"></p><div class="dir-btns"><button class="ghost" id="sheetCancel">Отмена</button><button class="primary" id="arvexPasswordSave">Сохранить</button></div>');
  }
  async function signIn(email,pw){
@@ -81,6 +89,7 @@ const Cloud=(()=>{
  }
  function rerender(){renderTop();renderTicker();renderHead();renderPositions();renderPortfolio();if(typeof renderSchool==="function")renderSchool();if(activeScreen==="profile")renderProfile()}
  function schedule(){if(!enabled()||!session)return;clearTimeout(timer);timer=setTimeout(sync,4000)}
+ if(recoveryMode&&typeof window!=="undefined")setTimeout(()=>changePasswordPrompt(),700);
  function accountHTML(){
   if(!enabled())return `<p class="muted" style="margin:0">Сейчас профиль хранится на этом устройстве.</p><div class="soon">🔒 Облачные аккаунты подключаются владельцем проекта (см. README → «Облако»).</div>`;
   if(session)return `<p style="margin:0 0 8px">Вход выполнен: <b>${esc(session.email)}</b></p><p class="muted" style="margin:0 0 10px">${esc(status||"Прогресс синхронизируется автоматически.")}</p><div class="btn-row"><button class="ghost" id="cloudSync">↻ Синхронизировать</button><button class="danger" id="cloudOut">Выйти</button></div>`;
