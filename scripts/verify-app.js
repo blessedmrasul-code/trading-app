@@ -62,6 +62,8 @@ assert.ok(cloud.includes('if(!/^\\S+@\\S+\\.\\S+$/.test(clean))'), "Password rec
 assert.ok(cloud.includes('/auth/v1/recover?redirect_to='), "Password recovery must pass an explicit return URL");
 assert.ok(cloud.includes('"?auth=recovery"'), "Password recovery must return to the in-app recovery route");
 assert.ok(cloud.includes('params.get("type")!=="recovery"') && cloud.includes('params.get("access_token")'), "Recovery route must accept only Supabase recovery sessions");
+assert.ok(cloud.includes('params.get("error_description")') && cloud.includes('recoveryError'), "Invalid and expired recovery links must show an in-app error");
+assert.ok(cloud.includes('document.readyState==="loading"'), "Recovery screen must mount whether DOMContentLoaded has fired or not");
 assert.ok(cloud.includes('req("/auth/v1/user",{method:"PUT"') && cloud.includes('JSON.stringify({password})'), "New password must be saved through Supabase Auth");
 assert.ok(cloud.includes('id="cloudForgot"'), "Login form must expose the forgot-password action");
 assert.ok(cloud.includes('id="arvexLanguage"') && cloud.includes('localStorage.setItem("arvex_language"'), "Language preference must be selectable and persistent");
