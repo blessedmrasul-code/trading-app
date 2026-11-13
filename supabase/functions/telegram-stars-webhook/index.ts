@@ -49,7 +49,12 @@ async function answerPreCheckout(query: any) {
   let valid = false;
   try {
     const intent = await getIntent(String(query.invoice_payload || ""));
-    valid = !!intent &&
+    let banned = false;
+    if (intent?.user_id) {
+      const bans = await db(`arvex_user_bans?user_id=eq.${encodeURIComponent(intent.user_id)}&select=user_id&limit=1`);
+      banned = Array.isArray(bans) && bans.length > 0;
+    }
+    valid = !!intent && !banned &&
       intent.status === "pending" &&
       intent.currency === query.currency &&
       Number(intent.stars_amount) === Number(query.total_amount) &&
