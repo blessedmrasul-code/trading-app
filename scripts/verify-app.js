@@ -81,6 +81,7 @@ assert.ok(cloud.includes('code_challenge_method","s256"'), "Google OAuth must us
 assert.ok(cloud.includes('location.origin+location.pathname'), "Web Google OAuth must return to the current app route");
 assert.ok(cloud.includes('app.arvex.trading://auth/callback'), "Android Google OAuth deep link must remain registered");
 assert.ok(cloud.includes("arvex_my_account_status") && cloud.includes("arvexBanOverlay"), "Signed-in users must be checked for account bans and shown the block screen");
+assert.ok(cloud.includes("LOCAL_OWNER_KEY") && cloud.includes("LOCAL_RESET_KEY"), "Local progress must be isolated when users switch accounts");
 assert.ok(cloud.includes("info.administrator||'Mrasulv'"), "Ban screen must display the administrator recorded by the server");
 assert.ok(read("supabase/migrations/20261113140000_arvex_ban_issuer_identity.sql").includes("admin_user.id=e.admin_id"), "Ban audit must identify the actual administrator who issued each action");
 assert.ok(cloud.includes('arvex_my_account_status",{method:"POST",headers:hdr(tok),body:"{}"}'), "Ban status RPC must be called with its zero-argument signature");
@@ -186,7 +187,37 @@ assert.ok(fs.existsSync(path.join(root, "mobile/apply-android-icons.sh")), "Andr
   const deleteRequest = accountRequests.find(x => x.url.includes("functions/v1/delete-own-account"));
   assert.ok(deleteRequest, "Account deletion must call the protected Edge Function");
   assert.deepEqual(JSON.parse(deleteRequest.options.body), { confirm: "DELETE" }, "Account deletion must provide the required explicit confirmation");
-  console.log(`ARVEX checks passed: ${LESSONS.length} lessons, ${Object.keys(EXAMS).length} exams, 30 randomized runs per exam, support submit, ban RPC, account deletion, and UI guards.`);
+
+  const switchStorage = new Map([
+    ["arvex_cloud_session", JSON.stringify({ access: "old-access", refresh: "old-refresh", exp: Date.now() + 3600000, uid: "old-user", email: "old@example.com" })],
+    ["arvex_local_state_owner", "old-user"],
+    ["arvex_v3_state", JSON.stringify({ balance: 1234, history: [], positions: [], updatedAt: Date.now() })],
+    ["arvex_google_pkce_verifier", "test-verifier"]
+  ]);
+  let switchReloads = 0;
+  const switchContext = {
+    window: { ARVEX_CLOUD: { url: "https://example.supabase.co", anonKey: "public-test-key" } },
+    document: { addEventListener() {}, getElementById() { return null; } },
+    location: { href: "https://arvex.example/app/?code=test-code", hash: "", pathname: "/app/", search: "?code=test-code", reload() { switchReloads++; } },
+    history: { replaceState() {} },
+    localStorage: {
+      getItem(key) { return switchStorage.get(key) ?? null; },
+      setItem(key, value) { switchStorage.set(key, value); },
+      removeItem(key) { switchStorage.delete(key); }
+    },
+    fetch: async (url) => ({
+      ok: true, status: 200,
+      json: async () => url.includes("grant_type=pkce")
+        ? { access_token: "new-access", refresh_token: "new-refresh", expires_in: 3600, user: { id: "new-user", email: "new@example.com" } }
+        : [{ is_banned: false }]
+    }),
+    URL, URLSearchParams
+  };
+  await vm.runInNewContext(cloud + "\n;Cloud.acceptOAuthCallback('https://arvex.example/app/?code=test-code');", switchContext);
+  assert.equal(switchStorage.get("arvex_local_state_owner"), "new-user", "New account must become the owner of device-local progress");
+  assert.equal(switchStorage.has("arvex_v3_state"), false, "Previous account's local progress must not carry over to another account");
+  assert.equal(switchReloads, 1, "Account switch must reload before using the previous account's in-memory state");
+  console.log(`ARVEX checks passed: ${LESSONS.length} lessons, ${Object.keys(EXAMS).length} exams, 30 randomized runs per exam, support submit, ban RPC, account deletion, account isolation, and UI guards.`);
 })().catch((error) => {
   console.error(error);
   process.exitCode = 1;
