@@ -238,6 +238,33 @@ assert.ok(fs.existsSync(path.join(root, "mobile/apply-android-icons.sh")), "Andr
   assert.equal(scheduledNotifications[0].channelId, "arvex-notifications-s1-v0", "Notification must use the matching sound/vibration channel");
   await vm.runInNewContext(cloud + "\n;Cloud.deliverSystemNotifications([unreadNotification]);", { ...notificationContext, unreadNotification });
   assert.equal(scheduledNotifications.length, 1, "Delivered notifications must not be scheduled twice");
+  const deniedStorage = new Map([
+    ["arvex_cloud_session", JSON.stringify({ access: "test-access", refresh: "test-refresh", exp: Date.now() + 3600000, uid: "notify-user", email: "notify@example.com" })],
+    ["arvex_notifications_enabled", "true"]
+  ]);
+  let deniedNotificationReadUpdates = 0;
+  const deniedContext = {
+    window: {
+      ARVEX_CLOUD: { url: "https://example.supabase.co", anonKey: "public-test-key" },
+      ARVEX_CAP_IS_NATIVE: () => true,
+      ARVEX_CAP_LOCAL_NOTIFICATIONS: { async checkPermissions() { return { display: "denied" }; }, async schedule() {} }
+    },
+    document: { addEventListener() {}, getElementById() { return null; } },
+    location: { href: "https://arvex.example/app/", hash: "", pathname: "/app/", search: "" },
+    localStorage: {
+      getItem(key) { return deniedStorage.get(key) ?? null; },
+      setItem(key, value) { deniedStorage.set(key, value); },
+      removeItem(key) { deniedStorage.delete(key); }
+    },
+    fetch: async (url, options = {}) => {
+      if (options.method === "PATCH") deniedNotificationReadUpdates++;
+      return { ok: true, status: 200, json: async () => url.includes("/arvex_notifications?") ? [unreadNotification] : {} };
+    },
+    URL, URLSearchParams
+  };
+  await vm.runInNewContext(cloud + "\n;Cloud.loadNotifications();", deniedContext);
+  assert.equal(deniedNotificationReadUpdates, 0, "Notifications without permission must remain unread when the notifications panel is not open");
+
 
   const oauthErrorStorage = new Map([["arvex_google_pkce_verifier", "test-verifier"]]);
   const oauthErrorMessage = { textContent: "" };
