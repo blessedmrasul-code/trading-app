@@ -43,9 +43,10 @@ const Cloud=(()=>{
   return session.access;
  }
  async function signUp(email,pw){
-  // Не задаём redirect_to: Supabase использует Site URL проекта.
-  // После подтверждения пользователь может вернуться в ARVEX и нажать «Войти».
-  const j=await req("/auth/v1/signup",{method:"POST",headers:hdr(),body:JSON.stringify({email,password:pw})});
+  // После подтверждения email возвращаем пользователя в приложение, а не на страницу покупки.
+  const native=typeof window.ARVEX_CAP_IS_NATIVE==="function"?window.ARVEX_CAP_IS_NATIVE():!!(window.Capacitor&&window.Capacitor.isNativePlatform());
+  const redirect=native?GOOGLE_REDIRECT:(location.origin+location.pathname);
+  const j=await req("/auth/v1/signup?redirect_to="+encodeURIComponent(redirect),{method:"POST",headers:hdr(),body:JSON.stringify({email,password:pw})});
   if(adopt(j))return {ok:true};
   if(j&&j.user&&Array.isArray(j.user.identities)&&j.user.identities.length===0)return {ok:false,exists:true};
   return {ok:false,confirm:true}; // включено подтверждение почты
@@ -94,14 +95,49 @@ const Cloud=(()=>{
     if(!verifier)throw new Error("Не найден ключ проверки Google-входа. Повтори авторизацию.");
     tokens=await req("/auth/v1/token?grant_type=pkce",{method:"POST",headers:hdr(),body:JSON.stringify({auth_code:code,code_verifier:verifier})});
     localStorage.removeItem(PKCE_KEY);
-   }else if(hash.get("access_token")&&hash.get("refresh_token")){
-    tokens={access_token:hash.get("access_token"),refresh_token:hash.get("refresh_token"),expires_in:Number(hash.get("expires_in"))||3600};
    }else return false;
    if(!tokens.user){tokens.user=await req("/auth/v1/user",{headers:hdr(tokens.access_token)});}
    const ok=adopt(tokens);
    if(ok){cleanOAuthCallbackUrl();status=localStorage.getItem("arvex_language")==="en"?"Google sign-in complete":"Вход через Google выполнен";if(await checkAccountStatus())return true;if(localStorage.getItem(LOCAL_RESET_KEY)==="1"){localStorage.removeItem(LOCAL_RESET_KEY);location.reload();return true}await sync();if(typeof renderProfile==="function")renderProfile();return true;}
   }catch(e){localStorage.removeItem(PKCE_KEY);cleanOAuthCallbackUrl();const en=localStorage.getItem("arvex_language")==="en";status=(en?"Google sign-in could not be completed: ":"Не удалось завершить вход Google: ")+e.message;if(typeof renderProfile==="function")renderProfile();const msg=document.getElementById("cloudMsg");if(msg)msg.textContent=status;}
   return false;
+ }
+ async function acceptEmailConfirmation(rawUrl){
+  try{
+   const u=new URL(rawUrl||location.href,location.href),params=new URLSearchParams((u.hash||"").replace(/^#/,""));
+   const type=params.get("type");
+   if(type!=="signup"&&type!=="email")return false;
+   const access=params.get("access_token"),refresh=params.get("refresh_token");
+   if(!access||!refresh)throw new Error("В ссылке подтверждения отсутствуют токены. Запроси новое письмо.");
+   const user=await req("/auth/v1/user",{headers:hdr(access)});
+   const ok=adopt({access_token:access,refresh_token:refresh,expires_in:Number(params.get("expires_in"))||3600,user});
+   if(!ok)throw new Error("Не удалось подтвердить email.");
+   cleanOAuthCallbackUrl();
+   if(await checkAccountStatus())return true;
+   if(localStorage.getItem(LOCAL_RESET_KEY)==="1"){localStorage.removeItem(LOCAL_RESET_KEY);location.reload();return true;}
+   await sync();
+   if(typeof Access!=="undefined"&&Access.refresh)await Access.refresh();
+   const en=localStorage.getItem("arvex_language")==="en";
+   status=en?"Email confirmed. You are signed in.":"Email подтверждён. Вы вошли в аккаунт.";
+   if(typeof renderProfile==="function")renderProfile();
+   const msg=document.getElementById("cloudMsg");if(msg)msg.textContent=status;
+   return true;
+  }catch(e){
+   cleanOAuthCallbackUrl();
+   const en=localStorage.getItem("arvex_language")==="en";
+   status=(en?"Email confirmation failed: ":"Не удалось подтвердить email: ")+e.message;
+   if(typeof renderProfile==="function")renderProfile();
+   const msg=document.getElementById("cloudMsg");if(msg)msg.textContent=status;
+   return false;
+  }
+ }
+ function handleAuthDeepLink(rawUrl){
+  try{
+   const u=new URL(rawUrl,location.href),params=new URLSearchParams((u.hash||"").replace(/^#/,""));
+   if(params.get("type")==="signup"||params.get("type")==="email")return acceptEmailConfirmation(rawUrl);
+  }catch(e){}
+  const browser=window.ARVEX_CAP_BROWSER;if(browser&&browser.close)browser.close().catch(()=>{});
+  return acceptOAuthCallback(rawUrl);
  }
  async function startGoogleSignIn(){
   if(!enabled())throw new Error("Облачная авторизация сейчас недоступна.");
@@ -114,7 +150,7 @@ const Cloud=(()=>{
   if(native&&browser)await browser.open({url:u.toString()});
   else location.href=u.toString();
  }
- if(typeof window!=="undefined"&&typeof location!=="undefined"&&(/[?&]code=/.test(location.search)||/access_token=/.test(location.hash||""))){
+ if(typeof window!=="undefined"&&typeof location!=="undefined"&&/[?&]code=/.test(location.search)){
   setTimeout(()=>acceptOAuthCallback(location.href),0);
  }
  function installOAuthDeepLink(){
@@ -122,14 +158,9 @@ const Cloud=(()=>{
   const native=typeof window.ARVEX_CAP_IS_NATIVE==="function"?window.ARVEX_CAP_IS_NATIVE():!!(window.Capacitor&&window.Capacitor.isNativePlatform());
   if(!app||!native)return;
   try{
-   app.addListener("appUrlOpen",e=>{
-    if(e&&e.url){
-     const browser=window.ARVEX_CAP_BROWSER;if(browser&&browser.close)browser.close().catch(()=>{});
-     acceptOAuthCallback(e.url);
-    }
-   });
+   app.addListener("appUrlOpen",e=>{if(e&&e.url)handleAuthDeepLink(e.url);});
    app.addListener("appStateChange",state=>{if(state&&state.isActive){checkAccountStatus();loadNotifications();}});
-   app.getLaunchUrl().then(r=>{if(r&&r.url)acceptOAuthCallback(r.url);}).catch(()=>{});
+   app.getLaunchUrl().then(r=>{if(r&&r.url)handleAuthDeepLink(r.url);}).catch(()=>{});
   }catch(e){console.warn("ARVEX Google OAuth deep-link listener:",e);}
  }
  if(typeof window!=="undefined")installOAuthDeepLink();
@@ -620,7 +651,7 @@ async function insertOrder(o){
 
  document.addEventListener("submit",e=>{const form=e.target;if(!form||form.id!=="arvexSupportForm")return;e.preventDefault();submitSupportForm(form)});
 
- return {insertOrder,myEntitlement,createStarsInvoice,createStarsBotLink,setStarsAutoRenew,createSupport,enabled,accountHTML,userToolsHTML,loadProfileData,loadNotifications,deliverSystemNotifications,click,schedule,sync,isIn:()=>!!session,changePasswordPrompt,startGoogleSignIn,acceptOAuthCallback,checkAccountStatus,deleteOwnAccount};
+ return {insertOrder,myEntitlement,createStarsInvoice,createStarsBotLink,setStarsAutoRenew,createSupport,enabled,accountHTML,userToolsHTML,loadProfileData,loadNotifications,deliverSystemNotifications,click,schedule,sync,isIn:()=>!!session,changePasswordPrompt,startGoogleSignIn,acceptOAuthCallback,acceptEmailConfirmation,handleAuthDeepLink,checkAccountStatus,deleteOwnAccount};
 })();
 
 // Netlify production redeploy trigger: email confirmation redirects to the public site.
