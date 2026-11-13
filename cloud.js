@@ -53,7 +53,9 @@ const Cloud=(()=>{
  }
  async function resetPassword(email){
   const e=String(email||"").trim();if(!/^\S+@\S+\.\S+$/.test(e))throw new Error("Укажи корректный email.");
-  await req("/auth/v1/recover",{method:"POST",headers:hdr(),body:JSON.stringify({email:e})});
+  const native=typeof window.ARVEX_CAP_IS_NATIVE==="function"?window.ARVEX_CAP_IS_NATIVE():!!(window.Capacitor&&window.Capacitor.isNativePlatform());
+  const redirect=native?GOOGLE_REDIRECT:(location.origin+location.pathname);
+  await req("/auth/v1/recover?redirect_to="+encodeURIComponent(redirect),{method:"POST",headers:hdr(),body:JSON.stringify({email:e})});
   return true;
  }
  async function updatePassword(password){
@@ -89,16 +91,18 @@ const Cloud=(()=>{
    const error=u.searchParams.get("error_description")||u.searchParams.get("error")||hash.get("error_description")||hash.get("error");
    if(error){localStorage.removeItem(PKCE_KEY);cleanOAuthCallbackUrl();const en=localStorage.getItem("arvex_language")==="en";status=(en?"Google sign-in error: ":"Ошибка входа Google: ")+error;if(typeof renderProfile==="function")renderProfile();const msg=document.getElementById("cloudMsg");if(msg)msg.textContent=status;return false;}
    let tokens=null;
-   const code=u.searchParams.get("code");
+   const code=u.searchParams.get("code"),recoveryType=u.searchParams.get("type")==="recovery"||hash.get("type")==="recovery";
    if(code){
     const verifier=localStorage.getItem(PKCE_KEY);
     if(!verifier)throw new Error("Не найден ключ проверки Google-входа. Повтори авторизацию.");
     tokens=await req("/auth/v1/token?grant_type=pkce",{method:"POST",headers:hdr(),body:JSON.stringify({auth_code:code,code_verifier:verifier})});
     localStorage.removeItem(PKCE_KEY);
+   }else if(recoveryType&&hash.get("access_token")&&hash.get("refresh_token")){
+    tokens={access_token:hash.get("access_token"),refresh_token:hash.get("refresh_token"),expires_in:Number(hash.get("expires_in"))||3600};
    }else return false;
    if(!tokens.user){tokens.user=await req("/auth/v1/user",{headers:hdr(tokens.access_token)});}
    const ok=adopt(tokens);
-   if(ok){cleanOAuthCallbackUrl();status=localStorage.getItem("arvex_language")==="en"?"Google sign-in complete":"Вход через Google выполнен";if(await checkAccountStatus())return true;if(localStorage.getItem(LOCAL_RESET_KEY)==="1"){localStorage.removeItem(LOCAL_RESET_KEY);location.reload();return true}await sync();if(typeof renderProfile==="function")renderProfile();return true;}
+   if(ok){cleanOAuthCallbackUrl();status=recoveryType?(localStorage.getItem("arvex_language")==="en"?"Password reset link confirmed.":"Ссылка для сброса пароля подтверждена."):(localStorage.getItem("arvex_language")==="en"?"Google sign-in complete":"Вход через Google выполнен");if(await checkAccountStatus())return true;if(recoveryType){recoveryMode=true;setTimeout(()=>changePasswordPrompt(),700);return true}if(localStorage.getItem(LOCAL_RESET_KEY)==="1"){localStorage.removeItem(LOCAL_RESET_KEY);location.reload();return true}await sync();if(typeof renderProfile==="function")renderProfile();return true;}
   }catch(e){localStorage.removeItem(PKCE_KEY);cleanOAuthCallbackUrl();const en=localStorage.getItem("arvex_language")==="en";status=(en?"Google sign-in could not be completed: ":"Не удалось завершить вход Google: ")+e.message;if(typeof renderProfile==="function")renderProfile();const msg=document.getElementById("cloudMsg");if(msg)msg.textContent=status;}
   return false;
  }
