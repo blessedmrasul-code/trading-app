@@ -51,9 +51,8 @@ const app = read("app.js");
 assert.ok(app.includes("ARVEX_CAP_LOCAL_NOTIFICATIONS") && app.includes("requestPermissions"), "Settings must request Android notification permission");
 const cloud = read("cloud.js");
 assert.ok(app.includes("Cloud.loadNotifications()") && cloud.includes("loadNotifications()"), "Notifications must refresh when the app returns to the foreground");
-assert.ok(cloud.includes('const GOOGLE_REDIRECT="app.arvex.trading://auth/callback"'), "Google OAuth must return to the ARVEX Android deep link");
-assert.ok(cloud.includes('id="cloudGoogle"'), "Profile must render the Google sign-in button");
-assert.ok(cloud.includes("startGoogleSignIn") && cloud.includes("acceptOAuthCallback"), "Google OAuth start and callback handlers must exist");
+assert.ok(cloud.includes('const AUTH_REDIRECT="app.arvex.trading://auth/callback"'), "Email confirmation and password recovery must return to the ARVEX app");
+assert.ok(!cloud.includes('id="cloudGoogle"') && !cloud.includes("startGoogleSignIn"), "Google sign-in must be absent from the app");
 assert.ok(app.includes("Cloud.acceptEmailConfirmation()") && cloud.includes("async function acceptEmailConfirmation"), "Email confirmation must be processed automatically during app initialization");
 assert.ok(cloud.includes("/auth/v1/recover?redirect_to=") && cloud.includes("recoveryType"), "Password recovery must return to the app and support native callback tokens");
 assert.ok(cloud.includes("cleanOAuthCallbackUrl") && cloud.includes('searchParams.delete(key)'), "OAuth code, state and error parameters must be removed from browser history");
@@ -65,7 +64,7 @@ assert.ok(!cloud.includes("async function exitBlockedApp(){\n  await signOut();"
 assert.ok(cloud.includes('browser.open({url:appealLink.href})'), "Android ban appeals must open in the system browser");
 
 assert.ok(cloud.includes('/^\\S+@\\S+\\.\\S+$/'), "Password recovery must validate email with a working non-whitespace regex");
-assert.ok(read("mobile/package.json").includes('"@capacitor/app"'), "Capacitor App plugin is required for native OAuth callbacks");
+assert.ok(read("mobile/package.json").includes('"@capacitor/app"'), "Capacitor App plugin is required for native email-confirmation and recovery callbacks");
 assert.ok(read("mobile/package.json").includes('"@capacitor/local-notifications"'), "Android system notifications plugin must be included");
 assert.ok(read("mobile/capacitor-app-bridge.js").includes("LocalNotifications"), "Native notification plugin must be exposed to the app");
 assert.ok(cloud.includes("deliverSystemNotifications") && cloud.includes("ARVEX_CAP_LOCAL_NOTIFICATIONS"), "Unread account notifications must be delivered to the Android notification center");
@@ -76,10 +75,10 @@ assert.ok(read("mobile/configure-android.js").includes("arvex_notification.wav")
 
 assert.ok(cloud.includes('setInterval(()=>{if(session)checkAccountStatus()},30000)'), "Active sessions must be rechecked for administrator bans periodically");
 
-assert.ok(read("mobile/configure-android.js").includes('android:scheme="app.arvex.trading"'), "Android manifest must register the OAuth callback scheme");
+assert.ok(read("mobile/configure-android.js").includes('android:scheme="app.arvex.trading"'), "Android manifest must register the app callback scheme for email confirmation and recovery");
 assert.ok(!cloud.includes("blessedmrasul-code.github.io/trading-app"), "Email confirmation must not use the retired GitHub Pages redirect");
 assert.ok(cloud.includes('req("/auth/v1/signup?redirect_to="+encodeURIComponent(redirect)'), "Email confirmation must return to the app route instead of the subscription landing page");
-assert.ok((cloud.match(/authRedirectUrl\(\)/g)||[]).length>=4, "Signup, password recovery and Google OAuth must use the normalized app callback URL");
+assert.ok((cloud.match(/authRedirectUrl\(\)/g)||[]).length>=4, "Signup and password recovery must use the normalized app callback URL");
 assert.ok(cloud.includes("async function acceptEmailConfirmation") && cloud.includes("handleAuthDeepLink"), "Email confirmation must automatically sign the user back into the app");
 const sql = read("backend/supabase.sql");
 assert.ok(!sql.includes("'subscription_expiry'"), "Expiry notifications must use a kind allowed by the notifications table constraint");
@@ -92,9 +91,6 @@ assert.ok(app.includes("Cloud.accountHTML()"), "Profile must render cloud sign-i
 assert.ok(app.includes("Access.cardHTML()"), "Profile must render the subscription purchase card");
 assert.ok(app.includes("Cloud.userToolsHTML()"), "Profile must render promo codes and account tools");
 const access = read("access.js");
-assert.ok(cloud.includes('code_challenge_method","s256"'), "Google OAuth must use PKCE instead of exposing tokens in redirects");
-assert.ok(cloud.includes("authRedirectUrl()") && cloud.includes("return location.origin+path"), "Web Google OAuth must return to the normalized current app route");
-assert.ok(cloud.includes('app.arvex.trading://auth/callback'), "Android Google OAuth deep link must remain registered");
 assert.ok(cloud.includes("arvex_my_account_status") && cloud.includes("arvexBanOverlay"), "Signed-in users must be checked for account bans and shown the block screen");
 assert.ok(cloud.includes("LOCAL_OWNER_KEY") && cloud.includes("LOCAL_RESET_KEY"), "Local progress must be isolated when users switch accounts");
 assert.ok(cloud.includes("info.administrator||'Mrasulv'"), "Ban screen must display the administrator recorded by the server");
@@ -105,7 +101,7 @@ assert.ok(cloud.includes('body:JSON.stringify({confirm:"DELETE"})'), "Account de
 assert.ok(cloud.includes("admin-user-ban") && cloud.includes("arvex_admin_list_bans") && cloud.includes("arvex_admin_ban_history"), "Creator panel must support audited ban and unban management");
 assert.ok(app.includes("arvexSoundToggle") && app.includes("arvexVibrationToggle") && app.includes("arvexNotificationsToggle"), "Settings must expose notification, sound and vibration preferences");
 assert.ok(read("mobile/build-web.js").includes("'offer.html'") && fs.existsSync(path.join(root,"offer.html")), "Android web bundle must include the Premium terms page");
-assert.ok(read("mobile/package.json").includes('"@capacitor/browser": "8.0.0"'), "Native Google OAuth browser dependency must be pinned");
+assert.ok(read("mobile/package.json").includes('"@capacitor/browser": "8.0.0"'), "Capacitor browser dependency must remain pinned for external app links");
 assert.ok(read("supabase/migrations/20261113110431_arvex_bans_and_account_controls.sql").includes("arvex_user_bans"), "Ban migration must exist");
 
 const notificationGrants = read("supabase/migrations/20261113111707_arvex_notifications_privileges_hardening.sql");
@@ -179,35 +175,6 @@ assert.ok(fs.existsSync(path.join(root, "mobile/apply-android-icons.sh")), "Andr
   const body = JSON.parse(captured.options.body);
   assert.equal(body.user_id, session.uid, "Support ticket must be attached to the signed-in user");
   assert.equal(body.message, "I cannot sign in to my account.", "Support message must be preserved");
-
-  const oauthStorage = new Map();
-  const oauthLocation = { origin: "https://arvex.example", pathname: "/app/", search: "", hash: "", href: "https://arvex.example/app/" };
-  const oauthContext = {
-    window: { ARVEX_CLOUD: { url: "https://example.supabase.co", anonKey: "public-test-key" }, ARVEX_CAP_IS_NATIVE: () => false },
-    location: oauthLocation,
-    history: { replaceState() {} },
-    document: { addEventListener() {}, getElementById() { return null; } },
-    localStorage: {
-      getItem(key) { return oauthStorage.get(key) ?? null; },
-      setItem(key, value) { oauthStorage.set(key, value); },
-      removeItem(key) { oauthStorage.delete(key); }
-    },
-    crypto: require("node:crypto").webcrypto,
-    TextEncoder,
-    URL,
-    URLSearchParams,
-    btoa,
-    fetch: async () => ({ ok: true, status: 200, json: async () => ({}) })
-  };
-  await vm.runInNewContext(cloud + "\n;Cloud.startGoogleSignIn();", oauthContext);
-  const oauthUrl = new URL(oauthLocation.href);
-  assert.equal(oauthUrl.searchParams.get("provider"), "google", "Google OAuth must select the Google provider");
-  assert.equal(oauthUrl.searchParams.get("redirect_to"), "https://arvex.example/app/", "Web OAuth must return to the app route");
-  assert.equal(oauthUrl.searchParams.get("code_challenge_method"), "s256", "OAuth must use S256 PKCE");
-  assert.ok(oauthUrl.searchParams.get("code_challenge"), "OAuth must send a PKCE challenge");
-  assert.ok(oauthStorage.get("arvex_google_pkce_verifier"), "The PKCE verifier must be stored before redirect");
-  assert.equal(oauthUrl.searchParams.has("flow_type"), false, "OAuth must not force the legacy implicit flow");
-
 
   const accountStorage = new Map([["arvex_cloud_session", JSON.stringify(session)]]);
   const accountRequests = [];
