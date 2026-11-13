@@ -50,6 +50,9 @@ assert.ok(css.includes("[hidden]{display:none!important}"), "The hidden attribut
 const cloud = read("cloud.js");
 assert.ok(!cloud.includes("blessedmrasul-code.github.io/trading-app"), "Email confirmation must not use the retired GitHub Pages redirect");
 assert.ok(cloud.includes('req("/auth/v1/signup",{'), "Signup must rely on the Supabase project Site URL instead of a hard-coded redirect");
+const sql = read("backend/supabase.sql");
+assert.ok(!sql.includes("'subscription_expiry'"), "Expiry notifications must use a kind allowed by the notifications table constraint");
+assert.ok(sql.includes("'subscription',\n      'subscription-expiry:'"), "Expiry notifications must use the supported subscription kind");
 assert.ok(cloud.includes('document.addEventListener("submit"'), "Support form must use delegated submit handling");
 assert.ok(cloud.includes('Prefer":"return=representation'), "Support creation must verify a returned row");
 assert.ok(cloud.includes("arvex_admin_list_support_tickets"), "Admin support inbox must call the protected RPC");
