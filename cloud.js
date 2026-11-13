@@ -234,7 +234,7 @@ const Cloud=(()=>{
   if(t.closest("#cloudForgot")){const email=(document.getElementById("cEmail")?.value||"").trim(),m=document.getElementById("cloudMsg");if(!email){if(m)m.textContent="Сначала введи email.";return true}m.textContent="Отправляем ссылку для восстановления…";resetPassword(email).then(()=>m.textContent="Если аккаунт с таким email существует, письмо для сброса пароля отправлено.").catch(e=>m.textContent=e.message);return true}
   if(t.closest("#arvexPasswordSave")){const p=document.getElementById("arvexNewPassword")?.value||"",p2=document.getElementById("arvexNewPassword2")?.value||"",m=document.getElementById("arvexPasswordMsg");if(p.length<8){m.textContent="Минимум 8 символов.";return true}if(p!==p2){m.textContent="Пароли не совпадают.";return true}m.textContent="Сохраняю…";updatePassword(p).then(()=>{m.textContent="Пароль изменён.";setTimeout(()=>{if(typeof closeSheet==="function")closeSheet()},900)}).catch(e=>m.textContent=e.message);return true}
   if(t.closest("#cloudSync")){sync();return true}
-  if(t.closest("#cloudOut")){signOut();renderProfile();return true}
+  if(t.closest("#cloudOut")){signOut().then(()=>{if(typeof renderProfile==="function")renderProfile()});return true}
   if(t.closest("#arvexPromoApply")){const m=document.getElementById("arvexPromoMsg");m.textContent="Проверяю…";redeemPromo(document.getElementById("arvexPromoCode").value).then(()=>{m.textContent="Промокод активирован!";if(typeof renderProfile==="function")renderProfile()}).catch(e=>m.textContent=e.message);return true}
   if(t.closest("#arvexPaymentsLoad")){loadPayments();return true}
   if(t.closest("#arvexNotificationsLoad")){loadNotifications();return true}
