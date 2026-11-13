@@ -115,6 +115,34 @@ assert.ok(fs.existsSync(path.join(root, "mobile/apply-android-icons.sh")), "Andr
   assert.equal(body.user_id, session.uid, "Support ticket must be attached to the signed-in user");
   assert.equal(body.message, "I cannot sign in to my account.", "Support message must be preserved");
 
+  const oauthStorage = new Map();
+  const oauthLocation = { origin: "https://arvex.example", pathname: "/app/", search: "", hash: "", href: "https://arvex.example/app/" };
+  const oauthContext = {
+    window: { ARVEX_CLOUD: { url: "https://example.supabase.co", anonKey: "public-test-key" }, ARVEX_CAP_IS_NATIVE: () => false },
+    location: oauthLocation,
+    history: { replaceState() {} },
+    document: { addEventListener() {}, getElementById() { return null; } },
+    localStorage: {
+      getItem(key) { return oauthStorage.get(key) ?? null; },
+      setItem(key, value) { oauthStorage.set(key, value); },
+      removeItem(key) { oauthStorage.delete(key); }
+    },
+    crypto: require("node:crypto").webcrypto,
+    TextEncoder,
+    URL,
+    URLSearchParams,
+    btoa,
+    fetch: async () => ({ ok: true, status: 200, json: async () => ({}) })
+  };
+  await vm.runInNewContext(cloud + "\\n;Cloud.startGoogleSignIn();", oauthContext);
+  const oauthUrl = new URL(oauthLocation.href);
+  assert.equal(oauthUrl.searchParams.get("provider"), "google", "Google OAuth must select the Google provider");
+  assert.equal(oauthUrl.searchParams.get("redirect_to"), "https://arvex.example/app/", "Web OAuth must return to the app route");
+  assert.equal(oauthUrl.searchParams.get("code_challenge_method"), "s256", "OAuth must use S256 PKCE");
+  assert.ok(oauthUrl.searchParams.get("code_challenge"), "OAuth must send a PKCE challenge");
+  assert.ok(oauthStorage.get("arvex_google_pkce_verifier"), "The PKCE verifier must be stored before redirect");
+  assert.equal(oauthUrl.searchParams.has("flow_type"), false, "OAuth must not force the legacy implicit flow");
+
   console.log(`ARVEX checks passed: ${LESSONS.length} lessons, ${Object.keys(EXAMS).length} exams, 30 randomized runs per exam, support submit and UI guards.`);
 })().catch((error) => {
   console.error(error);
