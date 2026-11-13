@@ -22,6 +22,7 @@ on:
       - "chart.js"
       - "school.js"
       - "tools.js"
+      - "premium.js"
       - "lessons.js"
       - "exam.js"
       - "glossary.js"
@@ -77,7 +78,7 @@ jobs:
       - name: Check application JavaScript syntax
         working-directory: .
         run: |
-          for file in app.js cloud.js access.js shop-config.js cloud-config.js chart.js school.js tools.js lessons.js exam.js glossary.js; do
+          for file in app.js cloud.js access.js shop-config.js cloud-config.js chart.js school.js tools.js premium.js lessons.js exam.js glossary.js; do
             node --check "$file"
           done
 
