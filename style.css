@@ -223,3 +223,23 @@ html{overflow-x:hidden;max-width:100%}
 .setting-toggle{display:flex;align-items:center;gap:10px;margin-top:11px;color:var(--text);font-size:14px;cursor:pointer}
 .setting-toggle input{width:18px;height:18px;accent-color:var(--purple2);flex:0 0 auto}
 #arvexBanOverlay button{font:inherit;cursor:pointer;border:0}
+
+
+/* ===== ARVEX PREMIUM / PRO ===== */
+.pro-hero{border-color:rgba(165,139,255,.28);background:radial-gradient(ellipse at 100% 0,rgba(124,92,255,.18),transparent 48%),linear-gradient(160deg,#17152a,#0e1018)}
+.pro-kicker{display:inline-flex;padding:5px 9px;border:1px solid rgba(165,139,255,.4);border-radius:99px;color:var(--purple2);font-size:10px;font-weight:800;letter-spacing:.16em}
+.pro-hero h2{font-size:25px;letter-spacing:-.04em;margin:14px 0 7px}
+.pro-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:16px}
+.pro-teaser,.pro-insight{padding:13px;border:1px solid var(--border);border-radius:14px;background:rgba(255,255,255,.025)}
+.pro-teaser b{font-size:13px}.pro-teaser p,.pro-insight p{margin:7px 0 0;color:var(--muted);font-size:12px}
+.pro-metrics{margin-top:0}.pro-metrics .stat{min-width:0}.pro-metrics .stat b{overflow-wrap:anywhere;font-size:15px}
+.pro-insight{margin-top:12px;border-color:rgba(165,139,255,.22)}.pro-insight>small{display:block;color:var(--muted);margin-top:9px}
+.pro-output{margin-top:14px}.pro-result-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.pro-result-grid>div{display:flex;flex-direction:column;gap:4px}.pro-result-grid small{color:var(--muted)}.pro-result-grid b{font-size:15px}
+.pro-watch-add{margin:0 0 14px}.pro-watch-add button{flex:0 0 auto}.pro-watch-list{display:grid;gap:8px}
+.pro-watch-row{display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:12px;padding:10px;border-radius:12px;background:rgba(255,255,255,.025)}
+.pro-watch-row small,.pro-journal-entry small{display:block;color:var(--muted);font-size:11px}.pro-watch-row strong{font-size:14px}
+.pro-watch-row .ghost,.pro-journal-entry .ghost{padding:5px 10px}.pro-journal-list{display:grid;gap:10px;margin-top:16px}
+.pro-journal-entry{padding:13px;border:1px solid var(--border);border-radius:13px}.pro-journal-entry p{font-size:13px;white-space:normal;overflow-wrap:anywhere;margin:10px 0;color:#cbd0df}
+.pro-journal-entry .ghost{font-size:12px}
+@media(max-width:430px){.nav button{font-size:10px}.nav svg{width:21px;height:21px}.pro-grid{gap:8px}.pro-teaser{padding:10px}.pro-result-grid{gap:9px}}
