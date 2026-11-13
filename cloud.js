@@ -379,43 +379,45 @@ async function insertOrder(o){
  }
  async function loadAdminSupport(){
   const box=document.getElementById("arvexAdminSupportList");if(!box)return;
-  box.textContent="Загрузка обращений…";
+  const en=localStorage.getItem("arvex_language")==="en";
+  box.textContent=en?"Loading requests…":"Загрузка обращений…";
   try{
    const tok=await token(),rows=await req("/rest/v1/rpc/arvex_admin_list_support_tickets",{method:"POST",headers:hdr(tok),body:JSON.stringify({p_limit:50})});
    box.textContent="";
-   if(!Array.isArray(rows)||!rows.length){box.textContent="Обращений пока нет.";return}
+   if(!Array.isArray(rows)||!rows.length){box.textContent=en?"No support requests yet.":"Обращений пока нет.";return}
    rows.forEach(ticket=>{
     const card=document.createElement("div");card.className="res-link";card.dataset.supportRow="1";
-    const head=document.createElement("b");head.textContent=(ticket.subject||"Без темы")+" · "+(ticket.user_email||"аккаунт");card.appendChild(head);
-    const body=document.createElement("span");body.textContent=(ticket.message||"")+" · "+new Date(ticket.created_at).toLocaleString("ru-RU");card.appendChild(body);
+    const head=document.createElement("b");head.textContent=(ticket.subject||(en?"No subject":"Без темы"))+" · "+(ticket.user_email||(en?"account":"аккаунт"));card.appendChild(head);
+    const body=document.createElement("span");body.textContent=(ticket.message||"")+" · "+new Date(ticket.created_at).toLocaleString(en?"en-US":"ru-RU");card.appendChild(body);
     const controls=document.createElement("div");controls.className="btn-row";controls.style.marginTop="8px";
     const select=document.createElement("select");select.className="field";
-    [["open","Открыто"],["in_progress","В работе"],["closed","Закрыто"]].forEach(([value,label])=>{const option=document.createElement("option");option.value=value;option.textContent=label;select.appendChild(option)});
+    [["open",en?"Open":"Открыто"],["in_progress",en?"In progress":"В работе"],["closed",en?"Closed":"Закрыто"]].forEach(([value,label])=>{const option=document.createElement("option");option.value=value;option.textContent=label;select.appendChild(option)});
     select.value=ticket.status||"open";
-    const save=document.createElement("button");save.className="ghost";save.type="button";save.dataset.supportUpdate=ticket.ticket_id;save.textContent="Сохранить статус";
+    const save=document.createElement("button");save.className="ghost";save.type="button";save.dataset.supportUpdate=ticket.ticket_id;save.textContent=en?"Save status":"Сохранить статус";
     controls.append(select,save);card.appendChild(controls);box.appendChild(card);
    });
-  }catch(e){box.textContent="Не удалось загрузить обращения: "+e.message}
+  }catch(e){box.textContent=(en?"Could not load requests: ":"Не удалось загрузить обращения: ")+e.message}
  }
  async function updateSupportStatus(ticketId,status){
-  const box=document.getElementById("arvexAdminSupportList");
+  const box=document.getElementById("arvexAdminSupportList"),en=localStorage.getItem("arvex_language")==="en";
   try{
    const tok=await token();await req("/rest/v1/rpc/arvex_admin_set_support_status",{method:"POST",headers:hdr(tok),body:JSON.stringify({p_ticket_id:ticketId,p_status:status})});
-   showToast("Статус обращения обновлён");await loadAdminSupport();
-  }catch(e){if(box)box.textContent="Не удалось обновить статус: "+e.message}
+   showToast(en?"Request status updated.":"Статус обращения обновлён");await loadAdminSupport();
+  }catch(e){if(box)box.textContent=(en?"Could not update status: ":"Не удалось обновить статус: ")+e.message}
  }
  async function loadAdminPromos(){
   const box=document.getElementById("arvexAdminPromoList");if(!box)return;
+  const en=localStorage.getItem("arvex_language")==="en";
   try{const tok=await token();const rows=await req("/rest/v1/rpc/arvex_admin_list_promos",{method:"POST",headers:hdr(tok),body:"{}"});
    box.textContent="";
-   if(!rows.length){box.textContent="Промокодов пока нет.";return}
-   rows.forEach(p=>{const el=document.createElement("p");el.textContent=p.code+" — "+p.days+" дн. · "+p.redeemed_count+"/"+p.max_redemptions+" · "+(p.active?"активен":"выключен");box.appendChild(el)});
+   if(!rows.length){box.textContent=en?"No promo codes yet.":"Промокодов пока нет.";return}
+   rows.forEach(p=>{const el=document.createElement("p");el.textContent=p.code+" — "+p.days+(en?" days · ":" дн. · ")+p.redeemed_count+"/"+p.max_redemptions+" · "+(p.active?(en?"active":"активен"):(en?"disabled":"выключен"));box.appendChild(el)});
   }catch(e){box.textContent=e.message}
  }
  async function createAdminPromo(){
-  const code=document.getElementById("arvexAdminCode"),days=document.getElementById("arvexAdminDays"),limit=document.getElementById("arvexAdminLimit"),msg=document.getElementById("arvexAdminPromoMsg");
-  msg.textContent="Создаю…";
-  try{const tok=await token();await req("/rest/v1/rpc/arvex_admin_create_promo",{method:"POST",headers:hdr(tok),body:JSON.stringify({p_code:code.value,p_days:Number(days.value),p_max_redemptions:Number(limit.value),p_expires_at:null})});msg.textContent="Промокод создан.";code.value="";await loadAdminPromos()}catch(e){msg.textContent=e.message}
+  const code=document.getElementById("arvexAdminCode"),days=document.getElementById("arvexAdminDays"),limit=document.getElementById("arvexAdminLimit"),msg=document.getElementById("arvexAdminPromoMsg"),en=localStorage.getItem("arvex_language")==="en";
+  msg.textContent=en?"Creating…":"Создаю…";
+  try{const tok=await token();await req("/rest/v1/rpc/arvex_admin_create_promo",{method:"POST",headers:hdr(tok),body:JSON.stringify({p_code:code.value,p_days:Number(days.value),p_max_redemptions:Number(limit.value),p_expires_at:null})});msg.textContent=en?"Promo code created.":"Промокод создан.";code.value="";await loadAdminPromos()}catch(e){msg.textContent=e.message}
  }
  let activeBanIds=new Set();
  async function loadAdminBans(){
