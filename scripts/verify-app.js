@@ -60,7 +60,8 @@ assert.ok(app.includes("Cloud.loadNotifications()") && cloud.includes("loadNotif
 assert.ok(cloud.includes('const AUTH_REDIRECT="app.arvex.trading://auth/callback"'), "Email confirmation and password recovery must return to the ARVEX app");
 assert.ok(!cloud.includes('id="cloudGoogle"') && !cloud.includes("startGoogleSignIn"), "Google sign-in must be absent from the app");
 assert.ok(app.includes("Cloud.acceptEmailConfirmation()") && cloud.includes("async function acceptEmailConfirmation"), "Email confirmation must be processed automatically during app initialization");
-assert.ok(cloud.includes("/auth/v1/recover?redirect_to=") && cloud.includes("recoveryType"), "Password recovery must return to the app and support native callback tokens");
+assert.ok(cloud.includes('req("/auth/v1/recover"') && cloud.includes("recoveryType"), "Password recovery must request an OTP and retain legacy native callback support");
+assert.ok(!cloud.includes('req("/auth/v1/signup?redirect_to=') && !cloud.includes('req("/auth/v1/resend?redirect_to=') && !cloud.includes('req("/auth/v1/recover?redirect_to='), "Registration, resend and password recovery OTP requests must not force a website redirect");
 assert.ok(cloud.includes("cleanAuthCallbackUrl") && cloud.includes('searchParams.delete(key)'), "Auth callback tokens and error parameters must be removed from browser history");
 
 
@@ -86,8 +87,8 @@ assert.ok(cloud.includes('setInterval(()=>{if(session)checkAccountStatus()},3000
 
 assert.ok(read("mobile/configure-android.js").includes('android:scheme="app.arvex.trading"'), "Android manifest must register the app callback scheme for email confirmation and recovery");
 assert.ok(!cloud.includes("blessedmrasul-code.github.io/trading-app"), "Email confirmation must not use the retired GitHub Pages redirect");
-assert.ok(cloud.includes('req("/auth/v1/signup?redirect_to="+encodeURIComponent(redirect)'), "Email confirmation must return to the app route instead of the subscription landing page");
-assert.ok((cloud.match(/authRedirectUrl\(\)/g)||[]).length>=3, "Signup and password recovery must use the normalized app callback URL");
+assert.ok(cloud.includes('req("/auth/v1/signup"') && cloud.includes('req("/auth/v1/resend"'), "Signup and resend must use in-app OTP requests without redirect URLs");
+assert.ok(cloud.includes('type:"recovery",email:e,token:pin') && cloud.includes('type:"signup",email:e,token:pin'), "Registration and password recovery must verify their respective six-digit OTP types");
 assert.ok(cloud.includes("async function acceptEmailConfirmation") && cloud.includes("handleAuthDeepLink"), "Email confirmation must automatically sign the user back into the app");
 const sql = read("backend/supabase.sql");
 assert.ok(!sql.includes("'subscription_expiry'"), "Expiry notifications must use a kind allowed by the notifications table constraint");
