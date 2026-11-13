@@ -137,6 +137,7 @@ assert.ok(appHtml.includes('data-go="premium"') && appHtml.includes('id="screen-
 assert.ok(read("mobile/build-web.js").includes("'premium.js'"), "Android web bundle must include the Premium module");
 assert.ok(read("shop-config.js").includes('"pro_analytics"') && read("shop-config.js").includes('"pro_risk_lab"') && read("shop-config.js").includes('"pro_journal"') && read("shop-config.js").includes('"pro_watchlist"'), "Premium feature gates must be configured");
 assert.ok(access.includes("locked=f=>") && access.includes("isPremium()"), "Premium access must depend on the server entitlement state");
+assert.ok(premium.includes("PREMIUM_KEYS.every(feature => !Access.locked(feature))"), "Every PRO tool must require the matching server entitlement feature gate");
 for (const feature of ["RSI","EMA","MACD","Боллинджера","Риск-лаборатория","Торговый дневник","Избранные рынки","Profit factor"]) assert.ok(premium.includes(feature), `Premium module is missing ${feature}`);
 assert.ok(premium.includes("localStorage.getItem(\"arvex_local_state_owner\")"), "Premium journal and watchlist must be isolated by account owner");
 assert.ok(premium.includes("escapeHTML(entry.body)"), "User journal text must be HTML-escaped before rendering");
