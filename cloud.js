@@ -474,7 +474,7 @@ async function insertOrder(o){
  async function setUserBan(userId,action,reason=""){
   const tok=await token(),r=await fetch(cfg().url.replace(/\/$/,"")+"/functions/v1/admin-user-ban",{method:"POST",headers:hdr(tok),body:JSON.stringify({user_id:userId,action,reason})});
   const j=await r.json().catch(()=>null);if(!r.ok)throw new Error((j&&j.error)||"Не удалось изменить блокировку");
-  await loadAdminBans();await searchAdminUsers();return j;
+  await loadAdminBans();await loadAdminBanHistory();await searchAdminUsers();return j;
  }
  async function loadAdminTools(){
   if(!session)return;
