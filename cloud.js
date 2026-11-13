@@ -609,7 +609,10 @@ async function insertOrder(o){
    await deliverSystemNotifications(rows);
    const en=localStorage.getItem("arvex_language")==="en";
    if(box)box.innerHTML=rows.length?rows.map(x=>'<div class="res-link"><b>'+esc(x.title)+'</b><span>'+esc(x.body)+' · '+new Date(x.created_at).toLocaleString(en?"en-US":"ru-RU")+(x.read_at?(en?' · Read':' · Прочитано'):'')+'</span></div>').join(""):'<p class="muted">'+(en?'No new notifications.':'Новых уведомлений нет.')+'</p>';
-   const unread=rows.filter(x=>!x.read_at).map(x=>x.id);
+   let delivered=[];try{delivered=JSON.parse(localStorage.getItem("arvex_delivered_notifications")||"[]")}catch(e){}
+   if(!Array.isArray(delivered))delivered=[];
+   const deliveredSet=new Set(delivered);
+   const unread=rows.filter(x=>!x.read_at&&(box||deliveredSet.has(x.id))).map(x=>x.id);
    if(unread.length)await req("/rest/v1/arvex_notifications?id=in.("+unread.join(",")+")&user_id=eq."+encodeURIComponent(session.uid),{method:"PATCH",headers:{...hdr(tok),"Prefer":"return=minimal"},body:JSON.stringify({read_at:new Date().toISOString()})});
   }catch(e){if(box)box.textContent="Не удалось загрузить уведомления: "+e.message}
  }
