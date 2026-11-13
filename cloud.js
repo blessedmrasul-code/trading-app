@@ -107,7 +107,13 @@ const Cloud=(()=>{
   const app=window.ARVEX_CAP_APP;
   if(!app||!window.Capacitor||typeof window.Capacitor.isNativePlatform!=="function"||!window.Capacitor.isNativePlatform())return;
   try{
-   app.addListener("appUrlOpen",e=>{if(e&&e.url)acceptOAuthCallback(e.url);});
+   app.addListener("appUrlOpen",e=>{
+    if(e&&e.url){
+     const browser=window.ARVEX_CAP_BROWSER;if(browser&&browser.close)browser.close().catch(()=>{});
+     acceptOAuthCallback(e.url);
+    }
+   });
+   app.addListener("appStateChange",state=>{if(state&&state.isActive)checkAccountStatus();});
    app.getLaunchUrl().then(r=>{if(r&&r.url)acceptOAuthCallback(r.url);}).catch(()=>{});
   }catch(e){console.warn("ARVEX Google OAuth deep-link listener:",e);}
  }
@@ -213,7 +219,7 @@ const Cloud=(()=>{
    const m=document.getElementById("arvexDeleteMsg");
    if(document.getElementById("arvexDeleteConfirmText")?.value!=="DELETE"){if(m)m.textContent="Введи DELETE для подтверждения.";return true}
    if(m)m.textContent="Удаляем аккаунт…";
-   deleteOwnAccount().then(()=>{if(typeof closeSheet==="function")closeSheet();showToast("Аккаунт удалён.");if(typeof renderProfile==="function")renderProfile()}).catch(e=>{if(m)m.textContent=e.message});
+   deleteOwnAccount().then(()=>{if(typeof closeSheet==="function")closeSheet();localStorage.removeItem("arvex_v3_state");location.reload()}).catch(e=>{if(m)m.textContent=e.message});
    return true;
   }
   if(t.closest("#cloudGoogle")){
