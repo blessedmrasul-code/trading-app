@@ -129,9 +129,5 @@
     if(del){const data=read();data.journal.splice(Number(del.dataset.journalDelete),1);write(data);render();return;}
   });
   window.addEventListener("arvex:premium-refresh",render);
-  window.addEventListener("DOMContentLoaded",()=>{
-    const nav=document.querySelector('#nav [data-go="premium"]');
-    if(nav){const button=nav;button.addEventListener("click",()=>setTimeout(()=>{if(typeof Access!=="undefined")Access.refresh().finally(render);else render();},0));}
-  });
   window.ARVEX_PRO={render,indicators};
 })();
