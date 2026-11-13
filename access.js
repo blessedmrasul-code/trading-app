@@ -72,23 +72,38 @@ const Access=(()=>{
   const text=`Здравствуйте! Хочу доступ к ARVEX (${price()} ₽). Мой Telegram: @${d.tg}. Устройство: ${d.dev}.`;
   window.open(`https://t.me/${encodeURIComponent(s.telegram)}?text=${encodeURIComponent(text)}`,"_blank","noopener");
  }
+ function isNativeApp(){
+  return typeof window.ARVEX_CAP_IS_NATIVE==="function"
+   ? window.ARVEX_CAP_IS_NATIVE()
+   : !!(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform());
+ }
+ async function openTelegramUrl(url,popup){
+  const browser=window.ARVEX_CAP_BROWSER;
+  if(isNativeApp()&&browser&&typeof browser.open==="function"){
+   if(popup){try{popup.close()}catch(_){}}
+   await browser.open({url});
+   return;
+  }
+  if(popup){popup.location.href=url;return;}
+  window.location.href=url;
+ }
  async function buyStars(){
   const b=document.getElementById("accStarsBuy"),m=document.getElementById("accStarsMsg");
-  const paymentWindow=window.open("about:blank","_blank");
+  const paymentWindow=isNativeApp()?null:window.open("about:blank","_blank");
   if(b){b.disabled=true;b.textContent="Создаю счёт…"}
   if(m)m.textContent="";
   try{
-   if(typeof Cloud==="undefined"||!Cloud.createStarsInvoice)throw new Error("Облачный сервер не подключён.");
+   if(typeof Cloud==="undefined"||!Cloud.createStarsBotLink)throw new Error("Облачный сервер оплаты не подключён.");
    const result=await Cloud.createStarsBotLink();
    if(result.lifetime){if(paymentWindow)paymentWindow.close();await refresh();return}
-   if(!result.url)throw new Error("Telegram не вернул ссылку на бота.");
-   if(paymentWindow)paymentWindow.location.href=result.url;else window.location.href=result.url;
-   if(m)m.textContent="Открылся бот ARVEX. Он пришлёт персональный счёт на 120 ⭐. После оплаты вернись сюда и нажми «Проверить доступ».";
+   if(!result.url)throw new Error("Telegram не вернул персональную ссылку на бота.");
+   await openTelegramUrl(result.url,paymentWindow);
+   if(m)m.textContent="Открылся личный чат бота ARVEX. Он пришлёт персональный счёт на 120 ⭐. После оплаты вернись сюда и нажми «Проверить доступ».";
   }catch(e){if(paymentWindow)paymentWindow.close();if(m)m.textContent=e.message}
   finally{if(b){b.disabled=false;b.textContent="Оплатить через бота · 120 ⭐"}}
  }
  async function openBotPurchase(){
-  const popup=window.open("about:blank","_blank");
+  const popup=isNativeApp()?null:window.open("about:blank","_blank");
   try{
    let url="https://t.me/ArvexPremiumBot";
    if(typeof Cloud!=="undefined"&&Cloud.isIn()&&Cloud.createStarsBotLink){
@@ -96,10 +111,10 @@ const Access=(()=>{
     if(invoice.lifetime){if(popup)popup.close();await refresh();if(typeof showToast==="function")showToast("Пожизненный Premium уже активен.");return;}
     if(invoice.url)url=invoice.url;
    }
-   if(popup)popup.location.href=url;else window.location.href=url;
+   await openTelegramUrl(url,popup);
   }catch(e){
    if(popup)popup.close();
-   if(typeof showToast==="function")showToast(e.message||"Не удалось открыть Telegram-бота.");
+   if(typeof showToast==="function")showToast(e.message||"Не удалось открыть личный чат Telegram-бота.");
   }
  }
  async function toggleStarsRenew(){
