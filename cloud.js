@@ -12,7 +12,7 @@ const Cloud=(()=>{
   if(hp.get("type")==="recovery"&&hp.get("access_token")){
    adopt({access_token:hp.get("access_token"),refresh_token:hp.get("refresh_token")||"",expires_in:Number(hp.get("expires_in"))||3600});
    recoveryMode=true;
-   history.replaceState(null,"",location.pathname+location.search);
+   history.replaceState(null,"",location.pathname);
   }
  }catch(e){}
  const enabled=()=>!!(cfg().url&&cfg().anonKey);
