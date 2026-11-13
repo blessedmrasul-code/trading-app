@@ -266,7 +266,7 @@ const Cloud=(()=>{
   if(t.closest("#arvexAdminPromoRefresh")){loadAdminPromos();return true}
   if(t.closest("#arvexAdminSupportRefresh")){loadAdminSupport();return true}
   if(t.closest("#arvexAdminUserSearch")){searchAdminUsers();return true}
-  if(t.closest("#arvexAdminBanRefresh")){loadAdminBans();return true}
+  if(t.closest("#arvexAdminBanRefresh")){loadAdminBans();loadAdminBanHistory();return true}
   const banUser=t.closest("[data-admin-ban-user]");
   if(banUser){openAdminBanDialog(banUser.dataset.adminBanUser,banUser.dataset.adminBanEmail);return true}
   const unbanUser=t.closest("[data-admin-unban-user]");
@@ -432,6 +432,22 @@ async function insertOrder(o){
    });
   }catch(e){box.textContent="Не удалось загрузить блокировки: "+e.message}
  }
+ async function loadAdminBanHistory(){
+  const box=document.getElementById("arvexAdminBanHistory");if(!box)return;
+  box.textContent="Загружаю историю…";
+  try{
+   const tok=await token(),rows=await req("/rest/v1/rpc/arvex_admin_ban_history",{method:"POST",headers:hdr(tok),body:JSON.stringify({p_limit:50})});
+   box.textContent="";
+   if(!rows||!rows.length){box.textContent="История пока пуста.";return}
+   rows.forEach(x=>{
+    const card=document.createElement("div");card.className="res-link";
+    const head=document.createElement("b");head.textContent=(x.action==="ban"?"Блокировка: ":"Снятие блокировки: ")+(x.email||x.user_id);card.appendChild(head);
+    const info=document.createElement("span");info.textContent=(x.reason?"Причина: "+x.reason+" · ":"")+"Администратор: "+(x.administrator||"Mrasulv")+" · "+new Date(x.created_at).toLocaleString(localStorage.getItem("arvex_language")==="en"?"en-US":"ru-RU");card.appendChild(info);
+    box.appendChild(card);
+   });
+   if(typeof applyLanguage==="function")applyLanguage(localStorage.getItem("arvex_language")||"ru");
+  }catch(e){box.textContent="Не удалось загрузить историю: "+e.message}
+ }
  async function searchAdminUsers(){
   const box=document.getElementById("arvexAdminUsersList"),input=document.getElementById("arvexAdminUserQuery");if(!box||!input)return;
   box.textContent="Ищу аккаунты…";
@@ -461,7 +477,7 @@ async function insertOrder(o){
  }
  async function loadAdminTools(){
   if(!session)return;
-  try{if(await adminStatus()){const box=document.getElementById("arvexAdminTools");if(box){box.classList.remove("hidden");await Promise.all([loadAdminPromos(),loadAdminSupport(),loadAdminBans()])}}}catch(e){}
+  try{if(await adminStatus()){const box=document.getElementById("arvexAdminTools");if(box){box.classList.remove("hidden");await Promise.all([loadAdminPromos(),loadAdminSupport(),loadAdminBans(),loadAdminBanHistory()])}}}catch(e){}
  }
  async function loadProfileData(force=false){
   if(!session||profileDataLoading||(!force&&Date.now()-profileDataLoadedAt<15000))return;
@@ -475,7 +491,7 @@ async function insertOrder(o){
   return '<div class="card"><div class="card-title">Промокод</div><div class="btn-row"><input class="field" id="arvexPromoCode" maxlength="32" placeholder="Введи промокод"><button class="primary" id="arvexPromoApply">Активировать</button></div><p class="muted" id="arvexPromoMsg"></p></div>'+
    '<div class="card"><div class="card-title">История платежей</div><button class="ghost" id="arvexPaymentsLoad">Показать платежи</button><div id="arvexPaymentsList"></div></div>'+
    '<div class="card"><div class="card-title">Поддержка ARVEX</div><p class="muted">Опиши вопрос — обращение сохранится в аккаунте и появится в панели администратора. Если срочно, <a href="https://t.me/mrasulv" target="_blank" rel="noopener" style="color:var(--purple2)">@mrasulv</a>.</p><form id="arvexSupportForm" novalidate><label class="lbl" for="arvexSupportSubject">Тема обращения</label><input class="field" id="arvexSupportSubject" name="subject" maxlength="120" required placeholder="Например: проблема с подпиской"><label class="lbl" for="arvexSupportMessage">Сообщение</label><textarea class="field" id="arvexSupportMessage" name="message" minlength="10" maxlength="4000" rows="5" required placeholder="Опиши проблему подробно (минимум 10 символов)" style="margin-top:4px"></textarea><button class="primary" type="submit" id="arvexSupportSend" style="margin-top:8px">Отправить обращение</button><p class="muted" id="arvexSupportMsg" aria-live="polite" role="status"></p></form><div id="arvexSupportList"></div></div>'+
-   '<div class="card hidden" id="arvexAdminTools"><div class="card-title">Управление аккаунтами</div><input class="field" id="arvexAdminUserQuery" maxlength="120" placeholder="Email или ID пользователя"><div class="btn-row"><button class="primary" type="button" id="arvexAdminUserSearch">Найти пользователя</button><button class="ghost" type="button" id="arvexAdminBanRefresh">Обновить блокировки</button></div><div id="arvexAdminUsersList"></div><div class="card-title" style="margin-top:14px">Активные блокировки</div><div id="arvexAdminBanList"></div><div style="height:1px;background:var(--border);margin:16px 0"></div><div class="card-title">Управление промокодами</div><input class="field" id="arvexAdminCode" maxlength="32" placeholder="Код, например START30"><div class="btn-row"><select class="field" id="arvexAdminDays"><option value="7">7 дней</option><option value="30" selected>30 дней</option><option value="90">90 дней</option><option value="365">365 дней</option></select><input class="field" id="arvexAdminLimit" type="number" min="1" max="10000" value="1" placeholder="Лимит"></div><button class="primary" id="arvexAdminPromoCreate">Создать промокод</button><p id="arvexAdminPromoMsg" class="muted"></p><div id="arvexAdminPromoList"></div><button class="ghost" id="arvexAdminPromoRefresh">Обновить список</button><div style="height:1px;background:var(--border);margin:16px 0"></div><div class="card-title">Обращения пользователей</div><button class="ghost" type="button" id="arvexAdminSupportRefresh">Обновить обращения</button><div id="arvexAdminSupportList"></div></div>'+
+   '<div class="card hidden" id="arvexAdminTools"><div class="card-title">Управление аккаунтами</div><input class="field" id="arvexAdminUserQuery" maxlength="120" placeholder="Email или ID пользователя"><div class="btn-row"><button class="primary" type="button" id="arvexAdminUserSearch">Найти пользователя</button><button class="ghost" type="button" id="arvexAdminBanRefresh">Обновить блокировки</button></div><div id="arvexAdminUsersList"></div><div class="card-title" style="margin-top:14px">Активные блокировки</div><div id="arvexAdminBanList"></div><div class="card-title" style="margin-top:14px">История блокировок</div><div id="arvexAdminBanHistory"></div><div style="height:1px;background:var(--border);margin:16px 0"></div><div class="card-title">Управление промокодами</div><input class="field" id="arvexAdminCode" maxlength="32" placeholder="Код, например START30"><div class="btn-row"><select class="field" id="arvexAdminDays"><option value="7">7 дней</option><option value="30" selected>30 дней</option><option value="90">90 дней</option><option value="365">365 дней</option></select><input class="field" id="arvexAdminLimit" type="number" min="1" max="10000" value="1" placeholder="Лимит"></div><button class="primary" id="arvexAdminPromoCreate">Создать промокод</button><p id="arvexAdminPromoMsg" class="muted"></p><div id="arvexAdminPromoList"></div><button class="ghost" id="arvexAdminPromoRefresh">Обновить список</button><div style="height:1px;background:var(--border);margin:16px 0"></div><div class="card-title">Обращения пользователей</div><button class="ghost" type="button" id="arvexAdminSupportRefresh">Обновить обращения</button><div id="arvexAdminSupportList"></div></div>'+
    '<div class="card"><div class="card-title">Уведомления</div><button class="ghost" id="arvexNotificationsLoad">Проверить уведомления</button><div id="arvexNotificationsList"></div></div>';
  }
  async function loadPayments(){
