@@ -49,8 +49,8 @@ assert.ok(css.includes("textarea.field{display:block;color:var(--text)"), "Texta
 assert.ok(css.includes("[hidden]{display:none!important}"), "The hidden attribute must override inline display styles");
 const app = read("app.js");
 assert.ok(app.includes("ARVEX_CAP_LOCAL_NOTIFICATIONS") && app.includes("requestPermissions"), "Settings must request Android notification permission");
-assert.ok(app.includes("Cloud.loadNotifications()") && cloud.includes("loadNotifications()"), "Notifications must refresh when the app returns to the foreground");
 const cloud = read("cloud.js");
+assert.ok(app.includes("Cloud.loadNotifications()") && cloud.includes("loadNotifications()"), "Notifications must refresh when the app returns to the foreground");
 assert.ok(cloud.includes('const GOOGLE_REDIRECT="app.arvex.trading://auth/callback"'), "Google OAuth must return to the ARVEX Android deep link");
 assert.ok(cloud.includes('id="cloudGoogle"'), "Profile must render the Google sign-in button");
 assert.ok(cloud.includes("startGoogleSignIn") && cloud.includes("acceptOAuthCallback"), "Google OAuth start and callback handlers must exist");
