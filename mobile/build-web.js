@@ -30,4 +30,4 @@ esbuild.buildSync({
   format: 'iife',
   outfile: path.join(out, 'capacitor-app-bridge.bundle.js')
 });
-console.log('www готов: app/index.html + ' + FILES.join(', ') + ' + Google OAuth bridge');
+console.log('www готов: app/index.html + ' + FILES.join(', ') + ' + auth callback bridge');
