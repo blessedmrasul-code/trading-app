@@ -437,19 +437,19 @@ async function insertOrder(o){
  }
  async function loadAdminBanHistory(){
   const box=document.getElementById("arvexAdminBanHistory");if(!box)return;
-  box.textContent="Загружаю историю…";
+  const en=localStorage.getItem("arvex_language")==="en";
+  box.textContent=en?"Loading ban history…":"Загружаю историю…";
   try{
    const tok=await token(),rows=await req("/rest/v1/rpc/arvex_admin_ban_history",{method:"POST",headers:hdr(tok),body:JSON.stringify({p_limit:50})});
    box.textContent="";
-   if(!rows||!rows.length){box.textContent="История пока пуста.";return}
+   if(!rows||!rows.length){box.textContent=en?"Ban history is empty.":"История пока пуста.";return}
    rows.forEach(x=>{
     const card=document.createElement("div");card.className="res-link";
-    const head=document.createElement("b");head.textContent=(x.action==="ban"?"Блокировка: ":"Снятие блокировки: ")+(x.email||x.user_id);card.appendChild(head);
-    const info=document.createElement("span");info.textContent=(x.reason?"Причина: "+x.reason+" · ":"")+"Администратор: "+(x.administrator||"Mrasulv")+" · "+new Date(x.created_at).toLocaleString(localStorage.getItem("arvex_language")==="en"?"en-US":"ru-RU");card.appendChild(info);
+    const head=document.createElement("b");head.textContent=(x.action==="ban"?(en?"Ban: ":"Блокировка: "):(en?"Unban: ":"Снятие блокировки: "))+(x.email||x.user_id);card.appendChild(head);
+    const info=document.createElement("span");info.textContent=(x.reason?(en?"Reason: ":"Причина: ")+x.reason+" · ":"")+(en?"Administrator: ":"Администратор: ")+(x.administrator||"Mrasulv")+" · "+new Date(x.created_at).toLocaleString(en?"en-US":"ru-RU");card.appendChild(info);
     box.appendChild(card);
    });
-   if(typeof applyLanguage==="function")applyLanguage(localStorage.getItem("arvex_language")||"ru");
-  }catch(e){box.textContent="Не удалось загрузить историю: "+e.message}
+  }catch(e){box.textContent=(en?"Could not load ban history: ":"Не удалось загрузить историю: ")+e.message}
  }
  async function searchAdminUsers(){
   const box=document.getElementById("arvexAdminUsersList"),input=document.getElementById("arvexAdminUserQuery");if(!box||!input)return;
