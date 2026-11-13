@@ -227,3 +227,24 @@ end;
 $$;
 revoke all on function public.arvex_process_stars_payment(text,text,bigint,integer,text,boolean,boolean,timestamptz,timestamptz) from public,anon,authenticated;
 grant execute on function public.arvex_process_stars_payment(text,text,bigint,integer,text,boolean,boolean,timestamptz,timestamptz) to service_role;
+
+create or replace function public.arvex_admin_ban_history(p_limit integer default 50)
+returns table(user_id uuid, email text, action text, reason text, administrator text, created_at timestamptz)
+language plpgsql stable security definer
+set search_path = pg_catalog, public, auth
+as $$
+begin
+  if auth.uid() is null or not exists(select 1 from public.arvex_admins a where a.user_id=auth.uid()) then
+    raise exception 'Доступ запрещён';
+  end if;
+  return query
+    select e.user_id, coalesce(u.email::text,'удалённый аккаунт'), e.action, e.reason,
+           'Mrasulv'::text, e.created_at
+    from public.arvex_user_ban_events e
+    left join auth.users u on u.id=e.user_id
+    order by e.created_at desc
+    limit greatest(1,least(coalesce(p_limit,50),100));
+end;
+$$;
+revoke all on function public.arvex_admin_ban_history(integer) from public, anon;
+grant execute on function public.arvex_admin_ban_history(integer) to authenticated;
