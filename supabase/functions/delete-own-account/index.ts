@@ -17,6 +17,14 @@ Deno.serve(async(req:Request)=>{
   const admin=await fetch(base+"/rest/v1/arvex_admins?user_id=eq."+encodeURIComponent(user.id)+"&select=user_id",{headers:{apikey:secret,Authorization:"Bearer "+secret}});
   if(!admin.ok)return json({error:"Не удалось проверить права аккаунта"},502);
   if((await admin.json()).length)return json({error:"Аккаунт владельца или администратора нельзя удалить через приложение. Обратись к владельцу проекта."},403);
+  const subscriptions=await fetch(base+"/rest/v1/arvex_subscriptions?user_id=eq."+encodeURIComponent(user.id)+"&select=auto_renew&limit=1",{headers:{apikey:secret,Authorization:"Bearer "+secret}});
+  if(!subscriptions.ok)return json({error:"Не удалось проверить автопродление Premium. Попробуй позже."},503);
+  const subscriptionRows=await subscriptions.json();
+  if(subscriptionRows[0]?.auto_renew===true){
+    const canceled=await fetch(base+"/functions/v1/cancel-stars-subscription",{method:"POST",headers:{apikey:publishable,Authorization:"Bearer "+jwt,"Content-Type":"application/json"},body:JSON.stringify({enabled:false})});
+    const cancelResult=await canceled.json().catch(()=>null);
+    if(!canceled.ok)return json({error:(cancelResult&&cancelResult.error)||"Не удалось отключить автопродление. Аккаунт пока не удалён."},409);
+  }
   const deleted=await fetch(base+"/auth/v1/admin/users/"+encodeURIComponent(user.id),{method:"DELETE",headers:{apikey:secret,Authorization:"Bearer "+secret}});
   if(!deleted.ok){console.error("account-delete auth response",deleted.status);return json({error:"Supabase не смог удалить аккаунт. Попробуй позже."},502)}
   return json({ok:true});
