@@ -48,6 +48,8 @@ const css = read("style.css");
 assert.ok(css.includes("textarea.field{display:block;color:var(--text)"), "Textarea must explicitly use readable foreground color");
 assert.ok(css.includes("[hidden]{display:none!important}"), "The hidden attribute must override inline display styles");
 const cloud = read("cloud.js");
+assert.ok(!cloud.includes("blessedmrasul-code.github.io/trading-app"), "Email confirmation must not use the retired GitHub Pages redirect");
+assert.ok(cloud.includes('req("/auth/v1/signup",{'), "Signup must rely on the Supabase project Site URL instead of a hard-coded redirect");
 assert.ok(cloud.includes('document.addEventListener("submit"'), "Support form must use delegated submit handling");
 assert.ok(cloud.includes('Prefer":"return=representation'), "Support creation must verify a returned row");
 assert.ok(cloud.includes("arvex_admin_list_support_tickets"), "Admin support inbox must call the protected RPC");
