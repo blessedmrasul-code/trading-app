@@ -134,6 +134,7 @@ const Cloud=(()=>{
  }
  if(typeof window!=="undefined")installOAuthDeepLink();
  if(typeof window!=="undefined"&&typeof setInterval==="function")setInterval(()=>{if(session)checkAccountStatus()},30000);
+ if(typeof window!=="undefined"&&typeof setInterval==="function")setInterval(()=>{if(session)loadNotifications()},60000);
  async function signIn(email,pw){
   const j=await req("/auth/v1/token?grant_type=password",{method:"POST",headers:hdr(),body:JSON.stringify({email,password:pw})});
   adopt(j);return {ok:true};
@@ -600,16 +601,17 @@ async function insertOrder(o){
   localStorage.setItem("arvex_delivered_notifications",JSON.stringify([...seen].slice(-300)));
  }
  async function loadNotifications(){
-  const box=document.getElementById("arvexNotificationsList");if(!box)return;
-  box.textContent="Загрузка…";
+  const box=document.getElementById("arvexNotificationsList");
+  if(box)box.textContent="Загрузка…";
+  if(!session||!enabled())return;
   try{
    const tok=await token(),rows=await req("/rest/v1/arvex_notifications?select=id,title,body,kind,created_at,read_at&user_id=eq."+encodeURIComponent(session.uid)+"&order=created_at.desc&limit=30",{headers:hdr(tok)});
    await deliverSystemNotifications(rows);
    const en=localStorage.getItem("arvex_language")==="en";
-   box.innerHTML=rows.length?rows.map(x=>'<div class="res-link"><b>'+esc(x.title)+'</b><span>'+esc(x.body)+' · '+new Date(x.created_at).toLocaleString(en?"en-US":"ru-RU")+(x.read_at?(en?' · Read':' · Прочитано'):'')+'</span></div>').join(""):'<p class="muted">'+(en?'No new notifications.':'Новых уведомлений нет.')+'</p>';
+   if(box)box.innerHTML=rows.length?rows.map(x=>'<div class="res-link"><b>'+esc(x.title)+'</b><span>'+esc(x.body)+' · '+new Date(x.created_at).toLocaleString(en?"en-US":"ru-RU")+(x.read_at?(en?' · Read':' · Прочитано'):'')+'</span></div>').join(""):'<p class="muted">'+(en?'No new notifications.':'Новых уведомлений нет.')+'</p>';
    const unread=rows.filter(x=>!x.read_at).map(x=>x.id);
    if(unread.length)await req("/rest/v1/arvex_notifications?id=in.("+unread.join(",")+")&user_id=eq."+encodeURIComponent(session.uid),{method:"PATCH",headers:{...hdr(tok),"Prefer":"return=minimal"},body:JSON.stringify({read_at:new Date().toISOString()})});
-  }catch(e){box.textContent="Не удалось загрузить уведомления: "+e.message}
+  }catch(e){if(box)box.textContent="Не удалось загрузить уведомления: "+e.message}
  }
 
  document.addEventListener("submit",e=>{const form=e.target;if(!form||form.id!=="arvexSupportForm")return;e.preventDefault();submitSupportForm(form)});
