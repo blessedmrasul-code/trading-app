@@ -66,9 +66,8 @@ const Cloud=(()=>{
   return session.access;
  }
  async function signUp(email,pw){
-  // После подтверждения email возвращаем пользователя в приложение, а не на страницу покупки.
-  const redirect=authRedirectUrl();
-  const j=await req("/auth/v1/signup?redirect_to="+encodeURIComponent(redirect),{method:"POST",headers:hdr(),body:JSON.stringify({email,password:pw})});
+  // Подтверждение регистрации выполняется шестизначным кодом внутри ARVEX.
+  const j=await req("/auth/v1/signup",{method:"POST",headers:hdr(),body:JSON.stringify({email,password:pw})});
   if(adopt(j))return {ok:true};
   if(j&&j.user&&Array.isArray(j.user.identities)&&j.user.identities.length===0)return {ok:false,exists:true};
   return {ok:false,confirm:true}; // подтверждение остаётся обязательным
@@ -76,8 +75,8 @@ const Cloud=(()=>{
  async function resendConfirmation(email){
   const e=String(email||"").trim();
   if(!/^\S+@\S+\.\S+$/.test(e))throw new Error("Укажи корректный email.");
-  const redirect=authRedirectUrl();
-  await req("/auth/v1/resend?redirect_to="+encodeURIComponent(redirect),{method:"POST",headers:hdr(),body:JSON.stringify({type:"signup",email:e})});
+  // Повторная отправка кода не должна открывать сайт или браузер.
+  await req("/auth/v1/resend",{method:"POST",headers:hdr(),body:JSON.stringify({type:"signup",email:e})});
   return true;
  }
  async function verifyEmailCode(email,code){
@@ -102,8 +101,8 @@ const Cloud=(()=>{
  }
  async function resetPassword(email){
   const e=String(email||"").trim();if(!/^\S+@\S+\.\S+$/.test(e))throw new Error("Укажи корректный email.");
-  const redirect=authRedirectUrl();
-  await req("/auth/v1/recover?redirect_to="+encodeURIComponent(redirect),{method:"POST",headers:hdr(),body:JSON.stringify({email:e})});
+  // Recovery OTP вводится в ARVEX; redirect URL намеренно не передаётся.
+  await req("/auth/v1/recover",{method:"POST",headers:hdr(),body:JSON.stringify({email:e})});
   return true;
  }
  async function verifyRecoveryCode(email,code){
@@ -376,7 +375,7 @@ const Cloud=(()=>{
   }catch(err){
    const code=String(err.code||"").toLowerCase(),msg=String(err.message||"");
    if(/ban/i.test(msg))m.textContent=say("Аккаунт заблокирован администратором Mrasulv. Для обжалования напиши @mrasulv.","Your account is restricted by administrator Mrasulv. Contact @mrasulv to appeal.");
-   else if(code==="email_not_confirmed"||/email not confirmed/i.test(msg))m.textContent=say("Сначала подтверди email по ссылке из письма, затем войди.","Verify your email using the link we sent, then sign in.");
+   else if(code==="email_not_confirmed"||/email not confirmed/i.test(msg))m.textContent=say("Сначала подтверди email шестизначным кодом из письма, затем войди.","Verify your email with the 6-digit code we sent, then sign in.");
    else if(code==="invalid_credentials"||/invalid login credentials/i.test(msg))m.textContent=say("Неверный email или пароль. Проверь данные и попробуй снова.","Incorrect email or password. Check your details and try again.");
    else if(/provider.*not enabled|unsupported provider/i.test(msg))m.textContent=say("Этот способ входа недоступен. Используй email и пароль.","This sign-in method is unavailable. Use your email and password.");
    else m.textContent=msg;
@@ -401,7 +400,7 @@ const Cloud=(()=>{
   if(t.closest("#cloudForgot")){const email=(document.getElementById("cEmail")?.value||"").trim();if(!email){const m=document.getElementById("cloudMsg");if(m)m.textContent="Сначала введи Gmail.";return true}openSheet('<h3>Восстановление пароля</h3><p class="muted">Введи email аккаунта ARVEX. Мы отправим шестизначный код. Покупка Premium здесь не используется.</p><input class="field" id="arvexRecoveryEmail" type="email" autocomplete="email" placeholder="Твой Gmail" value="'+esc(email)+'"><button class="primary" id="arvexRecoverySend" style="width:100%;margin-top:10px">Отправить код</button><div id="arvexRecoveryStep" hidden style="margin-top:12px"><p class="muted">Введи код из письма ARVEX.</p><input class="field" id="arvexRecoveryPin" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="123456"><button class="primary" id="arvexRecoveryVerify" style="width:100%;margin-top:10px">Подтвердить и продолжить</button></div><p class="muted" id="arvexRecoveryMessage" style="margin-top:10px"></p><button class="ghost" id="sheetCancel" style="width:100%;margin-top:8px">Закрыть</button>');return true}
   if(t.closest("#arvexRecoverySend")){const email=(document.getElementById("arvexRecoveryEmail")?.value||"").trim(),m=document.getElementById("arvexRecoveryMessage"),button=t.closest("#arvexRecoverySend"),step=document.getElementById("arvexRecoveryStep");button.disabled=true;if(m)m.textContent="Отправляем код…";resetPassword(email).then(()=>{if(step)step.hidden=false;if(m)m.textContent="Если аккаунт существует, код отправлен. Проверь входящие и «Спам»."}).catch(e=>{if(m)m.textContent=e.message}).finally(()=>{button.disabled=false});return true}
   if(t.closest("#arvexRecoveryVerify")){const email=(document.getElementById("arvexRecoveryEmail")?.value||"").trim(),code=(document.getElementById("arvexRecoveryPin")?.value||"").trim(),m=document.getElementById("arvexRecoveryMessage"),button=t.closest("#arvexRecoveryVerify");button.disabled=true;if(m)m.textContent="Проверяю код…";verifyRecoveryCode(email,code).then(()=>{if(m)m.textContent="Код подтверждён. Задай новый пароль."}).catch(e=>{if(m)m.textContent=e.message}).finally(()=>{button.disabled=false});return true}
-  if(t.closest("#cloudResend")){const email=(document.getElementById("cEmail")?.value||"").trim(),m=document.getElementById("cloudMsg"),button=t.closest("#cloudResend");if(!email){if(m)m.textContent="Сначала введи email.";return true}button.disabled=true;if(m)m.textContent="Отправляем новое письмо…";resendConfirmation(email).then(()=>{if(m)m.textContent="Запрос принят. Проверь входящие и папку «Спам». Если включён кодовый шаблон ARVEX, введи последние 6 цифр из письма."}).catch(e=>{if(m)m.textContent=e.message}).finally(()=>{button.disabled=false});return true}
+  if(t.closest("#cloudResend")){const email=(document.getElementById("cEmail")?.value||"").trim(),m=document.getElementById("cloudMsg"),button=t.closest("#cloudResend");if(!email){if(m)m.textContent="Сначала введи email.";return true}button.disabled=true;if(m)m.textContent="Отправляем новое письмо…";resendConfirmation(email).then(()=>{if(m)m.textContent="Код отправлен. Проверь входящие и папку «Спам», затем введи все 6 цифр из письма."}).catch(e=>{if(m)m.textContent=e.message}).finally(()=>{button.disabled=false});return true}
   if(t.closest("#cloudVerifyCode")){const email=(document.getElementById("cEmail")?.value||"").trim(),code=document.getElementById("cloudEmailCode")?.value||"",m=document.getElementById("cloudMsg"),button=t.closest("#cloudVerifyCode");button.disabled=true;if(m)m.textContent="Проверяю код…";verifyEmailCode(email,code).then(()=>{if(m)m.textContent="Email подтверждён. Вход выполнен."}).catch(e=>{if(m)m.textContent=e.message}).finally(()=>{button.disabled=false});return true}
   if(t.closest("#cloudVerifyRecovery")){const email=(document.getElementById("cEmail")?.value||"").trim(),code=document.getElementById("cloudRecoveryCode")?.value||"",m=document.getElementById("cloudMsg"),button=t.closest("#cloudVerifyRecovery");button.disabled=true;if(m)m.textContent="Проверяю код восстановления…";verifyRecoveryCode(email,code).then(()=>{if(m)m.textContent="Код подтверждён. Задай новый пароль."}).catch(e=>{if(m)m.textContent=e.message}).finally(()=>{button.disabled=false});return true}
   if(t.closest("#arvexPasswordSave")){const p=document.getElementById("arvexNewPassword")?.value||"",p2=document.getElementById("arvexNewPassword2")?.value||"",m=document.getElementById("arvexPasswordMsg");if(p.length<8){m.textContent="Минимум 8 символов.";return true}if(p!==p2){m.textContent="Пароли не совпадают.";return true}m.textContent="Сохраняю…";updatePassword(p).then(()=>{m.textContent="Пароль изменён.";setTimeout(()=>{if(typeof closeSheet==="function")closeSheet()},900)}).catch(e=>m.textContent=e.message);return true}
