@@ -73,9 +73,8 @@ const Cloud=(()=>{
  function changePasswordPrompt(){
   if(typeof openSheet==="function")openSheet('<h3>Изменить пароль</h3><p class="muted">Введи новый пароль (минимум 8 символов).</p><input class="field" id="arvexNewPassword" type="password" autocomplete="new-password" placeholder="Новый пароль"><input class="field" id="arvexNewPassword2" type="password" autocomplete="new-password" placeholder="Повтори новый пароль" style="margin-top:8px"><p class="muted" id="arvexPasswordMsg"></p><div class="dir-btns"><button class="ghost" id="sheetCancel">Отмена</button><button class="primary" id="arvexPasswordSave">Сохранить</button></div>');
  }
- // Google OAuth: Supabase возвращает токены на custom Android deep link.
- const PKCE_KEY="arvex_google_pkce_verifier";
- function cleanOAuthCallbackUrl(){
+ // Email confirmation and password recovery return through the app auth callback.
+ function cleanAuthCallbackUrl(){
   try{
    const clean=new URL(location.href);
    ["code","error","error_description","error_code","state"].forEach(key=>clean.searchParams.delete(key));
@@ -83,33 +82,32 @@ const Cloud=(()=>{
    history.replaceState(null,"",clean.pathname+clean.search);
   }catch(e){}
  }
- function base64url(bytes){let bin="";for(const b of bytes)bin+=String.fromCharCode(b);return btoa(bin).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"")}
- async function makePkce(){
-  const bytes=new Uint8Array(64);crypto.getRandomValues(bytes);
-  const verifier=base64url(bytes),digest=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(verifier));
-  localStorage.setItem(PKCE_KEY,verifier);
-  return {verifier,challenge:base64url(new Uint8Array(digest))};
- }
- async function acceptOAuthCallback(rawUrl){
+ async function acceptRecoveryCallback(rawUrl){
   try{
-   const u=new URL(rawUrl,location.href),hash=new URLSearchParams((u.hash||"").replace(/^#/,""));
-   const error=u.searchParams.get("error_description")||u.searchParams.get("error")||hash.get("error_description")||hash.get("error");
-   if(error){localStorage.removeItem(PKCE_KEY);cleanOAuthCallbackUrl();const en=localStorage.getItem("arvex_language")==="en";status=(en?"Google sign-in error: ":"Ошибка входа Google: ")+error;if(typeof renderProfile==="function")renderProfile();const msg=document.getElementById("cloudMsg");if(msg)msg.textContent=status;return false;}
-   let tokens=null;
-   const code=u.searchParams.get("code"),recoveryType=u.searchParams.get("type")==="recovery"||hash.get("type")==="recovery";
-   if(code){
-    const verifier=localStorage.getItem(PKCE_KEY);
-    if(!verifier)throw new Error("Не найден ключ проверки Google-входа. Повтори авторизацию.");
-    tokens=await req("/auth/v1/token?grant_type=pkce",{method:"POST",headers:hdr(),body:JSON.stringify({auth_code:code,code_verifier:verifier})});
-    localStorage.removeItem(PKCE_KEY);
-   }else if(recoveryType&&hash.get("access_token")&&hash.get("refresh_token")){
-    tokens={access_token:hash.get("access_token"),refresh_token:hash.get("refresh_token"),expires_in:Number(hash.get("expires_in"))||3600};
-   }else return false;
-   if(!tokens.user){tokens.user=await req("/auth/v1/user",{headers:hdr(tokens.access_token)});}
-   const ok=adopt(tokens);
-   if(ok){cleanOAuthCallbackUrl();status=recoveryType?(localStorage.getItem("arvex_language")==="en"?"Password reset link confirmed.":"Ссылка для сброса пароля подтверждена."):(localStorage.getItem("arvex_language")==="en"?"Google sign-in complete":"Вход через Google выполнен");if(await checkAccountStatus())return true;if(recoveryType){recoveryMode=true;setTimeout(()=>changePasswordPrompt(),700);return true}if(localStorage.getItem(LOCAL_RESET_KEY)==="1"){localStorage.removeItem(LOCAL_RESET_KEY);location.reload();return true}await sync();if(typeof renderProfile==="function")renderProfile();return true;}
-  }catch(e){localStorage.removeItem(PKCE_KEY);cleanOAuthCallbackUrl();const en=localStorage.getItem("arvex_language")==="en";status=(en?"Google sign-in could not be completed: ":"Не удалось завершить вход Google: ")+e.message;if(typeof renderProfile==="function")renderProfile();const msg=document.getElementById("cloudMsg");if(msg)msg.textContent=status;}
-  return false;
+   const u=new URL(rawUrl||location.href,location.href),hash=new URLSearchParams((u.hash||"").replace(/^#/,""));
+   const query=u.searchParams;
+   const error=query.get("error_description")||query.get("error")||hash.get("error_description")||hash.get("error");
+   if(error)throw new Error(error);
+   const recoveryType=query.get("type")==="recovery"||hash.get("type")==="recovery";
+   const access=hash.get("access_token")||query.get("access_token"),refresh=hash.get("refresh_token")||query.get("refresh_token");
+   if(!recoveryType||!access||!refresh)return false;
+   const tokens={access_token:access,refresh_token:refresh,expires_in:Number(hash.get("expires_in")||query.get("expires_in"))||3600};
+   tokens.user=await req("/auth/v1/user",{headers:hdr(tokens.access_token)});
+   if(!adopt(tokens))throw new Error("Не удалось подтвердить ссылку для сброса пароля.");
+   cleanAuthCallbackUrl();
+   if(await checkAccountStatus())return true;
+   recoveryMode=true;
+   status=localStorage.getItem("arvex_language")==="en"?"Password reset link confirmed.":"Ссылка для сброса пароля подтверждена.";
+   setTimeout(()=>changePasswordPrompt(),700);
+   return true;
+  }catch(e){
+   cleanAuthCallbackUrl();
+   const en=localStorage.getItem("arvex_language")==="en";
+   status=(en?"Password reset link failed: ":"Не удалось подтвердить ссылку для сброса пароля: ")+e.message;
+   if(typeof renderProfile==="function")renderProfile();
+   const msg=document.getElementById("cloudMsg");if(msg)msg.textContent=status;
+   return false;
+  }
  }
  async function acceptEmailConfirmation(rawUrl){
   try{
@@ -121,7 +119,7 @@ const Cloud=(()=>{
    const user=await req("/auth/v1/user",{headers:hdr(access)});
    const ok=adopt({access_token:access,refresh_token:refresh,expires_in:Number(params.get("expires_in"))||3600,user});
    if(!ok)throw new Error("Не удалось подтвердить email.");
-   cleanOAuthCallbackUrl();
+   cleanAuthCallbackUrl();
    if(await checkAccountStatus())return true;
    if(localStorage.getItem(LOCAL_RESET_KEY)==="1"){localStorage.removeItem(LOCAL_RESET_KEY);location.reload();return true;}
    await sync();
@@ -132,7 +130,7 @@ const Cloud=(()=>{
    const msg=document.getElementById("cloudMsg");if(msg)msg.textContent=status;
    return true;
   }catch(e){
-   cleanOAuthCallbackUrl();
+   cleanAuthCallbackUrl();
    const en=localStorage.getItem("arvex_language")==="en";
    status=(en?"Email confirmation failed: ":"Не удалось подтвердить email: ")+e.message;
    if(typeof renderProfile==="function")renderProfile();
@@ -143,32 +141,32 @@ const Cloud=(()=>{
  function handleAuthDeepLink(rawUrl){
   try{
    const u=new URL(rawUrl,location.href),params=new URLSearchParams((u.hash||"").replace(/^#/,""));
-   if(params.get("type")==="signup"||params.get("type")==="email")return acceptEmailConfirmation(rawUrl);
+   const type=params.get("type")||u.searchParams.get("type");
+   if(type==="signup"||type==="email")return acceptEmailConfirmation(rawUrl);
+   if(type==="recovery"){
+    const browser=window.ARVEX_CAP_BROWSER;if(browser&&browser.close)browser.close().catch(()=>{});
+    return acceptRecoveryCallback(rawUrl);
+   }
   }catch(e){}
-  const browser=window.ARVEX_CAP_BROWSER;if(browser&&browser.close)browser.close().catch(()=>{});
-  return acceptOAuthCallback(rawUrl);
+  return false;
  }
-
  if(typeof window!=="undefined"&&typeof location!=="undefined"){
   const callbackHash=typeof URLSearchParams==="function"?new URLSearchParams(String(location.hash||"").replace(/^#/,"")):null;
-  const callbackType=callbackHash&&callbackHash.get("type");
-  if(callbackType==="signup"||callbackType==="email"){
-   setTimeout(()=>acceptEmailConfirmation(location.href),0);
-  }else if(/[?&]code=/.test(location.search||"")){
-   setTimeout(()=>acceptOAuthCallback(location.href),0);
-  }
+  const callbackType=callbackHash&&callbackHash.get("type")||new URLSearchParams(location.search||"").get("type");
+  if(callbackType==="signup"||callbackType==="email")setTimeout(()=>acceptEmailConfirmation(location.href),0);
+  else if(callbackType==="recovery")setTimeout(()=>acceptRecoveryCallback(location.href),0);
  }
- function installOAuthDeepLink(){
+ function installAuthDeepLink(){
   const app=window.ARVEX_CAP_APP;
   const native=typeof window.ARVEX_CAP_IS_NATIVE==="function"?window.ARVEX_CAP_IS_NATIVE():!!(window.Capacitor&&window.Capacitor.isNativePlatform());
   if(!app||!native)return;
   try{
    app.addListener("appUrlOpen",e=>{if(e&&e.url)handleAuthDeepLink(e.url);});
-   app.addListener("appStateChange",state=>{if(state&&state.isActive){checkAccountStatus();loadNotifications();}});
+   app.addListener("appStateChange",state=>{if(state&&state.isActive){checkAccountStatus();loadNotifications();if(typeof Access!=="undefined")Access.refresh();}});
    app.getLaunchUrl().then(r=>{if(r&&r.url)handleAuthDeepLink(r.url);}).catch(()=>{});
-  }catch(e){console.warn("ARVEX Google OAuth deep-link listener:",e);}
+  }catch(e){console.warn("ARVEX auth callback listener:",e);}
  }
- if(typeof window!=="undefined")installOAuthDeepLink();
+ if(typeof window!=="undefined")installAuthDeepLink();
  if(typeof window!=="undefined"&&typeof setInterval==="function")setInterval(()=>{if(session)checkAccountStatus()},30000);
  if(typeof window!=="undefined"&&typeof setInterval==="function")setInterval(()=>{if(session)loadNotifications()},60000);
  async function signIn(email,pw){
@@ -270,7 +268,7 @@ const Cloud=(()=>{
   const r=await fetch(cfg().url.replace(/\/$/,"")+"/functions/v1/delete-own-account",{method:"POST",headers:hdr(tok),body:JSON.stringify({confirm:"DELETE"})});
   const j=await r.json().catch(()=>null);
   if(!r.ok)throw new Error((j&&j.error)||"Не удалось удалить аккаунт.");
-  keep(null);localStorage.removeItem(STATE_KEY);localStorage.removeItem(LOCAL_OWNER_KEY);localStorage.removeItem(LOCAL_RESET_KEY);localStorage.removeItem("arvex_google_pkce_verifier");
+  keep(null);localStorage.removeItem(STATE_KEY);localStorage.removeItem(LOCAL_OWNER_KEY);localStorage.removeItem(LOCAL_RESET_KEY);
   return true;
  }
  async function pull(){
@@ -683,7 +681,7 @@ async function insertOrder(o){
 
  document.addEventListener("submit",e=>{const form=e.target;if(!form||form.id!=="arvexSupportForm")return;e.preventDefault();submitSupportForm(form)});
 
- return {insertOrder,myEntitlement,createStarsInvoice,createStarsBotLink,setStarsAutoRenew,createSupport,enabled,accountHTML,userToolsHTML,loadProfileData,loadNotifications,deliverSystemNotifications,click,schedule,sync,isIn:()=>!!session,changePasswordPrompt,acceptOAuthCallback,acceptEmailConfirmation,handleAuthDeepLink,checkAccountStatus,deleteOwnAccount,exitBlockedApp};
+ return {insertOrder,myEntitlement,createStarsInvoice,createStarsBotLink,setStarsAutoRenew,createSupport,enabled,accountHTML,userToolsHTML,loadProfileData,loadNotifications,deliverSystemNotifications,click,schedule,sync,isIn:()=>!!session,changePasswordPrompt,acceptRecoveryCallback,acceptEmailConfirmation,handleAuthDeepLink,checkAccountStatus,deleteOwnAccount,exitBlockedApp};
 })();
 
 // Netlify production redeploy trigger: email confirmation redirects to the public site.
