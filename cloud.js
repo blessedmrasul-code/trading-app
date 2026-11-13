@@ -38,6 +38,50 @@ const Cloud=(()=>{
   const j=await req("/auth/v1/token?grant_type=password",{method:"POST",headers:hdr(),body:JSON.stringify({email,password:pw})});
   adopt(j);return {ok:true};
  }
+
+ async function requestPasswordReset(email){
+  const clean=String(email||"").trim();
+  if(!/^\\S+@\\S+\\.\\S+$/.test(clean))throw new Error("Проверь адрес электронной почты.");
+  const redirectTo=location.origin+location.pathname+"?auth=recovery";
+  await req("/auth/v1/recover",{method:"POST",headers:hdr(),body:JSON.stringify({email:clean,redirect_to:redirectTo})});
+  return true;
+ }
+ async function updatePassword(password){
+  if(!password||password.length<8)throw new Error("Пароль должен содержать минимум 8 символов.");
+  const tok=await token();
+  const j=await req("/auth/v1/user",{method:"PUT",headers:hdr(tok),body:JSON.stringify({password})});
+  return j;
+ }
+ function recoverySessionFromUrl(){
+  const params=new URLSearchParams(location.hash.replace(/^#/,""));
+  if(params.get("type")!=="recovery"||!params.get("access_token"))return false;
+  const access=params.get("access_token"),refresh=params.get("refresh_token")||"";
+  keep({access,refresh,exp:Date.now()+Math.max(60,Number(params.get("expires_in"))||3600)*1000-60000,email:"",uid:""});
+  history.replaceState(null,"",location.pathname+location.search);
+  return true;
+ }
+ function recoveryHTML(){
+  return '<div class="card" id="arvexRecoveryCard"><div class="card-title">Новый пароль</div><p class="muted">Ссылка подтверждена. Придумай новый пароль для ARVEX.</p><input class="field" id="arvexNewPassword" type="password" minlength="8" autocomplete="new-password" placeholder="Новый пароль (от 8 символов)"><input class="field" id="arvexNewPassword2" type="password" minlength="8" autocomplete="new-password" placeholder="Повтори новый пароль" style="margin-top:8px"><button class="primary" id="arvexSavePassword" style="margin-top:10px">Сохранить пароль</button><p class="muted" id="arvexRecoveryMsg" aria-live="polite"></p></div>';
+ }
+ async function changeSignedInPassword(){
+  const p=document.getElementById("arvexChangePasswordInput"),m=document.getElementById("arvexChangePasswordMsg"),b=document.getElementById("arvexChangePassword");
+  if(!p||!m)return;
+  if((p.value||"").length<8){m.textContent="Пароль должен содержать минимум 8 символов.";return}
+  if(b)b.disabled=true;m.textContent="Сохраняем…";
+  try{await updatePassword(p.value);p.value="";m.textContent="Пароль успешно изменён.";showToast("Пароль изменён")}
+  catch(e){m.textContent="Не удалось изменить пароль: "+e.message}
+  finally{if(b)b.disabled=false}
+ }
+ async function saveRecoveryPassword(){
+  const p=document.getElementById("arvexNewPassword"),p2=document.getElementById("arvexNewPassword2"),m=document.getElementById("arvexRecoveryMsg"),b=document.getElementById("arvexSavePassword");
+  if(!p||!p2||!m)return;
+  if((p.value||"").length<8){m.textContent="Пароль должен содержать минимум 8 символов.";return}
+  if(p.value!==p2.value){m.textContent="Пароли не совпадают.";return}
+  b.disabled=true;m.textContent="Сохраняем…";
+  try{await updatePassword(p.value);m.textContent="Пароль изменён. Теперь можно войти в ARVEX.";p.value="";p2.value="";showToast("Пароль успешно изменён")}
+  catch(e){m.textContent="Не удалось изменить пароль: "+e.message}
+  finally{b.disabled=false}
+ }
  function signOut(){keep(null);status="";if(typeof Access!=="undefined")Access.refresh()}
  async function pull(){
   const tok=await token();
@@ -68,7 +112,7 @@ const Cloud=(()=>{
  function accountHTML(){
   if(!enabled())return `<p class="muted" style="margin:0">Сейчас профиль хранится на этом устройстве.</p><div class="soon">🔒 Облачные аккаунты подключаются владельцем проекта (см. README → «Облако»).</div>`;
   if(session)return `<p style="margin:0 0 8px">Вход выполнен: <b>${esc(session.email)}</b></p><p class="muted" style="margin:0 0 10px">${esc(status||"Прогресс синхронизируется автоматически.")}</p><div class="btn-row"><button class="ghost" id="cloudSync">↻ Синхронизировать</button><button class="danger" id="cloudOut">Выйти</button></div>`;
-  return `<p class="muted" style="margin:0 0 10px">Войди, чтобы сохранить прогресс в облаке и открыть его на другом устройстве.</p><input class="field" id="cEmail" type="email" placeholder="Email" autocomplete="email"><input class="field" id="cPass" type="password" placeholder="Пароль (от 8 символов)" autocomplete="current-password" style="margin-top:8px"><div class="btn-row" style="margin-top:10px"><button class="primary" id="cloudIn">Войти</button><button class="ghost" id="cloudUp">Регистрация</button></div><p class="muted" id="cloudMsg" style="margin:8px 0 0"></p>`;
+  return `<p class="muted" style="margin:0 0 10px">Войди, чтобы сохранить прогресс в облаке и открыть его на другом устройстве.</p><input class="field" id="cEmail" type="email" placeholder="Email" autocomplete="email"><input class="field" id="cPass" type="password" placeholder="Пароль (от 8 символов)" autocomplete="current-password" style="margin-top:8px"><div class="btn-row" style="margin-top:10px"><button class="primary" id="cloudIn">Войти</button><button class="ghost" id="cloudUp">Регистрация</button></div><button class="ghost" type="button" id="cloudForgot" style="margin-top:8px">Забыли пароль?</button><p class="muted" id="cloudMsg" style="margin:8px 0 0"></p>`;
  }
  async function form(kind){
   const e=($("cEmail").value||"").trim(),p=$("cPass").value||"",m=$("cloudMsg");
@@ -84,6 +128,9 @@ const Cloud=(()=>{
  function click(t){
   if(t.closest("#cloudIn")){form("in");return true}
   if(t.closest("#cloudUp")){form("up");return true}
+  if(t.closest("#cloudForgot")){requestPasswordReset(document.getElementById("cEmail")?.value).then(()=>{const m=document.getElementById("cloudMsg");if(m)m.textContent="Если аккаунт существует, письмо со ссылкой отправлено."}).catch(e=>{const m=document.getElementById("cloudMsg");if(m)m.textContent=e.message});return true}
+  if(t.closest("#arvexSavePassword")){saveRecoveryPassword();return true}
+  if(t.closest("#arvexChangePassword")){changeSignedInPassword();return true}
   if(t.closest("#cloudSync")){sync();return true}
   if(t.closest("#cloudOut")){signOut();renderProfile();return true}
   if(t.closest("#arvexPromoApply")){const m=document.getElementById("arvexPromoMsg");m.textContent="Проверяю…";redeemPromo(document.getElementById("arvexPromoCode").value).then(()=>{m.textContent="Промокод активирован!";if(typeof renderProfile==="function")renderProfile()}).catch(e=>m.textContent=e.message);return true}
@@ -238,8 +285,9 @@ async function insertOrder(o){
  }
  function userToolsHTML(){
   if(!enabled())return "";
-  if(!session)return '<div class="card"><div class="card-title">Сервисы аккаунта</div><p class="muted">Войди в аккаунт, чтобы использовать промокоды, смотреть платежи и обращаться в поддержку.</p></div>';
-  return '<div class="card"><div class="card-title">Промокод</div><div class="btn-row"><input class="field" id="arvexPromoCode" maxlength="32" placeholder="Введи промокод"><button class="primary" id="arvexPromoApply">Активировать</button></div><p class="muted" id="arvexPromoMsg"></p></div>'+
+  const settings='<div class="card"><div class="card-title">Настройки</div><label class="lbl" for="arvexLanguage">Язык интерфейса</label><select class="field" id="arvexLanguage"><option value="ru">🇷🇺 Русский</option><option value="en">🇬🇧 English</option></select><p class="muted">Язык сохраняется на этом устройстве.</p></div>';
+  if(!session)return settings+'<div class="card"><div class="card-title">Сервисы аккаунта</div><p class="muted">Войди в аккаунт, чтобы использовать промокоды, смотреть платежи и обращаться в поддержку.</p></div>';
+  return settings+'<div class="card"><div class="card-title">Смена пароля</div><input class="field" id="arvexChangePasswordInput" type="password" minlength="8" autocomplete="new-password" placeholder="Новый пароль (от 8 символов)"><button class="ghost" id="arvexChangePassword" type="button" style="margin-top:8px">Изменить пароль</button><p class="muted" id="arvexChangePasswordMsg"></p></div><div class="card"><div class="card-title">Промокод</div><div class="btn-row"><input class="field" id="arvexPromoCode" maxlength="32" placeholder="Введи промокод"><button class="primary" id="arvexPromoApply">Активировать</button></div><p class="muted" id="arvexPromoMsg"></p></div>'+
    '<div class="card"><div class="card-title">История платежей</div><button class="ghost" id="arvexPaymentsLoad">Показать платежи</button><div id="arvexPaymentsList"></div></div>'+
    '<div class="card"><div class="card-title">Поддержка ARVEX</div><p class="muted">Опиши вопрос — обращение сохранится в аккаунте и появится в панели администратора. Если срочно, <a href="https://t.me/mrasulv" target="_blank" rel="noopener" style="color:var(--purple2)">@mrasulv</a>.</p><form id="arvexSupportForm" novalidate><label class="lbl" for="arvexSupportSubject">Тема обращения</label><input class="field" id="arvexSupportSubject" name="subject" maxlength="120" required placeholder="Например: проблема с подпиской"><label class="lbl" for="arvexSupportMessage">Сообщение</label><textarea class="field" id="arvexSupportMessage" name="message" minlength="10" maxlength="4000" rows="5" required placeholder="Опиши проблему подробно (минимум 10 символов)" style="margin-top:4px"></textarea><button class="primary" type="submit" id="arvexSupportSend" style="margin-top:8px">Отправить обращение</button><p class="muted" id="arvexSupportMsg" aria-live="polite" role="status"></p></form><div id="arvexSupportList"></div></div>'+
    '<div class="card hidden" id="arvexAdminTools"><div class="card-title">Управление промокодами</div><input class="field" id="arvexAdminCode" maxlength="32" placeholder="Код, например START30"><div class="btn-row"><select class="field" id="arvexAdminDays"><option value="7">7 дней</option><option value="30" selected>30 дней</option><option value="90">90 дней</option><option value="365">365 дней</option></select><input class="field" id="arvexAdminLimit" type="number" min="1" max="10000" value="1" placeholder="Лимит"></div><button class="primary" id="arvexAdminPromoCreate">Создать промокод</button><p id="arvexAdminPromoMsg" class="muted"></p><div id="arvexAdminPromoList"></div><button class="ghost" id="arvexAdminPromoRefresh">Обновить список</button><div style="height:1px;background:var(--border);margin:16px 0"></div><div class="card-title">Обращения пользователей</div><button class="ghost" type="button" id="arvexAdminSupportRefresh">Обновить обращения</button><div id="arvexAdminSupportList"></div></div>'+
@@ -267,6 +315,18 @@ async function insertOrder(o){
  }
 
  document.addEventListener("submit",e=>{const form=e.target;if(!form||form.id!=="arvexSupportForm")return;e.preventDefault();submitSupportForm(form)});
+ document.addEventListener("change",e=>{if(e.target&&e.target.id==="arvexLanguage"){localStorage.setItem("arvex_language",e.target.value);applyLanguage(e.target.value)}});
+ function applyLanguage(lang){
+  const en=lang==="en";
+  document.documentElement.lang=en?"en":"ru";
+  const map=en?{"Торговля":"Trading","Портфель":"Portfolio","Школа":"Academy","Инструменты":"Tools","Профиль":"Profile","Счёт":"Balance","Настройки":"Settings","Язык интерфейса":"Interface language","Сервисы аккаунта":"Account services","Войти":"Sign in","Регистрация":"Sign up","Забыли пароль?":"Forgot password?","Смена пароля":"Change password","Изменить пароль":"Change password","Новый пароль (от 8 символов)":"New password (8+ characters)","Сохранить пароль":"Save password","История платежей":"Payment history","Поддержка ARVEX":"ARVEX Support","Уведомления":"Notifications","Промокод":"Promo code","Активировать":"Activate"}:{"Trading":"Торговля","Portfolio":"Портфель","Academy":"Школа","Tools":"Инструменты","Profile":"Профиль","Balance":"Счёт","Settings":"Настройки","Interface language":"Язык интерфейса","Account services":"Сервисы аккаунта","Sign in":"Войти","Sign up":"Регистрация","Forgot password?":"Забыли пароль?","Change password":"Смена пароля","New password (8+ characters)":"Новый пароль (от 8 символов)","Save password":"Сохранить пароль","Payment history":"История платежей","ARVEX Support":"Поддержка ARVEX","Notifications":"Уведомления","Promo code":"Промокод","Activate":"Активировать"};
+  document.querySelectorAll(".nav button span,.balance-chip small,.card-title,.lbl").forEach(el=>{const original=el.dataset.ruText||(el.dataset.ruText=el.textContent.trim());if(map[original])el.textContent=map[original]});
+  const select=document.getElementById("arvexLanguage");if(select)select.value=en?"en":"ru";
+ }
+ function initLanguage(){const lang=localStorage.getItem("arvex_language")==="en"?"en":"ru";applyLanguage(lang)}
+ document.addEventListener("DOMContentLoaded",initLanguage);
+ if(recoverySessionFromUrl()){document.addEventListener("DOMContentLoaded",()=>{const box=document.getElementById("profileBody");if(box)box.insertAdjacentHTML("afterbegin",recoveryHTML());});}
+
 
  return {insertOrder,myEntitlement,createStarsInvoice,createStarsBotLink,setStarsAutoRenew,createSupport,enabled,accountHTML,userToolsHTML,loadProfileData,click,schedule,sync,isIn:()=>!!session};
 })();
