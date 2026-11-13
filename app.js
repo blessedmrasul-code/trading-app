@@ -16,7 +16,7 @@ const AVATARS=[["#7c5cff","#4a2fd1"],["#ff6a85","#c92a57"],["#27d493","#0e8a5e"]
 const MMR=0.005, FUNDING_RATE=0.0001, FUNDING_MS=8*3600*1000;
 
 let balance=10000, closedPnl=0, xp=0, level=1, positions=[], history=[], currentAsset="BTCUSDT";
-let progress={lessons:{},quizzes:{},exams:{}};
+let progress={lessons:{},quizzes:{},exams:{},masterclass:{}};
 let profile=null, tradeXp={day:"",amount:0}, tourDone=false, tourStep=0;
 let prices={}, changes={}, live=false, klLive=false, tf="15m", candles=[], chart=null, candleReq=0, toastTimer=null, pendingAvatar=0, pendingPhoto="", editingProfile=false, activeScreen="trade";
 
@@ -53,7 +53,7 @@ function loadState(){
   balance=n(s.balance,10000);closedPnl=n(s.closedPnl,0);xp=n(s.xp,0);level=Math.max(1,n(s.level,1));
   positions=Array.isArray(s.positions)?s.positions:[];history=Array.isArray(s.history)?s.history:[];
   if(s.currentAsset&&ASSETS[s.currentAsset])currentAsset=s.currentAsset;
-  if(s.progress&&typeof s.progress==="object")progress={lessons:{...(s.progress.lessons||{})},quizzes:{...(s.progress.quizzes||{})},exams:{...(s.progress.exams||{})}};
+  if(s.progress&&typeof s.progress==="object")progress={lessons:{...(s.progress.lessons||{})},quizzes:{...(s.progress.quizzes||{})},exams:{...(s.progress.exams||{})},masterclass:{...(s.progress.masterclass||{})}};
   tourDone=!!s.tourDone;
   if(s.tradeXp&&typeof s.tradeXp==="object")tradeXp={day:String(s.tradeXp.day||""),amount:n(s.tradeXp.amount,0)};
   if(s.profile&&s.profile.name)profile={name:String(s.profile.name),username:String(s.profile.username||""),avatar:Number(s.profile.avatar)||0,photo:/^data:image\/jpeg;base64,/.test(s.profile.photo||"")?s.profile.photo:""};
