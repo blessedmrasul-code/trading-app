@@ -29,10 +29,15 @@ const Cloud=(()=>{
  }
  async function signUp(email,pw){
   // Не задаём redirect_to: Supabase использует Site URL проекта.
-  // После подтверждения пользователь может вернуться в ARVEX и нажать «Войти».
+  // Если адрес уже зарегистрирован, просим Supabase повторно отправить письмо подтверждения.
   const j=await req("/auth/v1/signup",{method:"POST",headers:hdr(),body:JSON.stringify({email,password:pw})});
   if(adopt(j))return {ok:true};
-  return {ok:false,confirm:true}; // включено подтверждение почты
+  const identities=j&&j.user&&j.user.identities;
+  if(Array.isArray(identities)&&identities.length===0){
+   await req("/auth/v1/resend",{method:"POST",headers:hdr(),body:JSON.stringify({type:"signup",email})});
+   return {ok:false,confirm:true,resent:true};
+  }
+  return {ok:false,confirm:true,sent:true};
  }
  async function signIn(email,pw){
   const j=await req("/auth/v1/token?grant_type=password",{method:"POST",headers:hdr(),body:JSON.stringify({email,password:pw})});
@@ -76,7 +81,7 @@ const Cloud=(()=>{
   if(p.length<8){m.textContent="Пароль — минимум 8 символов.";return}
   m.textContent="Подождите…";
   try{
-   if(kind==="up"){const r=await signUp(e,p);if(r.confirm){m.textContent="Письмо отправлено. Подтверди почту и нажми «Войти».";return}}
+   if(kind==="up"){const r=await signUp(e,p);if(r.confirm){m.textContent=r.resent?"Аккаунт уже существует. Запросил повторное письмо подтверждения — проверь почту и папку «Спам».":r.sent?"Запрос принят. Проверь почту и папку «Спам».":"Не удалось подтвердить отправку письма. Попробуй позже или нажми «Войти», если уже подтверждал почту.";return}}
    else await signIn(e,p);
    showToast("Вход выполнен");await sync();
   }catch(err){m.textContent=err.message}
