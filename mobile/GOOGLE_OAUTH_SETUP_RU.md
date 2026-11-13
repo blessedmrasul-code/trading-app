@@ -6,7 +6,7 @@ ARVEX использует Google OAuth с PKCE. Пароли Google и Client S
 - Android: `app.arvex.trading://auth/callback`
 - GitHub Pages, главная страница: `https://blessedmrasul-code.github.io/trading-app/`
 - GitHub Pages, маршрут приложения: `https://blessedmrasul-code.github.io/trading-app/app/`
-- Netlify: `https://sage-peony.netlify.app/`
+- Netlify, если приложение открывается на нём: `https://sage-peony.netlify.app/app/`
 
 ## 1. Google Cloud Console
 
@@ -34,7 +34,7 @@ ARVEX использует Google OAuth с PKCE. Пароли Google и Client S
 
 `https://blessedmrasul-code.github.io/trading-app/app/`
 
-`https://sage-peony.netlify.app/`
+`https://sage-peony.netlify.app/app/`
 
 Site URL и существующие redirect URL не удаляйте. Веб-версия возвращает пользователя на текущий путь приложения; Android — по custom scheme. Если используется другой домен, добавьте и его точный HTTPS-адрес в Redirect URLs.
 
