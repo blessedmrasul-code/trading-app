@@ -325,8 +325,8 @@ const Cloud=(()=>{
    const code=String(err.code||"").toLowerCase(),msg=String(err.message||"");
    if(/ban/i.test(msg))m.textContent=say("Аккаунт заблокирован администратором Mrasulv. Для обжалования напиши @mrasulv.","Your account is restricted by administrator Mrasulv. Contact @mrasulv to appeal.");
    else if(code==="email_not_confirmed"||/email not confirmed/i.test(msg))m.textContent=say("Сначала подтверди email по ссылке из письма, затем войди.","Verify your email using the link we sent, then sign in.");
-   else if(code==="invalid_credentials"||/invalid login credentials/i.test(msg))m.textContent=say("Неверный email или пароль. Если входил через Google, нажми кнопку Google.","Incorrect email or password. If you used Google, choose Continue with Google.");
-   else if(/provider.*not enabled|unsupported provider/i.test(msg))m.textContent=say("Вход Google пока не настроен в Supabase. Попробуй позже или войди по email.","Google sign-in is not configured in Supabase yet. Try later or use email sign-in.");
+   else if(code==="invalid_credentials"||/invalid login credentials/i.test(msg))m.textContent=say("Неверный email или пароль. Проверь данные и попробуй снова.","Incorrect email or password. Check your details and try again.");
+   else if(/provider.*not enabled|unsupported provider/i.test(msg))m.textContent=say("Этот способ входа недоступен. Используй email и пароль.","This sign-in method is unavailable. Use your email and password.");
    else m.textContent=msg;
   }
  }
@@ -371,6 +371,21 @@ const Cloud=(()=>{
   if(t.closest("#arvexUnbanConfirm")){
    const id=t.closest("#arvexUnbanConfirm").dataset.userId;
    setUserBan(id,"unban").then(()=>{if(typeof closeSheet==="function")closeSheet();showToast("Блокировка снята.")}).catch(e=>showToast(e.message));return true;
+  }
+  const grant=t.closest("[data-admin-grant-user]");
+  if(grant){
+   const id=grant.dataset.adminGrantUser,forever=grant.dataset.adminGrantForever==="1",days=Number(grant.dataset.adminGrantDays||30);
+   setAdminSubscription(id,days,forever).then(()=>showToast(forever?"Пожизненный Premium выдан.":`Premium выдан на ${days} дней.`)).catch(e=>showToast(e.message));return true;
+  }
+  const revoke=t.closest("[data-admin-revoke-user]");
+  if(revoke){
+   const id=revoke.dataset.adminRevokeUser;
+   if(typeof openSheet==="function")openSheet('<h3>Снять Premium?</h3><p class="muted">Доступ пользователя будет прекращён. История платежей не удалится.</p><div class="dir-btns"><button class="ghost" id="sheetCancel">Отмена</button><button class="danger" id="arvexAdminRevokeConfirm" data-user-id="'+esc(id)+'">Снять Premium</button></div>');
+   return true;
+  }
+  if(t.closest("#arvexAdminRevokeConfirm")){
+   const id=t.closest("#arvexAdminRevokeConfirm").dataset.userId;
+   revokeAdminSubscription(id).then(()=>{if(typeof closeSheet==="function")closeSheet();showToast("Premium отключён.")}).catch(e=>showToast(e.message));return true;
   }
   const supportUpdate=t.closest("[data-support-update]");
   if(supportUpdate){const row=supportUpdate.closest("[data-support-row]"),select=row&&row.querySelector("select");if(select)updateSupportStatus(supportUpdate.dataset.supportUpdate,select.value);return true}
@@ -556,6 +571,11 @@ async function insertOrder(o){
     const controls=document.createElement("div");controls.className="btn-row";controls.style.marginTop="8px";
     if(activeBanIds.has(x.user_id)){const un=document.createElement("button");un.className="ghost";un.type="button";un.dataset.adminUnbanUser=x.user_id;un.textContent=en?"Unban":"Снять блокировку";controls.appendChild(un)}
     else{const ban=document.createElement("button");ban.className="danger";ban.type="button";ban.dataset.adminBanUser=x.user_id;ban.dataset.adminBanEmail=x.email||"";ban.textContent=en?"Ban user":"Заблокировать";controls.appendChild(ban)}
+    for(const days of [30,90,365]){
+     const grant=document.createElement("button");grant.className="ghost";grant.type="button";grant.dataset.adminGrantUser=x.user_id;grant.dataset.adminGrantDays=String(days);grant.textContent=en?`Grant ${days}d`:`Premium +${days} дн.`;controls.appendChild(grant);
+    }
+    const forever=document.createElement("button");forever.className="ghost";forever.type="button";forever.dataset.adminGrantUser=x.user_id;forever.dataset.adminGrantForever="1";forever.textContent=en?"Lifetime":"Навсегда";controls.appendChild(forever);
+    if(x.is_active){const revoke=document.createElement("button");revoke.className="danger";revoke.type="button";revoke.dataset.adminRevokeUser=x.user_id;revoke.textContent=en?"Revoke Premium":"Снять Premium";controls.appendChild(revoke)}
     card.appendChild(controls);box.appendChild(card);
    });
    if(typeof applyLanguage==="function")applyLanguage(en?"en":"ru");
@@ -569,6 +589,20 @@ async function insertOrder(o){
   const tok=await token(),r=await fetch(cfg().url.replace(/\/$/,"")+"/functions/v1/admin-user-ban",{method:"POST",headers:hdr(tok),body:JSON.stringify({user_id:userId,action,reason})});
   const j=await r.json().catch(()=>null);if(!r.ok)throw new Error((j&&j.error)||"Не удалось изменить блокировку");
   await loadAdminBans();await loadAdminBanHistory();await searchAdminUsers();return j;
+ }
+ async function setAdminSubscription(userId,days=30,forever=false){
+  const tok=await token();
+  await req("/rest/v1/rpc/arvex_admin_set_subscription",{method:"POST",headers:hdr(tok),body:JSON.stringify({p_user_id:userId,p_days:forever?null:days,p_forever:!!forever})});
+  if(typeof Access!=="undefined")await Access.refresh();
+  await searchAdminUsers();
+  return true;
+ }
+ async function revokeAdminSubscription(userId){
+  const tok=await token();
+  await req("/rest/v1/rpc/arvex_admin_revoke_subscription",{method:"POST",headers:hdr(tok),body:JSON.stringify({p_user_id:userId})});
+  if(typeof Access!=="undefined")await Access.refresh();
+  await searchAdminUsers();
+  return true;
  }
  async function loadAdminTools(){
   if(!session)return;
