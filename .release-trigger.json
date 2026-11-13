@@ -1,5 +1,5 @@
 {
-  "version_name": "1.0.7",
-  "version_code": 8,
-  "release_note": "Updated Telegram Stars checkout and Premium activation flow"
+  "version_name": "1.0.8",
+  "version_code": 9,
+  "release_note": "Fix email confirmation redirect and subscription expiry notifications"
 }
