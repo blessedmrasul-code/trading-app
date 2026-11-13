@@ -58,6 +58,9 @@ assert.ok(read("mobile/package.json").includes('"@capacitor/app"'), "Capacitor A
 assert.ok(read("mobile/package.json").includes('"@capacitor/local-notifications"'), "Android system notifications plugin must be included");
 assert.ok(read("mobile/capacitor-app-bridge.js").includes("LocalNotifications"), "Native notification plugin must be exposed to the app");
 assert.ok(cloud.includes("deliverSystemNotifications") && cloud.includes("ARVEX_CAP_LOCAL_NOTIFICATIONS"), "Unread account notifications must be delivered to the Android notification center");
+assert.ok(cloud.includes("createChannel") && cloud.includes("arvex_notification.wav"), "Android notification channels must respect sound and vibration preferences");
+assert.ok(read("mobile/configure-android.js").includes("arvex_notification.wav"), "Android build must generate the bundled ARVEX notification sound");
+
 assert.ok(cloud.includes('setInterval(()=>{if(session)checkAccountStatus()},30000)'), "Active sessions must be rechecked for administrator bans periodically");
 
 assert.ok(read("mobile/configure-android.js").includes('android:scheme="app.arvex.trading"'), "Android manifest must register the OAuth callback scheme");
