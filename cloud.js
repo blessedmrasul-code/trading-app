@@ -3,6 +3,7 @@
 const Cloud=(()=>{
  const cfg=()=>window.ARVEX_CLOUD||{};
  const SK="arvex_cloud_session";
+ const GOOGLE_REDIRECT="app.arvex.trading://auth/callback";
  let session=null,timer=null,busy=false,status="",profileDataLoading=false,profileDataLoadedAt=0;
  try{session=JSON.parse(localStorage.getItem(SK)||"null")}catch(e){}
  let recoveryMode=false;
@@ -44,7 +45,7 @@ const Cloud=(()=>{
   return {ok:false,confirm:true}; // включено подтверждение почты
  }
  async function resetPassword(email){
-  const e=String(email||"").trim();if(!/^\\S+@\\S+\\.\\S+$/.test(e))throw new Error("Укажи корректный email.");
+  const e=String(email||"").trim();if(!/^\S+@\S+\.\S+$/.test(e))throw new Error("Укажи корректный email.");
   await req("/auth/v1/recover",{method:"POST",headers:hdr(),body:JSON.stringify({email:e})});
   return true;
  }
@@ -58,6 +59,36 @@ const Cloud=(()=>{
  function changePasswordPrompt(){
   if(typeof openSheet==="function")openSheet('<h3>Изменить пароль</h3><p class="muted">Введи новый пароль (минимум 8 символов).</p><input class="field" id="arvexNewPassword" type="password" autocomplete="new-password" placeholder="Новый пароль"><input class="field" id="arvexNewPassword2" type="password" autocomplete="new-password" placeholder="Повтори новый пароль" style="margin-top:8px"><p class="muted" id="arvexPasswordMsg"></p><div class="dir-btns"><button class="ghost" id="sheetCancel">Отмена</button><button class="primary" id="arvexPasswordSave">Сохранить</button></div>');
  }
+ // Google OAuth: Supabase возвращает токены на custom Android deep link.
+ async function acceptOAuthCallback(rawUrl){
+  try{
+   const u=new URL(rawUrl,location.href);
+   const params=new URLSearchParams((u.hash||"").replace(/^#/,""));
+   const error=params.get("error_description")||params.get("error");
+   if(error){status="Ошибка входа Google: "+error;if(typeof renderProfile==="function")renderProfile();return false;}
+   const access=params.get("access_token"),refresh=params.get("refresh_token");
+   if(!access||!refresh)return false;
+   const user=await req("/auth/v1/user",{headers:hdr(access)});
+   const ok=adopt({access_token:access,refresh_token:refresh,expires_in:Number(params.get("expires_in"))||3600,user});
+   if(ok){history.replaceState(null,"",location.pathname+location.search);status="Вход через Google выполнен";await sync();if(typeof renderProfile==="function")renderProfile();return true;}
+  }catch(e){status="Не удалось обработать ответ Google: "+e.message;}
+  return false;
+ }
+ function startGoogleSignIn(){
+  if(!enabled())throw new Error("Облачная авторизация сейчас недоступна.");
+  const u=new URL(cfg().url.replace(/\/$/,"")+"/auth/v1/authorize");
+  u.searchParams.set("provider","google");
+  u.searchParams.set("redirect_to",GOOGLE_REDIRECT);
+  u.searchParams.set("flow_type","implicit");
+  location.href=u.toString();
+ }
+ function installOAuthDeepLink(){
+  const app=window.ARVEX_CAP_APP;
+  if(!app)return;
+  app.addListener("appUrlOpen",e=>{if(e&&e.url)acceptOAuthCallback(e.url);});
+  app.getLaunchUrl().then(r=>{if(r&&r.url)acceptOAuthCallback(r.url);}).catch(()=>{});
+ }
+ if(typeof window!=="undefined")installOAuthDeepLink();
  async function signIn(email,pw){
   const j=await req("/auth/v1/token?grant_type=password",{method:"POST",headers:hdr(),body:JSON.stringify({email,password:pw})});
   adopt(j);return {ok:true};
@@ -93,7 +124,7 @@ const Cloud=(()=>{
  function accountHTML(){
   if(!enabled())return `<p class="muted" style="margin:0">Сейчас профиль хранится на этом устройстве.</p><div class="soon">🔒 Облачные аккаунты подключаются владельцем проекта (см. README → «Облако»).</div>`;
   if(session)return `<p style="margin:0 0 8px">Вход выполнен: <b>${esc(session.email)}</b></p><p class="muted" style="margin:0 0 10px">${esc(status||"Прогресс синхронизируется автоматически.")}</p><div class="btn-row"><button class="ghost" id="cloudSync">↻ Синхронизировать</button><button class="danger" id="cloudOut">Выйти</button></div>`;
-  return `<p class="muted" style="margin:0 0 10px">Войди, чтобы сохранить прогресс в облаке и открыть его на другом устройстве.</p><input class="field" id="cEmail" type="email" placeholder="Email" autocomplete="email"><input class="field" id="cPass" type="password" placeholder="Пароль (от 8 символов)" autocomplete="current-password" style="margin-top:8px"><div class="btn-row" style="margin-top:10px"><button class="primary" id="cloudIn">Войти</button><button class="ghost" id="cloudUp">Регистрация</button><button class="ghost" id="cloudForgot">Забыли пароль?</button></div><p class="muted" id="cloudMsg" style="margin:8px 0 0"></p>`;
+  return `<p class="muted" style="margin:0 0 10px">Войди, чтобы сохранить прогресс в облаке и открыть его на другом устройстве.</p><input class="field" id="cEmail" type="email" placeholder="Email" autocomplete="email"><input class="field" id="cPass" type="password" placeholder="Пароль (от 8 символов)" autocomplete="current-password" style="margin-top:8px"><div class="btn-row" style="margin-top:10px"><button class="primary" id="cloudIn">Войти</button><button class="ghost" id="cloudUp">Регистрация</button><button class="ghost" id="cloudGoogle">G Google</button><button class="ghost" id="cloudForgot">Забыли пароль?</button></div><p class="muted" id="cloudMsg" style="margin:8px 0 0"></p>`;
  }
  async function form(kind){
   const e=($("cEmail").value||"").trim(),p=$("cPass").value||"",m=$("cloudMsg");
@@ -107,6 +138,13 @@ const Cloud=(()=>{
   }catch(err){m.textContent=err.message}
  }
  function click(t){
+  if(t.closest("#cloudGoogle")){
+   const m=document.getElementById("cloudMsg");
+   try{if(m)m.textContent="Открываем безопасный вход Google…";startGoogleSignIn();}
+   catch(e){if(m)m.textContent=e.message;}
+   return true;
+  }
+
   if(t.closest("#cloudIn")){form("in");return true}
   if(t.closest("#cloudUp")){form("up");return true}
   if(t.closest("#cloudForgot")){const email=(document.getElementById("cEmail")?.value||"").trim(),m=document.getElementById("cloudMsg");if(!email){if(m)m.textContent="Сначала введи email.";return true}m.textContent="Отправляем ссылку для восстановления…";resetPassword(email).then(()=>m.textContent="Если аккаунт с таким email существует, письмо для сброса пароля отправлено.").catch(e=>m.textContent=e.message);return true}
@@ -295,7 +333,7 @@ async function insertOrder(o){
 
  document.addEventListener("submit",e=>{const form=e.target;if(!form||form.id!=="arvexSupportForm")return;e.preventDefault();submitSupportForm(form)});
 
- return {insertOrder,myEntitlement,createStarsInvoice,createStarsBotLink,setStarsAutoRenew,createSupport,enabled,accountHTML,userToolsHTML,loadProfileData,click,schedule,sync,isIn:()=>!!session,changePasswordPrompt};
+ return {insertOrder,myEntitlement,createStarsInvoice,createStarsBotLink,setStarsAutoRenew,createSupport,enabled,accountHTML,userToolsHTML,loadProfileData,click,schedule,sync,isIn:()=>!!session,changePasswordPrompt,startGoogleSignIn,acceptOAuthCallback};
 })();
 
 // Netlify production redeploy trigger: email confirmation redirects to the public site.
