@@ -138,7 +138,23 @@ const Cloud=(()=>{
   if(typeof Access!=="undefined")Access.refresh();
  }
  let blocked=false;
- function hideBanScreen(){const el=document.getElementById("arvexBanOverlay");if(el)el.remove();blocked=false}
+ function hideBanScreen(){
+  const el=document.getElementById("arvexBanOverlay");
+  if(el)el.remove();
+  if(document.body){
+   for(const child of Array.from(document.body.children)){
+    if(child.dataset&&child.dataset.arvexBanWasInert!==undefined){
+     child.inert=child.dataset.arvexBanWasInert==="1";
+     delete child.dataset.arvexBanWasInert;
+    }
+   }
+   if(document.body.dataset&&document.body.dataset.arvexBanOverflow!==undefined){
+    document.body.style.overflow=document.body.dataset.arvexBanOverflow;
+    delete document.body.dataset.arvexBanOverflow;
+   }
+  }
+  blocked=false;
+ }
  function showBanScreen(info){
   blocked=true;
   const en=localStorage.getItem("arvex_language")==="en",locale=en?"en-US":"ru-RU";
@@ -155,10 +171,32 @@ const Cloud=(()=>{
   };
   let el=document.getElementById("arvexBanOverlay");
   if(!el){el=document.createElement("div");el.id="arvexBanOverlay";document.body.appendChild(el)}
+  if(document.body){
+   if(document.body.dataset.arvexBanOverflow===undefined)document.body.dataset.arvexBanOverflow=document.body.style.overflow||"";
+   document.body.style.overflow="hidden";
+   for(const child of Array.from(document.body.children)){
+    if(child!==el){
+     if(child.dataset&&child.dataset.arvexBanWasInert===undefined)child.dataset.arvexBanWasInert=child.inert?"1":"0";
+     child.inert=true;
+    }
+   }
+  }
   const reason=esc(info.reason||words.fallback),when=info.banned_at?new Date(info.banned_at).toLocaleString(locale):"";
   const appeal=words.appealText+(session?.email||"unknown")+". "+(info.reason||"");
   el.style.cssText="position:fixed;inset:0;z-index:2147483000;background:rgba(5,7,16,.98);display:flex;align-items:center;justify-content:center;padding:20px;overflow:auto";
-  el.innerHTML='<div style="width:min(100%,440px);background:#111827;border:1px solid #754b5b;border-radius:20px;padding:26px;color:#f7f7fb;text-align:center;box-shadow:0 20px 80px #0009"><div style="font-size:48px;margin-bottom:12px">🔒</div><h2 style="margin:0 0 10px">'+words.title+'</h2><p style="color:#b8c0d2;margin:0 0 6px">'+words.admin+': <b>'+esc(info.administrator||'Mrasulv')+'</b></p><div style="background:#1c2434;border-radius:12px;padding:14px;margin:14px 0;text-align:left"><b>'+words.reason+'</b><p style="white-space:pre-wrap;margin:8px 0 0">'+reason+'</p></div><p style="color:#9ca8bb;font-size:12px;margin:0 0 16px">'+esc(when)+'</p><button id="arvexBanExit" class="danger" style="width:100%;margin-bottom:10px">'+words.exit+'</button><a href="https://t.me/mrasulv?text='+encodeURIComponent(appeal)+'" target="_blank" rel="noopener" style="display:block;background:#7655e8;color:white;text-decoration:none;padding:13px;border-radius:10px;font-weight:700">'+words.appeal+'</a></div>';
+  el.innerHTML='<div style="width:min(100%,440px);background:#111827;border:1px solid #754b5b;border-radius:20px;padding:26px;color:#f7f7fb;text-align:center;box-shadow:0 20px 80px #0009"><div style="font-size:48px;margin-bottom:12px">🔒</div><h2 style="margin:0 0 10px">'+words.title+'</h2><p style="color:#b8c0d2;margin:0 0 6px">'+words.admin+': <b>'+esc(info.administrator||'Mrasulv')+'</b></p><div style="background:#1c2434;border-radius:12px;padding:14px;margin:14px 0;text-align:left"><b>'+words.reason+'</b><p style="white-space:pre-wrap;margin:8px 0 0">'+reason+'</p></div><p style="color:#9ca8bb;font-size:12px;margin:0 0 16px">'+esc(when)+'</p><button id="arvexBanExit" class="danger" style="width:100%;margin-bottom:10px">'+words.exit+'</button><a id="arvexBanAppeal" href="https://t.me/mrasulv?text='+encodeURIComponent(appeal)+'" target="_blank" rel="noopener" style="display:block;background:#7655e8;color:white;text-decoration:none;padding:13px;border-radius:10px;font-weight:700">'+words.appeal+'</a></div>';
+  el.setAttribute("role","dialog");el.setAttribute("aria-modal","true");el.setAttribute("aria-label",words.title);
+  el.onkeydown=e=>{
+   if(e.key==="Escape"){e.preventDefault();e.stopPropagation();return}
+   if(e.key==="Tab"){
+    const focusable=Array.from(el.querySelectorAll('button:not([disabled]),a[href],input:not([disabled]),[tabindex]:not([tabindex="-1"])'));
+    if(!focusable.length){e.preventDefault();return}
+    const first=focusable[0],last=focusable[focusable.length-1];
+    if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus()}
+    else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus()}
+   }
+  };
+  const exitButton=el.querySelector("#arvexBanExit");if(exitButton)exitButton.focus();
  }
  async function exitBlockedApp(){
   await signOut();
