@@ -17,6 +17,47 @@
     } catch (_) { return { watchlist:["BTCUSDT","ETHUSDT"], journal:[] }; }
   };
   const write = (value) => localStorage.setItem(key(), JSON.stringify(value));
+  const isEnglish = () => localStorage.getItem("arvex_language") === "en";
+  const tr = (ru, en) => isEnglish() ? en : ru;
+  const translateMarkup = (html) => {
+    if (!isEnglish()) return html;
+    const words = {
+      "Больше контроля над каждой сделкой":"More control over every trade",
+      "Профессиональные инструменты для обучения и анализа. Все сделки остаются виртуальными.":"Professional tools for learning and analysis. All trades remain virtual.",
+      "Расширенная аналитика":"Advanced analytics",
+      "RSI, MACD, EMA, полосы Боллинджера и ATR на рыночных свечах.":"RSI, MACD, EMA, Bollinger Bands and ATR from market candles.",
+      "Риск-лаборатория":"Risk lab",
+      "Размер позиции, денежный риск, потенциальная прибыль и соотношение риск/прибыль.":"Position size, cash risk, potential profit and risk/reward ratio.",
+      "Торговый дневник":"Trading journal",
+      "Личные заметки, торговый план и разбор дисциплины.":"Personal notes, trading plan and discipline review.",
+      "Избранные рынки":"Watchlist",
+      "Список наблюдения за активами и быстрые рыночные показатели.":"Track selected assets and view quick market prices.",
+      "Технический обзор":"Technical overview",
+      "Сводка тренда и импульса на основе рассчитанных индикаторов.":"Trend and momentum summary based on calculated indicators.",
+      "Покупка доступна в профиле. Доступ проверяется по серверной подписке.":"Purchase is available in Profile. Access is verified against the server subscription.",
+      "Загружаем достаточно свечей для расчёта. Проверь подключение к рынку и открой этот раздел чуть позже.":"Loading enough candles for calculations. Check your market connection and try again shortly.",
+      "Восходящий":"Uptrend","Нисходящий":"Downtrend","Боковой / смешанный":"Sideways / mixed",
+      "Перекупленность":"Overbought","Перепроданность":"Oversold","Положительный импульс":"Positive momentum","Отрицательный импульс":"Negative momentum","Нейтральный импульс":"Neutral momentum",
+      "RSI находится в высокой зоне: не следует трактовать это как автоматический сигнал на продажу.":"RSI is elevated; this should not be treated as an automatic sell signal.",
+      "RSI находится в низкой зоне: это не гарантирует разворот.":"RSI is low; this does not guarantee a reversal.",
+      "RSI не показывает экстремальную зону.":"RSI is not in an extreme zone.",
+      "Тренд:":"Trend:","Расчёт по":"Calculated from","последним свечам":"latest candles","Индикаторы — вспомогательные данные, не торговый сигнал и не гарантия результата.":"Indicators are supporting data, not a trade signal or a guarantee of results.",
+      "Баланс, $":"Balance, $","Риск, %":"Risk, %","Цена входа":"Entry price","Цена стопа":"Stop price","Цель":"Target","Плечо":"Leverage",
+      "Укажи цену стопа для расчёта.":"Enter a stop price to calculate.",
+      "Проверь баланс, риск (0,1–10%), цену входа и стоп.":"Check balance, risk (0.1–10%), entry price and stop.",
+      "Риск в деньгах":"Cash risk","Размер позиции":"Position size","Потенциальная прибыль":"Potential profit","Риск / прибыль":"Risk / reward",
+      "${tr("Внимание: расчётная маржа превышает баланс.","Warning: required margin exceeds your balance.")}":"Warning: required margin exceeds your balance.",
+      "Модель не учитывает проскальзывание, funding и комиссии. Используй запас по риску.":"This model excludes slippage, funding and fees. Keep a risk buffer.",
+      "Список пока пуст.":"Your watchlist is empty.",
+      "Заголовок":"Title","План / выводы":"Plan / takeaways","Сохранить запись":"Save entry","Записей пока нет.":"No journal entries yet.","Удалить":"Delete",
+      "Профессиональная статистика":"Pro statistics","Закрытых сделок":"Closed trades","Средний результат":"Average result","Валовая прибыль":"Gross profit","Валовый убыток":"Gross loss",
+      "Статистика рассчитывается по истории демо-сделок на этом устройстве. Результаты симулятора не прогнозируют реальную доходность.":"Statistics use the demo trade history on this device. Simulator results do not predict real returns.",
+      "Добавь заголовок и не менее 8 символов заметки.":"Add a title and a note of at least 8 characters.",
+      "Запись сохранена.":"Entry saved."
+    };
+    for (const [ru, en] of Object.entries(words)) html = html.replaceAll(ru, en);
+    return html;
+  };
   const fmt = (value, digits=2) => Number.isFinite(value) ? value.toLocaleString("ru-RU",{maximumFractionDigits:digits,minimumFractionDigits:digits}) : "—";
   const money = (value) => (value < 0 ? "−" : "") + "$" + fmt(Math.abs(value));
   const PREMIUM_KEYS = ["pro_analytics","pro_risk_lab","pro_journal","pro_watchlist","pro_market_review"];
@@ -98,7 +139,7 @@
     const root=$("premiumBody");if(!root)return;
     if(!premium()){root.innerHTML=gated();return;}
     const data=read();
-    root.innerHTML=indicatorsHTML()+statsHTML()+riskHTML()+watchHTML(data)+journalHTML(data);
+    root.innerHTML=translateMarkup(indicatorsHTML()+statsHTML()+riskHTML()+watchHTML(data)+journalHTML(data));
     bindRisk();
   };
   const bindRisk = () => {
@@ -106,9 +147,9 @@
     const update=()=>{
       const out=$("proRiskResult");if(!out)return;
       const bal=Number($("proBalance").value),risk=Number($("proRisk").value),entry=Number($("proEntry").value),stop=Number($("proStop").value),target=Number($("proTarget").value),lev=Number($("proLev").value);
-      if(!(bal>0&&risk>0&&risk<=10&&entry>0&&stop>0&&entry!==stop)){out.textContent="Проверь баланс, риск (0,1–10%), цену входа и стоп.";return;}
+      if(!(bal>0&&risk>0&&risk<=10&&entry>0&&stop>0&&entry!==stop)){out.textContent=tr("Проверь баланс, риск (0,1–10%), цену входа и стоп.","Check balance, risk (0.1–10%), entry price and stop.");return;}
       const riskCash=bal*risk/100,dist=Math.abs(entry-stop)/entry,notional=riskCash/dist,margin=notional/Math.max(1,lev),reward=target>0?Math.abs(target-entry)/entry*notional:null,rr=target>0?Math.abs(target-entry)/Math.abs(entry-stop):null;
-      out.innerHTML=`<div class="pro-result-grid"><div><small>Риск в деньгах</small><b class="neg">${money(-riskCash)}</b></div><div><small>Размер позиции</small><b>${money(notional)}</b></div><div><small>Маржа при ${lev}x</small><b>${money(margin)}</b></div><div><small>Потенциальная прибыль</small><b class="pos">${reward===null?"—":money(reward)}</b></div><div><small>Риск / прибыль</small><b>${rr===null?"—":"1 : "+fmt(rr,2)}</b></div></div>${margin>bal?'<p class="neg">Внимание: расчётная маржа превышает баланс.</p>':""}`;
+      out.innerHTML=`<div class="pro-result-grid"><div><small>${tr("Риск в деньгах","Cash risk")}</small><b class="neg">${money(-riskCash)}</b></div><div><small>${tr("Размер позиции","Position size")}</small><b>${money(notional)}</b></div><div><small>Маржа при ${lev}x</small><b>${money(margin)}</b></div><div><small>${tr("Потенциальная прибыль","Potential profit")}</small><b class="pos">${reward===null?"—":money(reward)}</b></div><div><small>${tr("Риск / прибыль","Risk / reward")}</small><b>${rr===null?"—":"1 : "+fmt(rr,2)}</b></div></div>${margin>bal?'<p class="neg">Внимание: расчётная маржа превышает баланс.</p>':""}`;
     };
     ids.forEach(id=>$(id)?.addEventListener("input",update));update();
   };
@@ -118,8 +159,8 @@
     if(event.target.closest("#proUpgrade")){goProfile();return;}
     if(event.target.closest("#proJournalSave")){
       const title=$("proJournalTitle").value.trim(),body=$("proJournalBody").value.trim();
-      if(!title||body.length<8){if(typeof showToast==="function")showToast("Добавь заголовок и не менее 8 символов заметки.");return;}
-      const data=read();data.journal.unshift({title:title.slice(0,70),body:body.slice(0,1200),createdAt:Date.now()});data.journal=data.journal.slice(0,100);write(data);render();if(typeof showToast==="function")showToast("Запись сохранена.");return;
+      if(!title||body.length<8){if(typeof showToast==="function")showToast(tr("Добавь заголовок и не менее 8 символов заметки.","Add a title and a note of at least 8 characters."));return;}
+      const data=read();data.journal.unshift({title:title.slice(0,70),body:body.slice(0,1200),createdAt:Date.now()});data.journal=data.journal.slice(0,100);write(data);render();if(typeof showToast==="function")showToast(tr("Запись сохранена.","Entry saved."));return;
     }
     const add=event.target.closest("[data-watch-add]");
     if(add){const data=read(),asset=add.dataset.watchAdd;if(!data.watchlist.includes(asset))data.watchlist.push(asset);write(data);render();return;}
