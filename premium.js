@@ -47,7 +47,7 @@
       "Укажи цену стопа для расчёта.":"Enter a stop price to calculate.",
       "Проверь баланс, риск (0,1–10%), цену входа и стоп.":"Check balance, risk (0.1–10%), entry price and stop.",
       "Риск в деньгах":"Cash risk","Размер позиции":"Position size","Потенциальная прибыль":"Potential profit","Риск / прибыль":"Risk / reward",
-      "${tr("Внимание: расчётная маржа превышает баланс.","Warning: required margin exceeds your balance.")}":"Warning: required margin exceeds your balance.",
+      "Внимание: расчётная маржа превышает баланс.":"Warning: required margin exceeds your balance.",
       "Модель не учитывает проскальзывание, funding и комиссии. Используй запас по риску.":"This model excludes slippage, funding and fees. Keep a risk buffer.",
       "Список пока пуст.":"Your watchlist is empty.",
       "Заголовок":"Title","План / выводы":"Plan / takeaways","Сохранить запись":"Save entry","Записей пока нет.":"No journal entries yet.","Удалить":"Delete",
@@ -150,7 +150,7 @@
       const bal=Number($("proBalance").value),risk=Number($("proRisk").value),entry=Number($("proEntry").value),stop=Number($("proStop").value),target=Number($("proTarget").value),lev=Number($("proLev").value);
       if(!(bal>0&&risk>0&&risk<=10&&entry>0&&stop>0&&entry!==stop)){out.textContent=tr("Проверь баланс, риск (0,1–10%), цену входа и стоп.","Check balance, risk (0.1–10%), entry price and stop.");return;}
       const riskCash=bal*risk/100,dist=Math.abs(entry-stop)/entry,notional=riskCash/dist,margin=notional/Math.max(1,lev),reward=target>0?Math.abs(target-entry)/entry*notional:null,rr=target>0?Math.abs(target-entry)/Math.abs(entry-stop):null;
-      out.innerHTML=`<div class="pro-result-grid"><div><small>${tr("Риск в деньгах","Cash risk")}</small><b class="neg">${money(-riskCash)}</b></div><div><small>${tr("Размер позиции","Position size")}</small><b>${money(notional)}</b></div><div><small>${tr("Маржа при","Margin at")} ${lev}x</small><b>${money(margin)}</b></div><div><small>${tr("Потенциальная прибыль","Potential profit")}</small><b class="pos">${reward===null?"—":money(reward)}</b></div><div><small>${tr("Риск / прибыль","Risk / reward")}</small><b>${rr===null?"—":"1 : "+fmt(rr,2)}</b></div></div>${margin>bal?'<p class="neg">Внимание: расчётная маржа превышает баланс.</p>':""}`;
+      out.innerHTML=`<div class="pro-result-grid"><div><small>${tr("Риск в деньгах","Cash risk")}</small><b class="neg">${money(-riskCash)}</b></div><div><small>${tr("Размер позиции","Position size")}</small><b>${money(notional)}</b></div><div><small>${tr("Маржа при","Margin at")} ${lev}x</small><b>${money(margin)}</b></div><div><small>${tr("Потенциальная прибыль","Potential profit")}</small><b class="pos">${reward===null?"—":money(reward)}</b></div><div><small>${tr("Риск / прибыль","Risk / reward")}</small><b>${rr===null?"—":"1 : "+fmt(rr,2)}</b></div></div>${margin>bal?`<p class="neg">${tr("Внимание: расчётная маржа превышает баланс.","Warning: required margin exceeds your balance.")}</p>`:""}`;
     };
     ids.forEach(id=>$(id)?.addEventListener("input",update));update();
   };
