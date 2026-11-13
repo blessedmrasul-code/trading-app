@@ -155,8 +155,8 @@ const Cloud=(()=>{
   else location.href=u.toString();
  }
  if(typeof window!=="undefined"&&typeof location!=="undefined"){
-  const callbackHash=new URLSearchParams(String(location.hash||"").replace(/^#/,""));
-  if(callbackHash.get("type")==="signup"||callbackHash.get("type")==="email")setTimeout(()=>acceptEmailConfirmation(location.href),0);
+  const callbackHash=location.hash?new URLSearchParams(String(location.hash).replace(/^#/,"")):null;
+  if(callbackHash&&(callbackHash.get("type")==="signup"||callbackHash.get("type")==="email"))setTimeout(()=>acceptEmailConfirmation(location.href),0);
   else if(/[?&]code=/.test(location.search))setTimeout(()=>acceptOAuthCallback(location.href),0);
  }
  function installOAuthDeepLink(){
