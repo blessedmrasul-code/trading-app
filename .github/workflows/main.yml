@@ -22,6 +22,7 @@ on:
       - "chart.js"
       - "school.js"
       - "tools.js"
+      - "premium.js"
       - "lessons.js"
       - "exam.js"
       - "glossary.js"
@@ -62,6 +63,8 @@ jobs:
           deno check supabase/functions/create-stars-bot-link/index.ts
           deno check supabase/functions/telegram-stars-webhook/index.ts
           deno check supabase/functions/cancel-stars-subscription/index.ts
+          deno check supabase/functions/admin-user-ban/index.ts
+          deno check supabase/functions/delete-own-account/index.ts
 
       - uses: actions/setup-node@v4
         with:
@@ -75,7 +78,7 @@ jobs:
       - name: Check application JavaScript syntax
         working-directory: .
         run: |
-          for file in app.js cloud.js access.js shop-config.js cloud-config.js chart.js school.js tools.js lessons.js exam.js glossary.js; do
+          for file in app.js cloud.js access.js shop-config.js cloud-config.js chart.js school.js tools.js premium.js lessons.js exam.js glossary.js; do
             node --check "$file"
           done
 
@@ -87,7 +90,12 @@ jobs:
         run: npm install
 
       - name: Build web files (www)
-        run: npm run build:web
+        run: |
+          npm run build:web
+          # Keep the /app/ website route in sync with the exact bundle used by Android.
+          rm -rf ../app
+          mkdir -p ../app
+          cp -a www/. ../app/
 
       - name: Deploy website to Netlify
         continue-on-error: true
@@ -128,6 +136,9 @@ jobs:
 
       - name: Sync web files into Android project
         run: npx cap sync android
+
+      - name: Register ARVEX OAuth deep link
+        run: node configure-android.js
 
       - name: Apply ARVEX Android launcher icons
         working-directory: mobile

@@ -10,17 +10,17 @@ on:
       version_name:
         description: "Версия приложения, например 1.0.0"
         required: true
-        default: "1.0.3"
+        default: "1.1.2"
         type: string
       version_code:
         description: "Целое число версии (должно расти с каждым релизом)"
         required: true
-        default: "4"
+        default: "13"
         type: string
       publish_release:
         description: "Опубликовать APK и AAB в GitHub Releases"
         required: true
-        default: true
+        default: false
         type: boolean
 
 permissions:
@@ -36,6 +36,10 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
 
       - uses: actions/setup-node@v4
         with:
@@ -100,6 +104,17 @@ jobs:
           echo "$KEYSTORE_B64" | base64 --decode > mobile/arvex-release.keystore
           test -s mobile/arvex-release.keystore
 
+      - name: Type-check Supabase Edge Functions
+        working-directory: .
+        run: |
+          deno --version
+          deno check supabase/functions/create-stars-invoice/index.ts
+          deno check supabase/functions/create-stars-bot-link/index.ts
+          deno check supabase/functions/cancel-stars-subscription/index.ts
+          deno check supabase/functions/telegram-stars-webhook/index.ts
+          deno check supabase/functions/admin-user-ban/index.ts
+          deno check supabase/functions/delete-own-account/index.ts
+
       - name: Check application JavaScript syntax and smoke tests
         working-directory: .
         run: |
@@ -122,6 +137,9 @@ jobs:
 
       - name: Sync Capacitor
         run: npx cap sync android
+
+      - name: Register ARVEX Google OAuth deep link
+        run: node configure-android.js
 
       - name: Apply ARVEX Android launcher icons
         working-directory: mobile

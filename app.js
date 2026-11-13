@@ -27,7 +27,17 @@ setTimeout(()=>{const s=$("splash");if(s)s.classList.add("out")},4500);
 function money(n){if(Math.abs(n)<0.00001)n=0;const a=Math.abs(n);return (n<0?"-":"")+"$"+a.toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:a>=1?2:5})}
 function signed(n){return (n>0?"+":"")+money(n)}
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
-function showToast(msg){const t=$("toast");t.textContent=msg;t.classList.add("show");clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove("show"),2800)}
+function appFeedback(){
+ try{
+  if(localStorage.getItem("arvex_notifications_enabled")==="false")return;
+  if(localStorage.getItem("arvex_vibration_enabled")==="true"&&navigator.vibrate)navigator.vibrate(35);
+  if(localStorage.getItem("arvex_sound_enabled")==="true"){
+   const Audio=window.AudioContext||window.webkitAudioContext;
+   if(Audio){const ctx=new Audio(),osc=ctx.createOscillator(),gain=ctx.createGain();osc.type="sine";osc.frequency.value=740;gain.gain.setValueAtTime(.035,ctx.currentTime);gain.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+.09);osc.connect(gain);gain.connect(ctx.destination);osc.start();osc.stop(ctx.currentTime+.1);osc.onended=()=>ctx.close()}
+  }
+ }catch(e){}
+}
+function showToast(msg){const t=$("toast");t.textContent=msg;t.classList.add("show");clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove("show"),2800);appFeedback()}
 function marketPrice(a=currentAsset){return prices[a]??ASSETS[a].fb}
 function levelTitle(){return LEVEL_TITLES[Math.min(level-1,LEVEL_TITLES.length-1)]}
 
@@ -285,12 +295,19 @@ function renderProfile(){
   <div class="card"><div class="card-title">Настройки</div>
    <label class="lbl" for="arvexLanguage">Язык приложения</label>
    <select class="field" id="arvexLanguage"><option value="ru">Русский</option><option value="en">English</option></select>
-   <div class="btn-row" style="margin-top:10px"><button class="ghost" id="arvexChangePassword">Изменить пароль</button><button class="ghost" id="arvexNotificationsPermission">Уведомления</button></div>
+   <div class="btn-row" style="margin-top:10px"><button class="ghost" id="arvexChangePassword">Изменить пароль</button><button class="ghost" id="arvexNotificationsPermission">Разрешить уведомления</button></div>
+   <label class="setting-toggle"><input type="checkbox" id="arvexNotificationsToggle" checked><span>Уведомления приложения</span></label>
+   <label class="setting-toggle"><input type="checkbox" id="arvexSoundToggle"><span>Звуки</span></label>
+   <label class="setting-toggle"><input type="checkbox" id="arvexVibrationToggle"><span>Вибрация</span></label>
    <p class="muted" id="arvexSettingsMsg">Выбери язык и настрой уведомления приложения.</p>
   </div>
   <div class="card"><div class="card-title">Аккаунт</div>${typeof Cloud!=="undefined"?Cloud.accountHTML():""}</div>${typeof Access!=="undefined"?Access.cardHTML():""}${typeof Cloud!=="undefined"?Cloud.userToolsHTML():""}`;
  applyAvatar($("profAvatar"),p.avatar,p.name,p.photo);
  const langSelect=$("arvexLanguage");if(langSelect)langSelect.value=localStorage.getItem("arvex_language")||"ru";
+ const notif=$("arvexNotificationsToggle"),sound=$("arvexSoundToggle"),vibration=$("arvexVibrationToggle");
+ if(notif)notif.checked=localStorage.getItem("arvex_notifications_enabled")!=="false";
+ if(sound)sound.checked=localStorage.getItem("arvex_sound_enabled")==="true";
+ if(vibration)vibration.checked=localStorage.getItem("arvex_vibration_enabled")==="true";
  if(typeof Cloud!=="undefined"&&Cloud.loadProfileData)Cloud.loadProfileData();
  applyLanguage(localStorage.getItem("arvex_language")||"ru");
 }
@@ -397,7 +414,7 @@ const UI_EN={
 "Размер позиции":"Position size","Ликвидация LONG":"LONG liquidation","Ликвидация SHORT":"SHORT liquidation",
 "Открытые позиции":"Open positions","Нет открытых позиций.":"No open positions.",
 "История сделок":"Trade history","Достижения":"Achievements","Аккаунт":"Account","Настройки":"Settings",
-"Язык приложения":"App language","Русский":"Russian","Изменить пароль":"Change password","Уведомления":"Notifications",
+"Язык приложения":"App language","Русский":"Russian","Изменить пароль":"Change password","Уведомления":"Notifications","Разрешить уведомления":"Allow notifications","Уведомления приложения":"App notifications","Звуки":"Sounds","Вибрация":"Vibration","Удалить аккаунт":"Delete account","Удалить аккаунт ARVEX?":"Delete ARVEX account?","Причина блокировки":"Ban reason","Активные блокировки":"Active bans","Управление аккаунтами":"Account management","Найти пользователя":"Find user","Заблокировать":"Ban user","Снять блокировку":"Unban user","Обращения пользователей":"User requests","Управление промокодами":"Manage promo codes",
 "Выбери язык и настрой уведомления приложения.":"Choose the app language and configure notifications.",
 "Редактировать":"Edit profile","Обучающий тур":"Guided tour","Сбросить демо-счёт":"Reset demo account",
 "Сделок":"Trades","Винрейт":"Win rate","Результат":"Result","Лучшая сделка":"Best trade",
@@ -411,7 +428,17 @@ const UI_EN={
 "Уроки":"Lessons","Экзамен":"Exam","Словарь":"Glossary","Калькулятор":"Calculator","Помощник":"Assistant",
 "Создать профиль":"Create profile","Сохранить":"Save","Отмена":"Cancel","Закрыть":"Close",
 "Добро пожаловать в ARVEX":"Welcome to ARVEX","Имя":"Name","Аватар":"Avatar",
-"Счёт":"Balance","Funding Rate":"Funding Rate","Демо-счёт сброшен.":"Demo account reset."
+"Счёт":"Balance","Funding Rate":"Funding Rate","Демо-счёт сброшен.":"Demo account reset.",
+"Управление аккаунтами":"Account management","Активные блокировки":"Active bans","Найти пользователя":"Find user","Заблокировать":"Ban user","Снять блокировку":"Remove ban","Причина блокировки":"Reason for the ban","Обжаловать блокировку":"Appeal the ban","Выйти из приложения":"Exit the app","G Продолжить с Google":"Continue with Google",
+"Этот email уже зарегистрирован. Нажми «Войти» или «Забыли пароль?»." :"This email is already registered. Sign in or reset your password.",
+"Сначала подтверди email по ссылке из письма, затем войди.":"Verify your email using the link we sent, then sign in.",
+"Неверный email или пароль. Если входил через Google, нажми кнопку Google.":"Incorrect email or password. If you used Google, choose Continue with Google.",
+"Уведомления включены.":"Notifications enabled.","Уведомления выключены.":"Notifications disabled.",
+"Звуки включены.":"Sounds enabled.","Звуки выключены.":"Sounds disabled.",
+"Вибрация включена.":"Vibration enabled.","Вибрация выключена.":"Vibration disabled.",
+"Системные уведомления разрешены.":"System notifications are allowed.","Разрешение на уведомления не получено.":"Notification permission was not granted.",
+"Этот браузер не поддерживает системные уведомления.":"This browser does not support system notifications.","Уведомления включены.":"Notifications enabled.","Уведомления выключены.":"Notifications disabled.",
+"Заблокировать аккаунт":"Ban account","Подробно укажи причину (минимум 5 символов)":"Enter a detailed reason (at least 5 characters)","Подтвердить блокировку":"Confirm ban","Снять блокировку?":"Remove the ban?","Пользователь снова сможет войти в ARVEX.":"The user will be able to sign in to ARVEX again.","Удалить аккаунт ARVEX?":"Delete ARVEX account?","Это действие необратимо. Удалятся облачный аккаунт и связанные с ним данные. Если Premium продлевается автоматически, автопродление сначала будет отключено. Для подтверждения введи DELETE.":"This action cannot be undone. Your cloud account and related data will be deleted. If Premium renews automatically, renewal will be cancelled first. Enter DELETE to confirm.","Введи DELETE для подтверждения.":"Enter DELETE to confirm.","Удаляем аккаунт…":"Deleting account…","Применяю блокировку…":"Applying ban…","Аккаунт заблокирован.":"Account blocked.","Блокировка снята.":"Ban removed.","Укажи причину минимум из 5 символов.":"Enter a reason of at least 5 characters."
 };
 function applyLanguage(lang){
  const en=lang==="en";document.documentElement.lang=en?"en":"ru";
@@ -431,7 +458,10 @@ function applyLanguage(lang){
 function bind(){
  document.addEventListener("change",e=>{
   if(e.target&&e.target.id==="avPhoto")pickPhoto(e.target.files&&e.target.files[0]);
-  if(e.target&&e.target.id==="arvexLanguage"){localStorage.setItem("arvex_language",e.target.value);applyLanguage(e.target.value);const m=$("arvexSettingsMsg");if(m)m.textContent=e.target.value==="en"?"Language changed to English.":"Язык изменён на русский."}
+  if(e.target&&e.target.id==="arvexLanguage"){localStorage.setItem("arvex_language",e.target.value);applyLanguage(e.target.value);const m=$("arvexSettingsMsg");if(m)m.textContent=e.target.value==="en"?"Language changed to English.":"Язык изменён на русский.";if(typeof Cloud!=="undefined"&&Cloud.loadProfileData)Cloud.loadProfileData(true)}
+  if(e.target&&e.target.id==="arvexNotificationsToggle"){localStorage.setItem("arvex_notifications_enabled",String(e.target.checked));const m=$("arvexSettingsMsg"),en=localStorage.getItem("arvex_language")==="en";if(m)m.textContent=e.target.checked?(en?"Notifications enabled.":"Уведомления включены."):(en?"Notifications disabled.":"Уведомления выключены.")}
+  if(e.target&&e.target.id==="arvexSoundToggle"){localStorage.setItem("arvex_sound_enabled",String(e.target.checked));const m=$("arvexSettingsMsg"),en=localStorage.getItem("arvex_language")==="en";if(m)m.textContent=e.target.checked?(en?"Sounds enabled.":"Звуки включены."):(en?"Sounds disabled.":"Звуки выключены.");if(e.target.checked)appFeedback()}
+  if(e.target&&e.target.id==="arvexVibrationToggle"){localStorage.setItem("arvex_vibration_enabled",String(e.target.checked));const m=$("arvexSettingsMsg"),en=localStorage.getItem("arvex_language")==="en";if(m)m.textContent=e.target.checked?(en?"Vibration enabled.":"Вибрация включена."):(en?"Vibration disabled.":"Вибрация выключена.");if(e.target.checked)appFeedback()}
  });
  document.addEventListener("click",e=>{
   const t=e.target;
@@ -454,7 +484,13 @@ function bind(){
   const sc=t.closest("#sheetConfirm");if(sc){closeSheet();openTrade(sc.dataset.dir);return}
   if(t.closest("#resetConfirm")){balance=10000;closedPnl=0;positions=[];history=[];saveState();closeSheet();renderTop();renderPositions();renderPortfolio();updateOrderPreview();showToast("Демо-счёт сброшен.");return}
   if(t.closest("#arvexChangePassword")){if(typeof Cloud!=="undefined"&&Cloud.isIn())Cloud.changePasswordPrompt();else showToast("Сначала войди в аккаунт ARVEX.");return}
-  if(t.closest("#arvexNotificationsPermission")){const m=$("arvexSettingsMsg");if(!("Notification" in window)){if(m)m.textContent="Этот браузер не поддерживает уведомления.";return}Notification.requestPermission().then(v=>{if(m)m.textContent=v==="granted"?"Уведомления разрешены.":"Уведомления не разрешены."});return}
+  if(t.closest("#arvexNotificationsPermission")){
+   const m=$("arvexSettingsMsg"),native=typeof window.ARVEX_CAP_IS_NATIVE==="function"?window.ARVEX_CAP_IS_NATIVE():!!(window.Capacitor&&window.Capacitor.isNativePlatform()),plugin=window.ARVEX_CAP_LOCAL_NOTIFICATIONS;
+   if(native&&plugin){plugin.requestPermissions().then(v=>{if(m)m.textContent=v&&v.display==="granted"?(localStorage.getItem("arvex_language")==="en"?"System notifications are allowed.":"Системные уведомления разрешены."):(localStorage.getItem("arvex_language")==="en"?"Notification permission was not granted.":"Разрешение на уведомления не получено.");if(v&&v.display==="granted"&&typeof Cloud!=="undefined"&&Cloud.loadNotifications)Cloud.loadNotifications()}).catch(e=>{if(m)m.textContent=(localStorage.getItem("arvex_language")==="en"?"Could not request permission: ":"Не удалось запросить разрешение: ")+e.message});return}
+   if(!("Notification" in window)){if(m)m.textContent=localStorage.getItem("arvex_language")==="en"?"This browser does not support system notifications.":"Этот браузер не поддерживает системные уведомления.";return}
+   Notification.requestPermission().then(v=>{if(m)m.textContent=v==="granted"?(localStorage.getItem("arvex_language")==="en"?"System notifications are allowed.":"Системные уведомления разрешены."):(localStorage.getItem("arvex_language")==="en"?"Notification permission was not granted.":"Разрешение на уведомления не получено.");if(v==="granted"&&typeof Cloud!=="undefined"&&Cloud.loadNotifications)Cloud.loadNotifications()});
+   return;
+  }
   if(t.closest("#editProfile")){openProfileModal(true);return}
   if(t.closest("#resetAccount")){resetAccount();return}
   if(t.id==="sheet"){closeSheet();return}
@@ -467,7 +503,7 @@ function bind(){
  $("welcomeName").addEventListener("input",renderAvatarPicker);
  document.addEventListener("keydown",e=>{if(e.key==="Escape"){setFullscreen(false);closeSheet()}});
  window.addEventListener("resize",()=>chart&&chart.resize());
- document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden")saveState()});
+ document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden")saveState();else if(typeof Cloud!=="undefined"){if(Cloud.checkAccountStatus)Cloud.checkAccountStatus();if(Cloud.loadNotifications)Cloud.loadNotifications()}});
  window.addEventListener("pagehide",saveState);
 }
 function init(){
@@ -477,8 +513,11 @@ function init(){
  bind();
  renderTop();renderTicker();renderHead();renderPositions();renderPortfolio();updateOrderPreview();
  loadCandles();fetchPrices();
- if(typeof Cloud!=="undefined")Cloud.sync();
- if(typeof Access!=="undefined")Access.refresh();
+ if(typeof Cloud!=="undefined"){
+  if(Cloud.acceptEmailConfirmation){
+   Cloud.acceptEmailConfirmation().then(handled=>{if(!handled){Cloud.sync();if(typeof Access!=="undefined")Access.refresh()}}).catch(()=>{Cloud.sync();if(typeof Access!=="undefined")Access.refresh()});
+  }else{Cloud.sync();if(typeof Access!=="undefined")Access.refresh()}
+ }else if(typeof Access!=="undefined")Access.refresh();
  if("serviceWorker" in navigator&&!window.Capacitor&&/^https?:/.test(location.protocol))navigator.serviceWorker.register("sw.js").catch(()=>{});
  setInterval(fetchPrices,5000);setInterval(loadCandles,45000);
  runSplash(()=>{if(!profile)openProfileModal(false)});

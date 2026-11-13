@@ -34,6 +34,7 @@
       <button data-go="portfolio"><svg viewBox="0 0 24 24"><path d="M3 7h18v12H3zM3 7l2-3h12M16 13h2"/></svg><span>Портфель</span></button>
       <button data-go="school"><svg viewBox="0 0 24 24"><path d="M3 9l9-5 9 5-9 5zM7 12v4c0 1.5 2.2 3 5 3s5-1.5 5-3v-4"/></svg><span>Школа</span></button>
       <button data-go="tools"><svg viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M8 12h1M12 12h1M16 12h0M8 16h1M12 16h1M16 16h0"/></svg><span>Инструменты</span></button>
+      <button data-go="premium"><svg viewBox="0 0 24 24"><path d="m12 3 2.7 5.5 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1-4.4-4.3 6.1-.9L12 3Z"/></svg><span>PRO</span></button>
       <button data-go="profile"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/></svg><span>Профиль</span></button>
     </nav>
 
@@ -118,6 +119,12 @@
         <div id="toolsBody"></div>
       </section>
 
+      <!-- PREMIUM -->
+      <section class="screen" id="screen-premium">
+        <h2 class="screen-title">ARVEX Premium</h2>
+        <div id="premiumBody"></div>
+      </section>
+
       <!-- ПРОФИЛЬ -->
       <section class="screen" id="screen-profile">
         <div id="profileBody"></div>
@@ -153,12 +160,14 @@
   <script src="exam.js"></script>
   <script src="glossary.js"></script>
   <script src="chart.js"></script>
-  <script src="app.js"></script>
   <script src="cloud-config.js"></script>
+  <script src="capacitor-app-bridge.bundle.js"></script>
   <script src="cloud.js"></script>
   <script src="shop-config.js"></script>
   <script src="access.js"></script>
+  <script src="app.js"></script>
   <script src="school.js"></script>
   <script src="tools.js"></script>
+  <script src="premium.js"></script>
 </body>
 </html>

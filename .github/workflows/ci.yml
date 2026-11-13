@@ -1,0 +1,65 @@
+name: ARVEX CI
+on:
+  push:
+    branches: [main, 'feature/**']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - name: Check all Supabase Edge Functions
+        run: |
+          for file in supabase/functions/*/index.ts; do
+            echo "Checking $file"
+            deno check "$file"
+          done
+      - name: Check JavaScript syntax
+        run: |
+          for file in app.js cloud.js access.js shop-config.js cloud-config.js chart.js school.js tools.js premium.js lessons.js exam.js glossary.js scripts/verify-app.js; do
+            node --check "$file"
+          done
+      - name: Run ARVEX regression tests
+        run: node scripts/verify-app.js
+      - name: Build shared web bundle
+        working-directory: mobile
+        run: |
+          npm install
+          npm run build:web
+          test -f www/capacitor-app-bridge.bundle.js
+          test -f www/offer.html
+      - name: Create and sync Android project
+        working-directory: mobile
+        run: |
+          if [ ! -d android ]; then npx cap add android; fi
+          npx cap sync android
+          node configure-android.js
+          bash ./apply-android-icons.sh
+      - name: Build Android debug APK
+        working-directory: mobile/android
+        run: |
+          chmod +x ./gradlew
+          ./gradlew --no-daemon assembleDebug
+
+      - name: Upload Android debug APK for device testing
+        uses: actions/upload-artifact@v4
+        with:
+          name: ARVEX-1.1.2-debug-APK
+          path: mobile/android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 7

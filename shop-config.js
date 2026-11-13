@@ -10,5 +10,5 @@ window.ARVEX_SHOP=window.ARVEX_SHOP||{
   promoPrice:490,
   telegram:"mrasulv",
   payNote:"",
-  lockedFeatures:[]
+  lockedFeatures:["pro_analytics","pro_risk_lab","pro_journal","pro_watchlist","pro_market_review"]
 };

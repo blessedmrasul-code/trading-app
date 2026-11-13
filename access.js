@@ -42,7 +42,7 @@ const Access=(()=>{
   const s=shop();
   return `<h3 style="margin:0 0 6px">Заявка на доступ</h3><p class="muted" style="margin:0 0 10px">Цена: <b>${price()} ₽</b> разово, навсегда. Оставь контакты — я свяжусь, отправлю реквизиты и файл приложения.</p>
   <input class="field" id="accTg" placeholder="Telegram (@username)" autocomplete="off"><input class="field" id="accDev" placeholder="Устройство (напр. Redmi Note 12)" style="margin-top:8px"><input class="field" id="accMail" type="email" placeholder="Email (необязательно)" style="margin-top:8px">
-  <label class="muted" style="display:flex;gap:8px;align-items:flex-start;margin-top:10px;font-size:13px"><input type="checkbox" id="accOk" style="width:auto;margin-top:2px"><span>Я ознакомлен с <a href="offer.html" target="_blank" rel="noopener" style="color:var(--purple2)">офертой</a>. Приложение образовательное, сделки виртуальные, прибыль не гарантируется.</span></label>
+  <label class="muted" style="display:flex;gap:8px;align-items:flex-start;margin-top:10px;font-size:13px"><input type="checkbox" id="accOk" style="width:auto;margin-top:2px"><span>Я ознакомлен с <a href="offer.html" target="_blank" rel="noopener" style="color:var(--purple2)">условиями использования</a>. Приложение образовательное, сделки виртуальные, прибыль не гарантируется.</span></label>
   <div class="btn-row" style="margin-top:12px"><button class="primary" id="accSend">Отправить заявку</button>${s.telegram?`<button class="ghost" id="accTgBtn">Написать в Telegram</button>`:""}</div><p class="muted" id="accMsg" style="margin:8px 0 0"></p>`;
  }
  function read(){
@@ -51,7 +51,7 @@ const Access=(()=>{
   if(!/^[A-Za-z0-9_]{5,32}$/.test(tg)){m.textContent="Telegram: 5–32 символов, латиница, цифры, _";return null}
   if(dev.length<2){m.textContent="Укажи устройство.";return null}
   if(mail&&!/^\S+@\S+\.\S+$/.test(mail)){m.textContent="Проверь email.";return null}
-  if(!$("accOk").checked){m.textContent="Подтверди, что ознакомился с офертой.";return null}
+  if(!$("accOk").checked){m.textContent="Подтверди, что ознакомился с условиями использования.";return null}
   return {tg,dev,mail};
  }
  async function send(){
