@@ -341,6 +341,36 @@ assert.ok(fs.existsSync(path.join(root, "mobile/apply-android-icons.sh")), "Andr
   await vm.runInNewContext(cloud + "\n;Cloud.loadNotifications();", { ...disabledNotificationContext, unreadNotification });
   assert.equal(disabledNotificationRequests.some(x => x.options.method === "PATCH"), false, "Disabled notifications must remain unread until the user sees them");
 
+  const emailConfirmStorage = new Map();
+  const emailConfirmMessage = { textContent: "" };
+  let emailConfirmCleanedUrl = "";
+  const emailConfirmHash = "#type=signup&access_token=email-access&refresh_token=email-refresh&expires_in=3600";
+  const emailConfirmContext = {
+    window: { ARVEX_CLOUD: { url: "https://example.supabase.co", anonKey: "public-test-key" }, ARVEX_CAP_IS_NATIVE: () => false },
+    location: { href: "https://arvex.example/app/" + emailConfirmHash, origin: "https://arvex.example", pathname: "/app/", search: "", hash: emailConfirmHash },
+    history: { replaceState(_state, _title, url) { emailConfirmCleanedUrl = url; } },
+    document: { addEventListener() {}, getElementById(id) { return id === "cloudMsg" ? emailConfirmMessage : null; } },
+    localStorage: {
+      getItem(key) { return emailConfirmStorage.get(key) ?? null; },
+      setItem(key, value) { emailConfirmStorage.set(key, value); },
+      removeItem(key) { emailConfirmStorage.delete(key); }
+    },
+    fetch: async (url) => ({
+      ok: true, status: 200,
+      json: async () => url.includes("/auth/v1/user")
+        ? { id: "verified-user", email: "verified@example.invalid" }
+        : url.includes("arvex_my_account_status")
+          ? [{ is_banned: false }]
+          : []
+    }),
+    URL, URLSearchParams
+  };
+  await vm.runInNewContext(cloud + "\n;Cloud.acceptEmailConfirmation();", emailConfirmContext);
+  const confirmedSession = JSON.parse(emailConfirmStorage.get("arvex_cloud_session"));
+  assert.equal(confirmedSession.uid, "verified-user", "Email confirmation must create a signed-in session automatically");
+  assert.equal(emailConfirmCleanedUrl, "/app/", "Email confirmation tokens must be removed from the address bar");
+  assert.match(emailConfirmMessage.textContent, /Email подтверждён/, "The app must confirm successful email verification");
+
   const switchStorage = new Map([
     ["arvex_cloud_session", JSON.stringify({ access: "old-access", refresh: "old-refresh", exp: Date.now() + 3600000, uid: "old-user", email: "old@example.com" })],
     ["arvex_local_state_owner", "old-user"],
