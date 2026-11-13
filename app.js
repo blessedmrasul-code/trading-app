@@ -504,7 +504,7 @@ function bind(){
  $("welcomeName").addEventListener("input",renderAvatarPicker);
  document.addEventListener("keydown",e=>{if(e.key==="Escape"){setFullscreen(false);closeSheet()}});
  window.addEventListener("resize",()=>chart&&chart.resize());
- document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden")saveState();else if(typeof Cloud!=="undefined"){if(Cloud.checkAccountStatus)Cloud.checkAccountStatus();if(Cloud.loadNotifications)Cloud.loadNotifications()}});
+ document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden")saveState();else{if(typeof Cloud!=="undefined"){if(Cloud.checkAccountStatus)Cloud.checkAccountStatus();if(Cloud.loadNotifications)Cloud.loadNotifications()}if(typeof Access!=="undefined")Access.refresh().then(()=>{if(typeof schoolTab!=="undefined"&&schoolTab==="masterclass"&&typeof renderSchool==="function")renderSchool()})}});
  window.addEventListener("pagehide",saveState);
 }
 function init(){
