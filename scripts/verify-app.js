@@ -145,7 +145,33 @@ assert.ok(fs.existsSync(path.join(root, "mobile/apply-android-icons.sh")), "Andr
   assert.ok(oauthStorage.get("arvex_google_pkce_verifier"), "The PKCE verifier must be stored before redirect");
   assert.equal(oauthUrl.searchParams.has("flow_type"), false, "OAuth must not force the legacy implicit flow");
 
-  console.log(`ARVEX checks passed: ${LESSONS.length} lessons, ${Object.keys(EXAMS).length} exams, 30 randomized runs per exam, support submit and UI guards.`);
+
+  const accountStorage = new Map([["arvex_cloud_session", JSON.stringify(session)]]);
+  const accountRequests = [];
+  const accountContext = {
+    window: { ARVEX_CLOUD: { url: "https://example.supabase.co", anonKey: "public-test-key" } },
+    document: { addEventListener() {}, getElementById() { return null; } },
+    location: { hash: "", pathname: "/app/", search: "" },
+    history: { replaceState() {} },
+    localStorage: {
+      getItem(key) { return accountStorage.get(key) ?? null; },
+      setItem(key, value) { accountStorage.set(key, value); },
+      removeItem(key) { accountStorage.delete(key); }
+    },
+    fetch: async (url, options = {}) => {
+      accountRequests.push({ url, options });
+      return { ok: true, status: 200, json: async () => url.includes("arvex_my_account_status") ? [{ is_banned: false }] : { ok: true } };
+    },
+    URL, URLSearchParams
+  };
+  await vm.runInNewContext(cloud + "\n;Cloud.checkAccountStatus();", accountContext);
+  const statusRequest = accountRequests.find(x => x.url.includes("arvex_my_account_status"));
+  assert.equal(statusRequest.options.body, "{}", "Account status RPC must be invoked without undeclared parameters");
+  await vm.runInNewContext(cloud + "\n;Cloud.deleteOwnAccount();", accountContext);
+  const deleteRequest = accountRequests.find(x => x.url.includes("functions/v1/delete-own-account"));
+  assert.ok(deleteRequest, "Account deletion must call the protected Edge Function");
+  assert.deepEqual(JSON.parse(deleteRequest.options.body), { confirm: "DELETE" }, "Account deletion must provide the required explicit confirmation");
+  console.log(`ARVEX checks passed: ${LESSONS.length} lessons, ${Object.keys(EXAMS).length} exams, 30 randomized runs per exam, support submit, ban RPC, account deletion, and UI guards.`);
 })().catch((error) => {
   console.error(error);
   process.exitCode = 1;
