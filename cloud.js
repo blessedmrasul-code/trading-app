@@ -250,10 +250,10 @@ const Cloud=(()=>{
   });
   const exitButton=el.querySelector("#arvexBanExit");if(exitButton)exitButton.focus();
  }
- async function exitBlockedApp(){
-  await signOut();
+ function exitBlockedApp(){
   const app=window.ARVEX_CAP_APP;
-  if(app&&typeof app.exitApp==="function"){try{await app.exitApp();return}catch(e){}}
+  const native=typeof window.ARVEX_CAP_IS_NATIVE==="function"?window.ARVEX_CAP_IS_NATIVE():!!(window.Capacitor&&window.Capacitor.isNativePlatform());
+  if(native&&app&&typeof app.exitApp==="function"){try{Promise.resolve(app.exitApp()).catch(()=>{});return}catch(e){}}
   try{location.replace("about:blank")}catch(e){}
  }
  async function checkAccountStatus(){
@@ -657,7 +657,7 @@ async function insertOrder(o){
 
  document.addEventListener("submit",e=>{const form=e.target;if(!form||form.id!=="arvexSupportForm")return;e.preventDefault();submitSupportForm(form)});
 
- return {insertOrder,myEntitlement,createStarsInvoice,createStarsBotLink,setStarsAutoRenew,createSupport,enabled,accountHTML,userToolsHTML,loadProfileData,loadNotifications,deliverSystemNotifications,click,schedule,sync,isIn:()=>!!session,changePasswordPrompt,startGoogleSignIn,acceptOAuthCallback,acceptEmailConfirmation,handleAuthDeepLink,checkAccountStatus,deleteOwnAccount};
+ return {insertOrder,myEntitlement,createStarsInvoice,createStarsBotLink,setStarsAutoRenew,createSupport,enabled,accountHTML,userToolsHTML,loadProfileData,loadNotifications,deliverSystemNotifications,click,schedule,sync,isIn:()=>!!session,changePasswordPrompt,startGoogleSignIn,acceptOAuthCallback,acceptEmailConfirmation,handleAuthDeepLink,checkAccountStatus,deleteOwnAccount,exitBlockedApp};
 })();
 
 // Netlify production redeploy trigger: email confirmation redirects to the public site.
