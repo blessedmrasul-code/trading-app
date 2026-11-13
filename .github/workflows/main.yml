@@ -62,6 +62,8 @@ jobs:
           deno check supabase/functions/create-stars-bot-link/index.ts
           deno check supabase/functions/telegram-stars-webhook/index.ts
           deno check supabase/functions/cancel-stars-subscription/index.ts
+          deno check supabase/functions/admin-user-ban/index.ts
+          deno check supabase/functions/delete-own-account/index.ts
 
       - uses: actions/setup-node@v4
         with:
@@ -128,6 +130,9 @@ jobs:
 
       - name: Sync web files into Android project
         run: npx cap sync android
+
+      - name: Register ARVEX OAuth deep link
+        run: node configure-android.js
 
       - name: Apply ARVEX Android launcher icons
         working-directory: mobile
