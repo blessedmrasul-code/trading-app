@@ -288,7 +288,7 @@ function renderProfile(){
    <div class="btn-row" style="margin-top:10px"><button class="ghost" id="arvexChangePassword">Изменить пароль</button><button class="ghost" id="arvexNotificationsPermission">Уведомления</button></div>
    <p class="muted" id="arvexSettingsMsg">Выбери язык и настрой уведомления приложения.</p>
   </div>
-  <div class="card"><div class="card-title">Аккаунт</div></div>${typeof Cloud!=="undefined"?Cloud.userToolsHTML():""}`;
+  <div class="card"><div class="card-title">Аккаунт</div>${typeof Cloud!=="undefined"?Cloud.accountHTML():""}</div>${typeof Access!=="undefined"?Access.cardHTML():""}${typeof Cloud!=="undefined"?Cloud.userToolsHTML():""}`;
  applyAvatar($("profAvatar"),p.avatar,p.name,p.photo);
  const langSelect=$("arvexLanguage");if(langSelect)langSelect.value=localStorage.getItem("arvex_language")||"ru";
  if(typeof Cloud!=="undefined"&&Cloud.loadProfileData)Cloud.loadProfileData();
