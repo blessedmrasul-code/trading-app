@@ -60,28 +60,44 @@ const Cloud=(()=>{
   if(typeof openSheet==="function")openSheet('<h3>Изменить пароль</h3><p class="muted">Введи новый пароль (минимум 8 символов).</p><input class="field" id="arvexNewPassword" type="password" autocomplete="new-password" placeholder="Новый пароль"><input class="field" id="arvexNewPassword2" type="password" autocomplete="new-password" placeholder="Повтори новый пароль" style="margin-top:8px"><p class="muted" id="arvexPasswordMsg"></p><div class="dir-btns"><button class="ghost" id="sheetCancel">Отмена</button><button class="primary" id="arvexPasswordSave">Сохранить</button></div>');
  }
  // Google OAuth: Supabase возвращает токены на custom Android deep link.
+ const PKCE_KEY="arvex_google_pkce_verifier";
+ function base64url(bytes){let bin="";for(const b of bytes)bin+=String.fromCharCode(b);return btoa(bin).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"")}
+ async function makePkce(){
+  const bytes=new Uint8Array(64);crypto.getRandomValues(bytes);
+  const verifier=base64url(bytes),digest=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(verifier));
+  localStorage.setItem(PKCE_KEY,verifier);
+  return {verifier,challenge:base64url(new Uint8Array(digest))};
+ }
  async function acceptOAuthCallback(rawUrl){
   try{
-   const u=new URL(rawUrl,location.href);
-   const params=new URLSearchParams((u.hash||"").replace(/^#/,""));
-   const error=params.get("error_description")||params.get("error");
+   const u=new URL(rawUrl,location.href),hash=new URLSearchParams((u.hash||"").replace(/^#/,""));
+   const error=u.searchParams.get("error_description")||u.searchParams.get("error")||hash.get("error_description")||hash.get("error");
    if(error){status="Ошибка входа Google: "+error;if(typeof renderProfile==="function")renderProfile();return false;}
-   const access=params.get("access_token"),refresh=params.get("refresh_token");
-   if(!access||!refresh)return false;
-   const user=await req("/auth/v1/user",{headers:hdr(access)});
-   const ok=adopt({access_token:access,refresh_token:refresh,expires_in:Number(params.get("expires_in"))||3600,user});
-   if(ok){history.replaceState(null,"",location.pathname+location.search);status="Вход через Google выполнен";await sync();if(typeof renderProfile==="function")renderProfile();return true;}
-  }catch(e){status="Не удалось обработать ответ Google: "+e.message;}
+   let tokens=null;
+   const code=u.searchParams.get("code");
+   if(code){
+    const verifier=localStorage.getItem(PKCE_KEY);
+    if(!verifier)throw new Error("Не найден ключ проверки Google-входа. Повтори авторизацию.");
+    tokens=await req("/auth/v1/token?grant_type=pkce",{method:"POST",headers:hdr(),body:JSON.stringify({auth_code:code,code_verifier:verifier})});
+    localStorage.removeItem(PKCE_KEY);
+   }else if(hash.get("access_token")&&hash.get("refresh_token")){
+    tokens={access_token:hash.get("access_token"),refresh_token:hash.get("refresh_token"),expires_in:Number(hash.get("expires_in"))||3600};
+   }else return false;
+   if(!tokens.user){tokens.user=await req("/auth/v1/user",{headers:hdr(tokens.access_token)});}
+   const ok=adopt(tokens);
+   if(ok){history.replaceState(null,"",location.pathname+location.search);status="Вход через Google выполнен";if(await checkAccountStatus())return true;await sync();if(typeof renderProfile==="function")renderProfile();return true;}
+  }catch(e){status="Не удалось завершить вход Google: "+e.message;if(typeof renderProfile==="function")renderProfile();}
   return false;
  }
- function startGoogleSignIn(){
+ async function startGoogleSignIn(){
   if(!enabled())throw new Error("Облачная авторизация сейчас недоступна.");
-  const u=new URL(cfg().url.replace(/\/$/,"")+"/auth/v1/authorize");
-  u.searchParams.set("provider","google");
-  u.searchParams.set("redirect_to",GOOGLE_REDIRECT);
-  u.searchParams.set("flow_type","implicit");
+  const native=!!(window.Capacitor&&window.Capacitor.isNativePlatform());
+  const redirect=native?GOOGLE_REDIRECT:(location.origin+location.pathname);
+  const pkce=await makePkce(),u=new URL(cfg().url.replace(/\/$/,"")+"/auth/v1/authorize");
+  u.searchParams.set("provider","google");u.searchParams.set("redirect_to",redirect);
+  u.searchParams.set("code_challenge",pkce.challenge);u.searchParams.set("code_challenge_method","s256");
   const browser=window.ARVEX_CAP_BROWSER;
-  if(browser&&window.Capacitor&&window.Capacitor.isNativePlatform())browser.open({url:u.toString()}).catch(e=>{status="Не удалось открыть браузер: "+e.message;if(typeof renderProfile==="function")renderProfile();});
+  if(native&&browser)await browser.open({url:u.toString()});
   else location.href=u.toString();
  }
  function installOAuthDeepLink(){
