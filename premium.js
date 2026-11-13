@@ -35,7 +35,7 @@
       "Список наблюдения за активами и быстрые рыночные показатели.":"Track selected assets and view quick market prices.",
       "Технический обзор":"Technical overview",
       "Сводка тренда и импульса на основе рассчитанных индикаторов.":"Trend and momentum summary based on calculated indicators.",
-      "Покупка доступна в профиле. Доступ проверяется по серверной подписке.":"Purchase is available in Profile. Access is verified against the server subscription.",
+      "Оплата откроется в личном чате официального Telegram-бота. Доступ проверяется по серверной подписке.":"Purchase is available in Profile. Access is verified against the server subscription.",
       "Загружаем достаточно свечей для расчёта. Проверь подключение к рынку и открой этот раздел чуть позже.":"Loading enough candles for calculations. Check your market connection and try again shortly.",
       "Восходящий":"Uptrend","Нисходящий":"Downtrend","Боковой / смешанный":"Sideways / mixed",
       "Перекупленность":"Overbought","Перепроданность":"Oversold","Положительный импульс":"Positive momentum","Отрицательный импульс":"Negative momentum","Нейтральный импульс":"Neutral momentum",
@@ -63,7 +63,7 @@
   const money = (value) => (value < 0 ? "−" : "") + "$" + fmt(Math.abs(value));
   const PREMIUM_KEYS = ["pro_analytics","pro_risk_lab","pro_journal","pro_watchlist","pro_market_review"];
   const premium = () => typeof Access !== "undefined" && Access.isPremium() && PREMIUM_KEYS.every(feature => !Access.locked(feature));
-  const goProfile = () => { if (typeof go === "function") go("profile"); };
+  
   const gated = () => {
     const labels = [
       ["📊","Расширенная аналитика","RSI, MACD, EMA, полосы Боллинджера и ATR на рыночных свечах."],
@@ -157,7 +157,7 @@
   document.addEventListener("click", async (event) => {
     const nav=event.target.closest('[data-go="premium"]');
     if(nav){setTimeout(()=>{if(typeof Access!=="undefined")Access.refresh().finally(render);else render();},0);return;}
-    if(event.target.closest("#proUpgrade")){goProfile();return;}
+
     if(event.target.closest("#proJournalSave")){
       const title=$("proJournalTitle").value.trim(),body=$("proJournalBody").value.trim();
       if(!title||body.length<8){if(typeof showToast==="function")showToast(tr("Добавь заголовок и не менее 8 символов заметки.","Add a title and a note of at least 8 characters."));return;}
