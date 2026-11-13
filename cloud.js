@@ -28,9 +28,8 @@ const Cloud=(()=>{
   return session.access;
  }
  async function signUp(email,pw){
-  // Не задаём устаревший redirect_to на GitHub Pages.
-  // Supabase использует Site URL проекта; после подтверждения пользователь
-  // возвращается в приложение и входит обычной кнопкой «Войти».
+  // Не задаём redirect_to: Supabase использует Site URL проекта.
+  // После подтверждения пользователь может вернуться в ARVEX и нажать «Войти».
   const j=await req("/auth/v1/signup",{method:"POST",headers:hdr(),body:JSON.stringify({email,password:pw})});
   if(adopt(j))return {ok:true};
   return {ok:false,confirm:true}; // включено подтверждение почты
