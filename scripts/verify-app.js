@@ -359,11 +359,10 @@ assert.ok(fs.existsSync(path.join(root, "mobile/apply-android-icons.sh")), "Andr
     renderTop() {}, renderTicker() {}, renderHead() {}, renderPositions() {}, renderPortfolio() {}, renderProfile() {},
     activeScreen: "profile", URL, URLSearchParams
   };
-  await vm.runInNewContext(cloud + "\n;Cloud.resendConfirmation('otp@example.invalid');", otpContext);
+  await vm.runInNewContext(cloud + "\n;(async () => { await Cloud.resendConfirmation('otp@example.invalid'); await Cloud.verifyEmailCode('otp@example.invalid', '123456'); })();", otpContext);
   const resendRequest = otpRequests.find(x => x.url.includes("/auth/v1/resend"));
   assert.ok(resendRequest, "Resend must call Supabase Auth resend endpoint");
   assert.deepEqual(JSON.parse(resendRequest.options.body), { type: "signup", email: "otp@example.invalid" }, "Resend must target the pending signup email");
-  await vm.runInNewContext(cloud + "\n;Cloud.verifyEmailCode('otp@example.invalid', '123456');", otpContext);
   const verifyRequest = otpRequests.find(x => x.url.includes("/auth/v1/verify"));
   assert.deepEqual(JSON.parse(verifyRequest.options.body), { type: "signup", email: "otp@example.invalid", token: "123456" }, "OTP verification must send the email and six-digit signup token");
   assert.equal(JSON.parse(otpStorage.get("arvex_cloud_session")).uid, "otp-user", "A valid email OTP must establish the signed-in session");
