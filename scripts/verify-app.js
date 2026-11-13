@@ -319,6 +319,27 @@ assert.ok(fs.existsSync(path.join(root, "mobile/apply-android-icons.sh")), "Andr
   assert.ok(readReceipt && readReceipt.url.includes("user_id=eq." + session.uid), "Read receipts must be scoped to the signed-in user");
   assert.ok(JSON.parse(readReceipt.options.body).read_at, "Notification read receipt must be timestamped");
 
+  const disabledNotificationStorage = new Map([
+    ["arvex_cloud_session", JSON.stringify(session)],
+    ["arvex_notifications_enabled", "false"]
+  ]);
+  const disabledNotificationRequests = [];
+  const disabledNotificationContext = {
+    window: { ARVEX_CLOUD: { url: "https://example.supabase.co", anonKey: "public-test-key" } },
+    document: { addEventListener() {}, getElementById() { return null; } },
+    localStorage: {
+      getItem(key) { return disabledNotificationStorage.get(key) ?? null; },
+      setItem(key, value) { disabledNotificationStorage.set(key, value); },
+      removeItem(key) { disabledNotificationStorage.delete(key); }
+    },
+    fetch: async (url, options = {}) => {
+      disabledNotificationRequests.push({ url, options });
+      return { ok: true, status: 200, json: async () => [unreadNotification] };
+    }
+  };
+  await vm.runInNewContext(cloud + "\n;Cloud.loadNotifications();", { ...disabledNotificationContext, unreadNotification });
+  assert.equal(disabledNotificationRequests.some(x => x.options.method === "PATCH"), false, "Disabled notifications must remain unread until the user sees them");
+
   const switchStorage = new Map([
     ["arvex_cloud_session", JSON.stringify({ access: "old-access", refresh: "old-refresh", exp: Date.now() + 3600000, uid: "old-user", email: "old@example.com" })],
     ["arvex_local_state_owner", "old-user"],
