@@ -12,6 +12,8 @@ Deno.serve(async(req:Request)=>{
   const who=await fetch(base+"/auth/v1/user",{headers:{apikey:publishable,Authorization:"Bearer "+jwt}});
   if(!who.ok)return json({error:"Сессия истекла. Войди снова."},401);
   const user=await who.json();
+  const body=await req.json().catch(()=>({}));
+  if(body.confirm!=="DELETE")return json({error:"Для удаления аккаунта требуется подтверждение DELETE."},400);
   const admin=await fetch(base+"/rest/v1/arvex_admins?user_id=eq."+encodeURIComponent(user.id)+"&select=user_id",{headers:{apikey:secret,Authorization:"Bearer "+secret}});
   if(!admin.ok)return json({error:"Не удалось проверить права аккаунта"},502);
   if((await admin.json()).length)return json({error:"Аккаунт владельца или администратора нельзя удалить через приложение. Обратись к владельцу проекта."},403);
