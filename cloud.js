@@ -2,10 +2,12 @@
    Пароль нигде не хранится — только токены сессии. Без настроек работает офлайн. */
 const Cloud=(()=>{
  const cfg=()=>window.ARVEX_CLOUD||{};
- const SK="arvex_cloud_session";
+ const SK="arvex_cloud_session",LOCAL_OWNER_KEY="arvex_local_state_owner",LOCAL_RESET_KEY="arvex_account_state_reset",STATE_KEY="arvex_v3_state";
  const GOOGLE_REDIRECT="app.arvex.trading://auth/callback";
  let session=null,timer=null,busy=false,status="",profileDataLoading=false,profileDataLoadedAt=0;
  try{session=JSON.parse(localStorage.getItem(SK)||"null")}catch(e){}
+ // Keep the device-local demo state associated with the account that created it.
+ if(session&&session.uid){const owner=localStorage.getItem(LOCAL_OWNER_KEY);if(owner&&owner!==session.uid)localStorage.removeItem(STATE_KEY);localStorage.setItem(LOCAL_OWNER_KEY,session.uid)}
  let recoveryMode=false;
  try{
   const hp=new URLSearchParams(String(location.hash||"").replace(/^#/,""));
@@ -26,7 +28,10 @@ const Cloud=(()=>{
  }
  function adopt(j){
   if(!j||!j.access_token)return false;
-  keep({access:j.access_token,refresh:j.refresh_token,exp:Date.now()+(j.expires_in||3600)*1000-60000,email:(j.user&&j.user.email)||(session&&session.email)||"",uid:(j.user&&j.user.id)||(session&&session.uid)||""});
+  const uid=(j.user&&j.user.id)||(session&&session.uid)||"",owner=localStorage.getItem(LOCAL_OWNER_KEY)||(session&&session.uid)||"";
+  if(uid&&owner&&owner!==uid){localStorage.removeItem(STATE_KEY);localStorage.setItem(LOCAL_RESET_KEY,"1")}
+  if(uid)localStorage.setItem(LOCAL_OWNER_KEY,uid);
+  keep({access:j.access_token,refresh:j.refresh_token,exp:Date.now()+(j.expires_in||3600)*1000-60000,email:(j.user&&j.user.email)||(session&&session.email)||"",uid});
   return true;
  }
  async function token(){
@@ -86,7 +91,7 @@ const Cloud=(()=>{
    }else return false;
    if(!tokens.user){tokens.user=await req("/auth/v1/user",{headers:hdr(tokens.access_token)});}
    const ok=adopt(tokens);
-   if(ok){history.replaceState(null,"",location.pathname+location.search);status="Вход через Google выполнен";if(await checkAccountStatus())return true;await sync();if(typeof renderProfile==="function")renderProfile();return true;}
+   if(ok){history.replaceState(null,"",location.pathname+location.search);status="Вход через Google выполнен";if(await checkAccountStatus())return true;if(localStorage.getItem(LOCAL_RESET_KEY)==="1"){localStorage.removeItem(LOCAL_RESET_KEY);location.reload();return true}await sync();if(typeof renderProfile==="function")renderProfile();return true;}
   }catch(e){status="Не удалось завершить вход Google: "+e.message;if(typeof renderProfile==="function")renderProfile();}
   return false;
  }
@@ -128,6 +133,7 @@ const Cloud=(()=>{
  async function signOut(){
   const old=session;
   try{if(old){const current=await token();await req("/auth/v1/logout?scope=global",{method:"POST",headers:hdr(current)});}}catch(e){}
+  if(old&&old.uid)localStorage.setItem(LOCAL_OWNER_KEY,old.uid);
   keep(null);status="";blocked=false;hideBanScreen();
   if(typeof Access!=="undefined")Access.refresh();
  }
@@ -175,7 +181,7 @@ const Cloud=(()=>{
   const r=await fetch(cfg().url.replace(/\/$/,"")+"/functions/v1/delete-own-account",{method:"POST",headers:hdr(tok),body:JSON.stringify({confirm:"DELETE"})});
   const j=await r.json().catch(()=>null);
   if(!r.ok)throw new Error((j&&j.error)||"Не удалось удалить аккаунт.");
-  keep(null);localStorage.removeItem("arvex_v3_state");localStorage.removeItem("arvex_google_pkce_verifier");
+  keep(null);localStorage.removeItem(STATE_KEY);localStorage.removeItem(LOCAL_OWNER_KEY);localStorage.removeItem(LOCAL_RESET_KEY);localStorage.removeItem("arvex_google_pkce_verifier");
   return true;
  }
  async function pull(){
@@ -224,6 +230,7 @@ const Cloud=(()=>{
     if(r.confirm){m.textContent=say("Письмо отправлено. Подтверди почту и нажми «Войти».","Confirmation email sent. Verify it, then sign in.");return}
    }else await signIn(e,p);
    if(await checkAccountStatus())return;
+   if(localStorage.getItem(LOCAL_RESET_KEY)==="1"){localStorage.removeItem(LOCAL_RESET_KEY);location.reload();return}
    showToast("Вход выполнен");await sync();
   }catch(err){
    const code=String(err.code||"").toLowerCase(),msg=String(err.message||"");
