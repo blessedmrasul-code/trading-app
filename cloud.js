@@ -577,11 +577,11 @@ async function insertOrder(o){
   return (parseInt(hex,16)||1)&0x7fffffff;
  }
  async function deliverSystemNotifications(rows){
-  if(localStorage.getItem("arvex_notifications_enabled")==="false")return;
+  if(localStorage.getItem("arvex_notifications_enabled")==="false")return false;
   let delivered=[];try{delivered=JSON.parse(localStorage.getItem("arvex_delivered_notifications")||"[]")}catch(e){}
   if(!Array.isArray(delivered))delivered=[];
   const seen=new Set(delivered),pending=(rows||[]).filter(x=>!x.read_at&&!seen.has(x.id)).slice(0,10);
-  if(!pending.length)return;
+  if(!pending.length)return true;
   const native=typeof window.ARVEX_CAP_IS_NATIVE==="function"?window.ARVEX_CAP_IS_NATIVE():!!(window.Capacitor&&window.Capacitor.isNativePlatform());
   const plugin=window.ARVEX_CAP_LOCAL_NOTIFICATIONS;
   try{
@@ -599,6 +599,7 @@ async function insertOrder(o){
    }
   }catch(e){console.warn("ARVEX notification delivery:",e)}
   localStorage.setItem("arvex_delivered_notifications",JSON.stringify([...seen].slice(-300)));
+  return pending.every(x=>seen.has(x.id));
  }
  async function loadNotifications(){
   const box=document.getElementById("arvexNotificationsList");
@@ -606,14 +607,14 @@ async function insertOrder(o){
   if(!session||!enabled())return;
   try{
    const tok=await token(),rows=await req("/rest/v1/arvex_notifications?select=id,title,body,kind,created_at,read_at&user_id=eq."+encodeURIComponent(session.uid)+"&order=created_at.desc&limit=30",{headers:hdr(tok)});
-   await deliverSystemNotifications(rows);
+   const systemDelivered=await deliverSystemNotifications(rows);
    const en=localStorage.getItem("arvex_language")==="en";
    if(box)box.innerHTML=rows.length?rows.map(x=>'<div class="res-link"><b>'+esc(x.title)+'</b><span>'+esc(x.body)+' · '+new Date(x.created_at).toLocaleString(en?"en-US":"ru-RU")+(x.read_at?(en?' · Read':' · Прочитано'):'')+'</span></div>').join(""):'<p class="muted">'+(en?'No new notifications.':'Новых уведомлений нет.')+'</p>';
    let delivered=[];try{delivered=JSON.parse(localStorage.getItem("arvex_delivered_notifications")||"[]")}catch(e){}
    if(!Array.isArray(delivered))delivered=[];
    const deliveredSet=new Set(delivered);
    const unread=rows.filter(x=>!x.read_at&&(box||deliveredSet.has(x.id))).map(x=>x.id);
-   if(unread.length)await req("/rest/v1/arvex_notifications?id=in.("+unread.join(",")+")&user_id=eq."+encodeURIComponent(session.uid),{method:"PATCH",headers:{...hdr(tok),"Prefer":"return=minimal"},body:JSON.stringify({read_at:new Date().toISOString()})});
+   if(unread.length&&(box||systemDelivered))await req("/rest/v1/arvex_notifications?id=in.("+unread.join(",")+")&user_id=eq."+encodeURIComponent(session.uid),{method:"PATCH",headers:{...hdr(tok),"Prefer":"return=minimal"},body:JSON.stringify({read_at:new Date().toISOString()})});
   }catch(e){if(box)box.textContent="Не удалось загрузить уведомления: "+e.message}
  }
 
