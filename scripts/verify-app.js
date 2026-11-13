@@ -97,6 +97,11 @@ const notificationGrants = read("supabase/migrations/20261113130000_arvex_notifi
 assert.ok(notificationGrants.includes("revoke all on table public.arvex_notifications from public, anon, authenticated"), "Anonymous users must have no direct notification table privileges");
 assert.ok(notificationGrants.includes("grant select, update on table public.arvex_notifications to authenticated"), "Signed-in users may only read and mark their own notifications; RLS enforces row ownership");
 
+const supportGrants = read("supabase/migrations/20261113131000_arvex_support_ticket_privileges_hardening.sql");
+assert.ok(supportGrants.includes("revoke all on table public.arvex_support_tickets from public, anon, authenticated"), "Anonymous users must not access support ticket storage");
+assert.ok(supportGrants.includes("grant select, insert on table public.arvex_support_tickets to authenticated"), "Users may only create and read support tickets; admin RPCs handle moderation");
+
+
 assert.ok(read("supabase/functions/admin-user-ban/index.ts").includes("arvex_admin_record_ban"), "Ban and unban actions must be recorded by the admin-only RPC");
 assert.ok(read("supabase/migrations/20261113120000_arvex_bans_and_account_controls.sql").includes("arvex_is_banned()"), "Banned accounts must be denied by database RLS");
 assert.ok(read("supabase/functions/delete-own-account/index.ts").includes("/auth/v1/admin/users/"), "Self-service deletion must use the server-side Auth Admin API");
