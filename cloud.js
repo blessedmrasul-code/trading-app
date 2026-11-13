@@ -159,8 +159,14 @@ const Cloud=(()=>{
   if(native&&browser)await browser.open({url:u.toString()});
   else location.href=u.toString();
  }
- if(typeof window!=="undefined"&&typeof location!=="undefined"&&/[?&]code=/.test(location.search)){
-  setTimeout(()=>acceptOAuthCallback(location.href),0);
+ if(typeof window!=="undefined"&&typeof location!=="undefined"){
+  const callbackHash=new URLSearchParams(String(location.hash||"").replace(/^#/,""));
+  const callbackType=callbackHash.get("type");
+  if(callbackType==="signup"||callbackType==="email"){
+   setTimeout(()=>acceptEmailConfirmation(location.href),0);
+  }else if(/[?&]code=/.test(location.search)){
+   setTimeout(()=>acceptOAuthCallback(location.href),0);
+  }
  }
  function installOAuthDeepLink(){
   const app=window.ARVEX_CAP_APP;
