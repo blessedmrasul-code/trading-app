@@ -384,7 +384,9 @@ assert.ok(fs.existsSync(path.join(root, "mobile/apply-android-icons.sh")), "Andr
     }),
     URL, URLSearchParams
   };
-  await vm.runInNewContext(cloud + "\n;Cloud.acceptEmailConfirmation();", emailConfirmContext);
+  await vm.runInNewContext(cloud + "\n;", emailConfirmContext);
+  assert.equal(typeof emailConfirmCallback, "function", "Web email confirmation callback must be detected automatically on app startup");
+  await emailConfirmCallback();
   const confirmedSession = JSON.parse(emailConfirmStorage.get("arvex_cloud_session"));
   assert.equal(confirmedSession.uid, "verified-user", "Email confirmation must create a signed-in session automatically");
   assert.equal(emailConfirmCleanedUrl, "/app/", "Email confirmation tokens must be removed from the address bar");
