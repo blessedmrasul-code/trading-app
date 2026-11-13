@@ -47,6 +47,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Build the shared ARVEX app bundle
+        working-directory: mobile
+        run: |
+          npm install
+          npm run build:web
+
       - name: Prepare static website
         run: |
           set -e
@@ -60,11 +66,9 @@ jobs:
             cp "$file" _site/
           done
           mkdir -p _site/app
-          cp app/index.html _site/app/index.html
-          for file in style.css app.js access.js shop-config.js cloud.js cloud-config.js chart.js school.js tools.js lessons.js exam.js glossary.js logo.png favicon.png icon-192.png icon-512.png manifest.webmanifest subscribe.html; do
-            test -f "$file" || { echo "Missing app asset: $file"; exit 1; }
-            cp "$file" _site/app/
-          done
+          cp -a mobile/www/. _site/app/
+          test -f _site/app/capacitor-app-bridge.bundle.js
+          test -f _site/app/offer.html
           touch _site/.nojekyll
           echo "Prepared ARVEX static site"
 
