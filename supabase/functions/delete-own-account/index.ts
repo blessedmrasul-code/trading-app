@@ -12,6 +12,9 @@ Deno.serve(async(req:Request)=>{
   const who=await fetch(base+"/auth/v1/user",{headers:{apikey:publishable,Authorization:"Bearer "+jwt}});
   if(!who.ok)return json({error:"Сессия истекла. Войди снова."},401);
   const user=await who.json();
+  const ban=await fetch(base+"/rest/v1/arvex_user_bans?user_id=eq."+encodeURIComponent(user.id)+"&select=user_id",{headers:{apikey:secret,Authorization:"Bearer "+secret}});
+  if(!ban.ok)return json({error:"Не удалось проверить ограничения аккаунта"},503);
+  if((await ban.json()).length)return json({error:"Аккаунт заблокирован администратором. Для обжалования напиши @mrasulv."},403);
   const body=await req.json().catch(()=>({}));
   if(body.confirm!=="DELETE")return json({error:"Для удаления аккаунта требуется подтверждение DELETE."},400);
   const admin=await fetch(base+"/rest/v1/arvex_admins?user_id=eq."+encodeURIComponent(user.id)+"&select=user_id",{headers:{apikey:secret,Authorization:"Bearer "+secret}});
