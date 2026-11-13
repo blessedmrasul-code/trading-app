@@ -202,6 +202,37 @@ assert.ok(fs.existsSync(path.join(root, "mobile/apply-android-icons.sh")), "Andr
   assert.ok(deleteRequest, "Account deletion must call the protected Edge Function");
   assert.deepEqual(JSON.parse(deleteRequest.options.body), { confirm: "DELETE" }, "Account deletion must provide the required explicit confirmation");
 
+  const notificationStorage = new Map([
+    ["arvex_notifications_enabled", "true"],
+    ["arvex_sound_enabled", "true"],
+    ["arvex_vibration_enabled", "false"]
+  ]);
+  let notificationChannel = null;
+  const scheduledNotifications = [];
+  const notificationPlugin = {
+    async checkPermissions() { return { display: "granted" }; },
+    async createChannel(channel) { notificationChannel = channel; },
+    async schedule(options) { scheduledNotifications.push(...options.notifications); }
+  };
+  const notificationContext = {
+    window: { ARVEX_CAP_IS_NATIVE: () => true, ARVEX_CAP_LOCAL_NOTIFICATIONS: notificationPlugin },
+    document: { addEventListener() {}, getElementById() { return null; } },
+    location: { hash: "", pathname: "/app/", search: "" },
+    localStorage: {
+      getItem(key) { return notificationStorage.get(key) ?? null; },
+      setItem(key, value) { notificationStorage.set(key, value); },
+      removeItem(key) { notificationStorage.delete(key); }
+    }
+  };
+  const unreadNotification = { id: "00000000-0000-4000-8000-000000000123", title: "ARVEX test", body: "Notification delivery test", read_at: null };
+  await vm.runInNewContext(cloud + "\n;Cloud.deliverSystemNotifications([unreadNotification]);", { ...notificationContext, unreadNotification });
+  assert.equal(notificationChannel.sound, "arvex_notification.wav", "Sound preference must select the sound-enabled Android channel");
+  assert.equal(notificationChannel.vibration, false, "Vibration preference must be applied to the Android channel");
+  assert.equal(scheduledNotifications.length, 1, "One unread notification should be scheduled");
+  assert.equal(scheduledNotifications[0].channelId, "arvex-notifications-s1-v0", "Notification must use the matching sound/vibration channel");
+  await vm.runInNewContext(cloud + "\n;Cloud.deliverSystemNotifications([unreadNotification]);", { ...notificationContext, unreadNotification });
+  assert.equal(scheduledNotifications.length, 1, "Delivered notifications must not be scheduled twice");
+
   const switchStorage = new Map([
     ["arvex_cloud_session", JSON.stringify({ access: "old-access", refresh: "old-refresh", exp: Date.now() + 3600000, uid: "old-user", email: "old@example.com" })],
     ["arvex_local_state_owner", "old-user"],
