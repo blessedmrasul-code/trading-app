@@ -385,7 +385,7 @@ assert.ok(fs.existsSync(path.join(root, "mobile/apply-android-icons.sh")), "Andr
   const blockedSessionStorage = new Map([["arvex_cloud_session", JSON.stringify(session)]]);
   let blockedExitCalls = 0;
   const blockedExitContext = {
-    window: { ARVEX_CLOUD: { url: "https://example.supabase.co", anonKey: "public-test-key" }, ARVEX_CAP_IS_NATIVE: () => true, ARVEX_CAP_APP: { exitApp() { blockedExitCalls++; } } },
+    window: { ARVEX_CLOUD: { url: "https://example.supabase.co", anonKey: "public-test-key" }, ARVEX_CAP_IS_NATIVE: () => true, ARVEX_CAP_APP: { addListener() {}, getLaunchUrl() { return Promise.resolve(null); }, exitApp() { blockedExitCalls++; } } },
     document: { addEventListener() {}, getElementById() { return null; } },
     location: { href: "https://arvex.example/app/", pathname: "/app/", search: "", hash: "", replace() {} },
     localStorage: {
@@ -393,7 +393,7 @@ assert.ok(fs.existsSync(path.join(root, "mobile/apply-android-icons.sh")), "Andr
       setItem(key, value) { blockedSessionStorage.set(key, value); },
       removeItem(key) { blockedSessionStorage.delete(key); }
     },
-    URL, URLSearchParams
+    URL, URLSearchParams, setTimeout() { return 0; }, clearTimeout() {}, console: { warn() {} }
   };
   await vm.runInNewContext(cloud + "\n;Cloud.exitBlockedApp();", blockedExitContext);
   assert.equal(blockedExitCalls, 1, "Ban screen exit must close the Android app");
