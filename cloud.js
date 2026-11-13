@@ -134,12 +134,24 @@ const Cloud=(()=>{
  function hideBanScreen(){const el=document.getElementById("arvexBanOverlay");if(el)el.remove();blocked=false}
  function showBanScreen(info){
   blocked=true;
+  const en=localStorage.getItem("arvex_language")==="en",locale=en?"en-US":"ru-RU";
+  const words=en?{
+   title:"Your account has been blocked by an administrator",
+   admin:"Administrator",reason:"Reason for the block",exit:"Exit the app",appeal:"Appeal this decision",
+   appealText:"Hello, I would like to appeal my ARVEX account restriction. Email: ",
+   fallback:"Access to this account has been restricted by ARVEX administration."
+  }:{
+   title:"Вы были заблокированы администратором",admin:"Администратор",reason:"Причина блокировки",
+   exit:"Выйти из приложения",appeal:"Обжаловать блокировку",
+   appealText:"Здравствуйте, хочу обжаловать блокировку аккаунта ARVEX. Email: ",
+   fallback:"Доступ к аккаунту ограничен администрацией ARVEX."
+  };
   let el=document.getElementById("arvexBanOverlay");
   if(!el){el=document.createElement("div");el.id="arvexBanOverlay";document.body.appendChild(el)}
-  const reason=esc(info.reason||"Доступ к аккаунту ограничен администрацией ARVEX.");
-  const when=info.banned_at?new Date(info.banned_at).toLocaleString("ru-RU"):"";
+  const reason=esc(info.reason||words.fallback),when=info.banned_at?new Date(info.banned_at).toLocaleString(locale):"";
+  const appeal=words.appealText+(session?.email||"unknown")+". "+(info.reason||"");
   el.style.cssText="position:fixed;inset:0;z-index:2147483000;background:rgba(5,7,16,.98);display:flex;align-items:center;justify-content:center;padding:20px;overflow:auto";
-  el.innerHTML='<div style="width:min(100%,440px);background:#111827;border:1px solid #754b5b;border-radius:20px;padding:26px;color:#f7f7fb;text-align:center;box-shadow:0 20px 80px #0009"><div style="font-size:48px;margin-bottom:12px">🔒</div><h2 style="margin:0 0 10px">Вы были заблокированы администратором</h2><p style="color:#b8c0d2;margin:0 0 6px">Администратор: <b>Mrasulv</b></p><div style="background:#1c2434;border-radius:12px;padding:14px;margin:14px 0;text-align:left"><b>Причина блокировки</b><p style="white-space:pre-wrap;margin:8px 0 0">'+reason+'</p></div><p style="color:#9ca8bb;font-size:12px;margin:0 0 16px">'+esc(when)+'</p><button id="arvexBanExit" class="danger" style="width:100%;margin-bottom:10px">Выйти из приложения</button><a href="https://t.me/mrasulv?text='+encodeURIComponent("Здравствуйте, хочу обжаловать блокировку аккаунта ARVEX. Email: "+(session?.email||"неизвестен")+". Причина: "+(info.reason||""))+'" target="_blank" rel="noopener" style="display:block;background:#7655e8;color:white;text-decoration:none;padding:13px;border-radius:10px;font-weight:700">Обжаловать блокировку</a></div>';
+  el.innerHTML='<div style="width:min(100%,440px);background:#111827;border:1px solid #754b5b;border-radius:20px;padding:26px;color:#f7f7fb;text-align:center;box-shadow:0 20px 80px #0009"><div style="font-size:48px;margin-bottom:12px">🔒</div><h2 style="margin:0 0 10px">'+words.title+'</h2><p style="color:#b8c0d2;margin:0 0 6px">'+words.admin+': <b>Mrasulv</b></p><div style="background:#1c2434;border-radius:12px;padding:14px;margin:14px 0;text-align:left"><b>'+words.reason+'</b><p style="white-space:pre-wrap;margin:8px 0 0">'+reason+'</p></div><p style="color:#9ca8bb;font-size:12px;margin:0 0 16px">'+esc(when)+'</p><button id="arvexBanExit" class="danger" style="width:100%;margin-bottom:10px">'+words.exit+'</button><a href="https://t.me/mrasulv?text='+encodeURIComponent(appeal)+'" target="_blank" rel="noopener" style="display:block;background:#7655e8;color:white;text-decoration:none;padding:13px;border-radius:10px;font-weight:700">'+words.appeal+'</a></div>';
  }
  async function exitBlockedApp(){
   await signOut();
