@@ -170,10 +170,9 @@ assert.ok(fs.existsSync(path.join(root, "mobile/apply-android-icons.sh")), "Andr
     },
     URL, URLSearchParams
   };
-  await vm.runInNewContext(cloud + "\n;Cloud.checkAccountStatus();", accountContext);
+  await vm.runInNewContext(cloud + "\n;(async () => { await Cloud.checkAccountStatus(); await Cloud.deleteOwnAccount(); })();", accountContext);
   const statusRequest = accountRequests.find(x => x.url.includes("arvex_my_account_status"));
   assert.equal(statusRequest.options.body, "{}", "Account status RPC must be invoked without undeclared parameters");
-  await vm.runInNewContext(cloud + "\n;Cloud.deleteOwnAccount();", accountContext);
   const deleteRequest = accountRequests.find(x => x.url.includes("functions/v1/delete-own-account"));
   assert.ok(deleteRequest, "Account deletion must call the protected Edge Function");
   assert.deepEqual(JSON.parse(deleteRequest.options.body), { confirm: "DELETE" }, "Account deletion must provide the required explicit confirmation");
