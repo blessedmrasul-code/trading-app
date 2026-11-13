@@ -4,6 +4,13 @@ const Cloud=(()=>{
  const cfg=()=>window.ARVEX_CLOUD||{};
  const SK="arvex_cloud_session",LOCAL_OWNER_KEY="arvex_local_state_owner",LOCAL_RESET_KEY="arvex_account_state_reset",STATE_KEY="arvex_v3_state";
  const GOOGLE_REDIRECT="app.arvex.trading://auth/callback";
+ function authRedirectUrl(){
+  const native=typeof window.ARVEX_CAP_IS_NATIVE==="function"?window.ARVEX_CAP_IS_NATIVE():!!(window.Capacitor&&window.Capacitor.isNativePlatform());
+  if(native)return GOOGLE_REDIRECT;
+  let path=String(location.pathname||"/").replace(/index\.html$/i,"");
+  if(!path.endsWith("/"))path+="/";
+  return location.origin+path;
+ }
  let session=null,timer=null,busy=false,status="",profileDataLoading=false,profileDataLoadedAt=0;
  try{session=JSON.parse(localStorage.getItem(SK)||"null")}catch(e){}
  // Keep the device-local demo state associated with the account that created it.
@@ -44,8 +51,7 @@ const Cloud=(()=>{
  }
  async function signUp(email,pw){
   // После подтверждения email возвращаем пользователя в приложение, а не на страницу покупки.
-  const native=typeof window.ARVEX_CAP_IS_NATIVE==="function"?window.ARVEX_CAP_IS_NATIVE():!!(window.Capacitor&&window.Capacitor.isNativePlatform());
-  const redirect=native?GOOGLE_REDIRECT:(location.origin+location.pathname);
+  const redirect=authRedirectUrl();
   const j=await req("/auth/v1/signup?redirect_to="+encodeURIComponent(redirect),{method:"POST",headers:hdr(),body:JSON.stringify({email,password:pw})});
   if(adopt(j))return {ok:true};
   if(j&&j.user&&Array.isArray(j.user.identities)&&j.user.identities.length===0)return {ok:false,exists:true};
@@ -53,8 +59,7 @@ const Cloud=(()=>{
  }
  async function resetPassword(email){
   const e=String(email||"").trim();if(!/^\S+@\S+\.\S+$/.test(e))throw new Error("Укажи корректный email.");
-  const native=typeof window.ARVEX_CAP_IS_NATIVE==="function"?window.ARVEX_CAP_IS_NATIVE():!!(window.Capacitor&&window.Capacitor.isNativePlatform());
-  const redirect=native?GOOGLE_REDIRECT:(location.origin+location.pathname);
+  const redirect=authRedirectUrl();
   await req("/auth/v1/recover?redirect_to="+encodeURIComponent(redirect),{method:"POST",headers:hdr(),body:JSON.stringify({email:e})});
   return true;
  }
@@ -145,8 +150,7 @@ const Cloud=(()=>{
  }
  async function startGoogleSignIn(){
   if(!enabled())throw new Error(localStorage.getItem("arvex_language")==="en"?"Cloud sign-in is currently unavailable.":"Облачная авторизация сейчас недоступна.");
-  const native=typeof window.ARVEX_CAP_IS_NATIVE==="function"?window.ARVEX_CAP_IS_NATIVE():!!(window.Capacitor&&window.Capacitor.isNativePlatform());
-  const redirect=native?GOOGLE_REDIRECT:(location.origin+location.pathname);
+  const redirect=authRedirectUrl();
   const pkce=await makePkce(),u=new URL(cfg().url.replace(/\/$/,"")+"/auth/v1/authorize");
   u.searchParams.set("provider","google");u.searchParams.set("redirect_to",redirect);
   u.searchParams.set("code_challenge",pkce.challenge);u.searchParams.set("code_challenge_method","s256");
