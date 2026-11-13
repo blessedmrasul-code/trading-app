@@ -123,6 +123,9 @@ jobs:
       - name: Sync Capacitor
         run: npx cap sync android
 
+      - name: Register ARVEX Google OAuth deep link
+        run: node configure-android.js
+
       - name: Apply ARVEX Android launcher icons
         working-directory: mobile
         run: bash ./apply-android-icons.sh
