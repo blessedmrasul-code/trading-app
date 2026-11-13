@@ -54,6 +54,7 @@ assert.ok(app.includes("Cloud.loadNotifications()") && cloud.includes("loadNotif
 assert.ok(cloud.includes('const GOOGLE_REDIRECT="app.arvex.trading://auth/callback"'), "Google OAuth must return to the ARVEX Android deep link");
 assert.ok(cloud.includes('id="cloudGoogle"'), "Profile must render the Google sign-in button");
 assert.ok(cloud.includes("startGoogleSignIn") && cloud.includes("acceptOAuthCallback"), "Google OAuth start and callback handlers must exist");
+assert.ok(cloud.includes('callbackHash.get("type")==="signup"') && cloud.includes("acceptEmailConfirmation(location.href)"), "Web email confirmation must be processed automatically on return to the app");
 assert.ok(cloud.includes("/auth/v1/recover?redirect_to=") && cloud.includes("recoveryType"), "Password recovery must return to the app and support native callback tokens");
 assert.ok(cloud.includes("cleanOAuthCallbackUrl") && cloud.includes('searchParams.delete(key)'), "OAuth code, state and error parameters must be removed from browser history");
 
@@ -349,10 +350,12 @@ assert.ok(fs.existsSync(path.join(root, "mobile/apply-android-icons.sh")), "Andr
   const emailConfirmStorage = new Map();
   const emailConfirmMessage = { textContent: "" };
   let emailConfirmCleanedUrl = "";
+  let emailConfirmCallback = null;
   const emailConfirmHash = "#type=signup&access_token=email-access&refresh_token=email-refresh&expires_in=3600";
   const emailConfirmContext = {
     window: { ARVEX_CLOUD: { url: "https://example.supabase.co", anonKey: "public-test-key" }, ARVEX_CAP_IS_NATIVE: () => false },
     location: { href: "https://arvex.example/app/" + emailConfirmHash, origin: "https://arvex.example", pathname: "/app/", search: "", hash: emailConfirmHash },
+    setTimeout(callback) { emailConfirmCallback = callback; return 1; },
     history: { replaceState(_state, _title, url) { emailConfirmCleanedUrl = url; } },
     document: { addEventListener() {}, getElementById(id) { return id === "cloudMsg" ? emailConfirmMessage : null; } },
     localStorage: {
@@ -370,7 +373,9 @@ assert.ok(fs.existsSync(path.join(root, "mobile/apply-android-icons.sh")), "Andr
     }),
     URL, URLSearchParams
   };
-  await vm.runInNewContext(cloud + "\n;Cloud.acceptEmailConfirmation();", emailConfirmContext);
+  await vm.runInNewContext(cloud, emailConfirmContext);
+  assert.equal(typeof emailConfirmCallback, "function", "Web signup callback must automatically schedule email confirmation handling");
+  await emailConfirmCallback();
   const confirmedSession = JSON.parse(emailConfirmStorage.get("arvex_cloud_session"));
   assert.equal(confirmedSession.uid, "verified-user", "Email confirmation must create a signed-in session automatically");
   assert.equal(emailConfirmCleanedUrl, "/app/", "Email confirmation tokens must be removed from the address bar");
