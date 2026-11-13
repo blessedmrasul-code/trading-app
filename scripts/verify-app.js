@@ -266,7 +266,7 @@ assert.ok(fs.existsSync(path.join(root, "mobile/apply-android-icons.sh")), "Andr
   assert.equal(switchStorage.has("arvex_v3_state"), false, "Previous account's local progress must not carry over to another account");
   assert.equal(switchReloads, 1, "Account switch must reload before using the previous account's in-memory state");
   assert.equal(switchCleanedUrl, "/app/", "OAuth authorization code and state must be removed from the address bar after exchange");
-  console.log(`ARVEX checks passed: ${LESSONS.length} lessons, ${Object.keys(EXAMS).length} exams, 30 randomized runs per exam, support submit, ban RPC, account deletion, account isolation, and UI guards.`);
+  console.log(`ARVEX checks passed: ${LESSONS.length} lessons, ${Object.keys(EXAMS).length} exams, 30 randomized runs per exam, support submit, ban RPC, account deletion, account isolation, notification delivery/deduplication, OAuth URL cleanup, and UI guards.`);
 })().catch((error) => {
   console.error(error);
   process.exitCode = 1;
