@@ -5,7 +5,7 @@ const esbuild = require('esbuild');
 
 const root = path.resolve(__dirname, '..');
 const out = path.resolve(__dirname, 'www');
-const FILES = ['style.css', 'app.js', 'cloud-config.js', 'cloud.js', 'shop-config.js', 'access.js', 'chart.js', 'school.js', 'tools.js', 'lessons.js', 'exam.js', 'glossary.js', 'logo.png', 'favicon.png', 'icon-192.png', 'icon-512.png', 'manifest.webmanifest', 'subscribe.html', 'offer.html'];
+const FILES = ['style.css', 'app.js', 'cloud-config.js', 'cloud.js', 'shop-config.js', 'access.js', 'chart.js', 'school.js', 'tools.js', 'lessons.js', 'exam.js', 'glossary.js', 'premium.js', 'logo.png', 'favicon.png', 'icon-192.png', 'icon-512.png', 'manifest.webmanifest', 'subscribe.html', 'offer.html'];
 
 fs.rmSync(out, { recursive: true, force: true });
 fs.mkdirSync(out, { recursive: true });
