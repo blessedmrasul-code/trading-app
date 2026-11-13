@@ -68,6 +68,18 @@ assert.ok(app.includes("Cloud.accountHTML()"), "Profile must render cloud sign-i
 assert.ok(app.includes("Access.cardHTML()"), "Profile must render the subscription purchase card");
 assert.ok(app.includes("Cloud.userToolsHTML()"), "Profile must render promo codes and account tools");
 const access = read("access.js");
+assert.ok(cloud.includes('code_challenge_method","s256"'), "Google OAuth must use PKCE instead of exposing tokens in redirects");
+assert.ok(cloud.includes('location.origin+location.pathname'), "Web Google OAuth must return to the current app route");
+assert.ok(cloud.includes('app.arvex.trading://auth/callback'), "Android Google OAuth deep link must remain registered");
+assert.ok(cloud.includes("arvex_my_account_status") && cloud.includes("arvexBanOverlay"), "Signed-in users must be checked for account bans and shown the block screen");
+assert.ok(cloud.includes("delete-own-account") && cloud.includes("arvexDeleteConfirm"), "Account deletion must use the protected server endpoint and explicit confirmation");
+assert.ok(cloud.includes("admin-user-ban") && cloud.includes("arvex_admin_list_bans"), "Creator panel must support audited ban and unban management");
+assert.ok(app.includes("arvexSoundToggle") && app.includes("arvexVibrationToggle") && app.includes("arvexNotificationsToggle"), "Settings must expose notification, sound and vibration preferences");
+assert.ok(read("mobile/build-web.js").includes("'offer.html'"), "Android web bundle must include the Premium offer page");
+assert.ok(read("mobile/package.json").includes('"@capacitor/browser": "8.0.0"'), "Native Google OAuth browser dependency must be pinned");
+assert.ok(read("supabase/migrations/20261113120000_arvex_bans_and_account_controls.sql").includes("arvex_user_bans"), "Ban migration must exist");
+assert.ok(read("supabase/functions/admin-user-ban/index.ts").includes('ban_duration:"876000h"'), "Admin ban must be enforced by Supabase Auth");
+assert.ok(read("supabase/functions/delete-own-account/index.ts").includes("/auth/v1/admin/users/"), "Self-service deletion must use the server-side Auth Admin API");
 assert.ok(access.includes("link.hidden=active"), "Active Premium users must not see the purchase CTA");
 const appHtml = read("app/index.html");
 assert.ok(appHtml.includes('id="subscribeFooterLink"') && appHtml.includes('id="footerPremiumStatus"'), "Footer must switch to Premium status");
