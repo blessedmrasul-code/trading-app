@@ -5,6 +5,7 @@ ARVEX использует Google OAuth с PKCE (без передачи access 
 Redirect URI:
 - Android: `app.arvex.trading://auth/callback`
 - GitHub Pages web app: `https://blessedmrasul-code.github.io/trading-app/app/`
+- Netlify web app: `https://sage-peony.netlify.app/`
 
 ## 1. Google Cloud Console
 
@@ -24,13 +25,15 @@ Redirect URI:
 - вставьте Client Secret;
 - сохраните настройки.
 
-В Authentication → URL Configuration → Redirect URLs добавьте обе строки:
+В Authentication → URL Configuration → Redirect URLs добавьте все адреса, с которых реально открывают приложение:
 
 `app.arvex.trading://auth/callback`
 
 `https://blessedmrasul-code.github.io/trading-app/app/`
 
-Site URL и существующие redirect URL не удаляйте. Веб-версия возвращает пользователя на текущий путь приложения; Android — по custom scheme.
+`https://sage-peony.netlify.app/`
+
+Site URL и существующие redirect URL не удаляйте. Веб-версия возвращает пользователя на текущий путь приложения; Android — по custom scheme. Если используешь другой домен, добавь и его точный HTTPS-адрес в Redirect URLs.
 
 ## 3. Проверка
 
