@@ -97,7 +97,7 @@ assert.ok(cloud.includes('app.arvex.trading://auth/callback'), "Android Google O
 assert.ok(cloud.includes("arvex_my_account_status") && cloud.includes("arvexBanOverlay"), "Signed-in users must be checked for account bans and shown the block screen");
 assert.ok(cloud.includes("LOCAL_OWNER_KEY") && cloud.includes("LOCAL_RESET_KEY"), "Local progress must be isolated when users switch accounts");
 assert.ok(cloud.includes("info.administrator||'Mrasulv'"), "Ban screen must display the administrator recorded by the server");
-assert.ok(read("supabase/migrations/20261113140000_arvex_ban_issuer_identity.sql").includes("admin_user.id=e.admin_id"), "Ban audit must identify the actual administrator who issued each action");
+assert.ok(read("supabase/migrations/20261113111418_arvex_ban_issuer_identity.sql").includes("admin_user.id=e.admin_id"), "Ban audit must identify the actual administrator who issued each action");
 assert.ok(cloud.includes('arvex_my_account_status",{method:"POST",headers:hdr(tok),body:"{}"}'), "Ban status RPC must be called with its zero-argument signature");
 assert.ok(cloud.includes("delete-own-account") && cloud.includes("arvexDeleteConfirm"), "Account deletion must use the protected server endpoint and explicit confirmation");
 assert.ok(cloud.includes('body:JSON.stringify({confirm:"DELETE"})'), "Account deletion must send the confirmation required by the Edge Function");
