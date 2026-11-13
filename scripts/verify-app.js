@@ -58,7 +58,7 @@ assert.ok(cloud.includes('Prefer":"return=representation'), "Support creation mu
 assert.ok(cloud.includes("arvex_admin_list_support_tickets"), "Admin support inbox must call the protected RPC");
 assert.ok(cloud.includes("arvex_admin_set_support_status"), "Admin must be able to update ticket status");
 assert.ok(cloud.includes('async function requestPasswordReset(email)'), "Password recovery request must be implemented");
-assert.ok(cloud.includes('if(!/^\\\\S+@\\\\S+\\\\.\\\\S+$/.test(clean))'), "Password recovery must validate email addresses");
+assert.ok(cloud.includes('if(!/^\\S+@\\S+\\.\\S+$/.test(clean))'), "Password recovery must validate email addresses");
 assert.ok(cloud.includes('/auth/v1/recover?redirect_to='), "Password recovery must pass an explicit return URL");
 assert.ok(cloud.includes('"?auth=recovery"'), "Password recovery must return to the in-app recovery route");
 assert.ok(cloud.includes('params.get("type")!=="recovery"') && cloud.includes('params.get("access_token")'), "Recovery route must accept only Supabase recovery sessions");
