@@ -35,7 +35,7 @@ if (!match) {
   process.exit(1);
 }
 
-// OAuth redirects must reopen the existing Capacitor activity so its
+// Auth redirects must reopen the existing Capacitor activity so its
 // appUrlOpen listener and WebView PKCE verifier remain available.
 let activity = match[0];
 activity = activity.replace(/<activity\b([^>]*)>/, (tag, attrs) => {
@@ -58,7 +58,7 @@ if (!hasDeepLink) {
 if (activity !== match[0]) {
   xml = xml.replace(match[0], activity);
   fs.writeFileSync(manifest, xml);
-  console.log("ARVEX OAuth deep link и режим singleTask проверены/обновлены.");
+  console.log("ARVEX auth callback deep link и режим singleTask проверены/обновлены.");
 } else {
-  console.log("ARVEX OAuth deep link и режим singleTask уже настроены.");
+  console.log("ARVEX auth callback deep link и режим singleTask уже настроены.");
 }
