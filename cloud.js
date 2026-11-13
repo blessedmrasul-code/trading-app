@@ -52,15 +52,22 @@ const Cloud=(()=>{
   const j=await req("/auth/v1/user",{method:"PUT",headers:hdr(tok),body:JSON.stringify({password})});
   return j;
  }
+ let recoveryError="";
  function recoverySessionFromUrl(){
   const params=new URLSearchParams(location.hash.replace(/^#/,""));
-  if(params.get("type")!=="recovery"||!params.get("access_token"))return false;
-  const access=params.get("access_token"),refresh=params.get("refresh_token")||"";
-  keep({access,refresh,exp:Date.now()+Math.max(60,Number(params.get("expires_in"))||3600)*1000-60000,email:"",uid:""});
+  const access=params.get("access_token"),type=params.get("type");
+  if(type!=="recovery"&&!params.get("error")&&!params.get("error_description"))return false;
+  if(params.get("error")||params.get("error_description")){
+   recoveryError=params.get("error_description")||params.get("error")||"Ссылка недействительна или устарела.";
+  }else if(type==="recovery"&&access){
+   const refresh=params.get("refresh_token")||"";
+   keep({access,refresh,exp:Date.now()+Math.max(60,Number(params.get("expires_in"))||3600)*1000-60000,email:"",uid:""});
+  }else recoveryError="В ссылке восстановления отсутствует токен. Запроси новое письмо.";
   history.replaceState(null,"",location.pathname+location.search);
   return true;
  }
  function recoveryHTML(){
+  if(recoveryError)return '<div class="card" id="arvexRecoveryCard"><div class="card-title">Не удалось открыть ссылку</div><p class="muted">'+esc(recoveryError)+'</p><p class="muted">Вернись ко входу в ARVEX и запроси новое письмо для восстановления пароля.</p></div>';
   return '<div class="card" id="arvexRecoveryCard"><div class="card-title">Новый пароль</div><p class="muted">Ссылка подтверждена. Придумай новый пароль для ARVEX.</p><input class="field" id="arvexNewPassword" type="password" minlength="8" autocomplete="new-password" placeholder="Новый пароль (от 8 символов)"><input class="field" id="arvexNewPassword2" type="password" minlength="8" autocomplete="new-password" placeholder="Повтори новый пароль" style="margin-top:8px"><button class="primary" id="arvexSavePassword" style="margin-top:10px">Сохранить пароль</button><p class="muted" id="arvexRecoveryMsg" aria-live="polite"></p></div>';
  }
  async function changeSignedInPassword(){
@@ -372,7 +379,11 @@ async function insertOrder(o){
  }
  function initLanguage(){const lang=localStorage.getItem("arvex_language")==="en"?"en":"ru";applyLanguage(lang)}
  document.addEventListener("DOMContentLoaded",initLanguage);
- if(recoverySessionFromUrl()){document.addEventListener("DOMContentLoaded",()=>{if(typeof go==="function")go("profile");const box=document.getElementById("profileBody");if(box)box.insertAdjacentHTML("afterbegin",recoveryHTML());});}
+ if(recoverySessionFromUrl()){
+  const mountRecovery=()=>{if(typeof go==="function")go("profile");const box=document.getElementById("profileBody");if(box)box.insertAdjacentHTML("afterbegin",recoveryHTML())};
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",mountRecovery,{once:true});
+  else mountRecovery();
+ }
 
 
  return {insertOrder,myEntitlement,createStarsInvoice,createStarsBotLink,setStarsAutoRenew,createSupport,enabled,accountHTML,userToolsHTML,loadProfileData,click,schedule,sync,isIn:()=>!!session};
