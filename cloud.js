@@ -419,19 +419,20 @@ async function insertOrder(o){
  let activeBanIds=new Set();
  async function loadAdminBans(){
   const box=document.getElementById("arvexAdminBanList");if(!box)return;
-  box.textContent="Загружаю список блокировок…";
+  const en=localStorage.getItem("arvex_language")==="en";box.textContent=en?"Loading active bans…":"Загружаю список блокировок…";
   try{
    const tok=await token(),rows=await req("/rest/v1/rpc/arvex_admin_list_bans",{method:"POST",headers:hdr(tok),body:JSON.stringify({p_query:""})});
    activeBanIds=new Set((rows||[]).map(x=>x.user_id));
    box.textContent="";
-   if(!rows||!rows.length){box.textContent="Активных блокировок нет.";return}
+   if(!rows||!rows.length){box.textContent=en?"No active bans.":"Активных блокировок нет.";return}
    rows.forEach(x=>{
     const card=document.createElement("div");card.className="res-link";
-    const head=document.createElement("b");head.textContent=(x.email||x.user_id)+" · заблокирован";card.appendChild(head);
-    const reason=document.createElement("span");reason.textContent="Причина: "+x.reason+" · выдал: "+(x.banned_by||"Mrasulv")+" · "+new Date(x.created_at).toLocaleString("ru-RU");card.appendChild(reason);
-    const button=document.createElement("button");button.className="ghost";button.type="button";button.dataset.adminUnbanUser=x.user_id;button.textContent="Снять блокировку";button.style.marginTop="8px";card.appendChild(button);box.appendChild(card);
+    const head=document.createElement("b");head.textContent=(x.email||x.user_id)+(en?" · blocked":" · заблокирован");card.appendChild(head);
+    const reason=document.createElement("span");reason.textContent=(en?"Reason: ":"Причина: ")+x.reason+(en?" · issued by: ":" · выдал: ")+(x.banned_by||"Mrasulv")+" · "+new Date(x.created_at).toLocaleString(en?"en-US":"ru-RU");card.appendChild(reason);
+    const button=document.createElement("button");button.className="ghost";button.type="button";button.dataset.adminUnbanUser=x.user_id;button.textContent=en?"Unban":"Снять блокировку";button.style.marginTop="8px";card.appendChild(button);box.appendChild(card);
    });
-  }catch(e){box.textContent="Не удалось загрузить блокировки: "+e.message}
+   if(typeof applyLanguage==="function")applyLanguage(en?"en":"ru");
+  }catch(e){box.textContent=(en?"Could not load bans: ":"Не удалось загрузить блокировки: ")+e.message}
  }
  async function loadAdminBanHistory(){
   const box=document.getElementById("arvexAdminBanHistory");if(!box)return;
@@ -451,21 +452,22 @@ async function insertOrder(o){
  }
  async function searchAdminUsers(){
   const box=document.getElementById("arvexAdminUsersList"),input=document.getElementById("arvexAdminUserQuery");if(!box||!input)return;
-  box.textContent="Ищу аккаунты…";
+  const en=localStorage.getItem("arvex_language")==="en";box.textContent=en?"Searching accounts…":"Ищу аккаунты…";
   try{
    const tok=await token(),rows=await req("/rest/v1/rpc/arvex_admin_search_users",{method:"POST",headers:hdr(tok),body:JSON.stringify({p_query:input.value.trim()})});
    box.textContent="";
-   if(!rows||!rows.length){box.textContent="Пользователи не найдены.";return}
+   if(!rows||!rows.length){box.textContent=en?"No users found.":"Пользователи не найдены.";return}
    rows.forEach(x=>{
     const card=document.createElement("div");card.className="res-link";
     const head=document.createElement("b");head.textContent=x.email||x.user_id;card.appendChild(head);
-    const info=document.createElement("span");info.textContent="ID: "+x.user_id+" · Premium: "+(x.is_forever?"навсегда":x.expires_at?new Date(x.expires_at).toLocaleDateString("ru-RU"):"нет");card.appendChild(info);
+    const info=document.createElement("span");info.textContent="ID: "+x.user_id+" · Premium: "+(x.is_forever?(en?"forever":"навсегда"):x.expires_at?new Date(x.expires_at).toLocaleDateString(en?"en-US":"ru-RU"):(en?"no":"нет"));card.appendChild(info);
     const controls=document.createElement("div");controls.className="btn-row";controls.style.marginTop="8px";
-    if(activeBanIds.has(x.user_id)){const un=document.createElement("button");un.className="ghost";un.type="button";un.dataset.adminUnbanUser=x.user_id;un.textContent="Снять блокировку";controls.appendChild(un)}
-    else{const ban=document.createElement("button");ban.className="danger";ban.type="button";ban.dataset.adminBanUser=x.user_id;ban.dataset.adminBanEmail=x.email||"";ban.textContent="Заблокировать";controls.appendChild(ban)}
+    if(activeBanIds.has(x.user_id)){const un=document.createElement("button");un.className="ghost";un.type="button";un.dataset.adminUnbanUser=x.user_id;un.textContent=en?"Unban":"Снять блокировку";controls.appendChild(un)}
+    else{const ban=document.createElement("button");ban.className="danger";ban.type="button";ban.dataset.adminBanUser=x.user_id;ban.dataset.adminBanEmail=x.email||"";ban.textContent=en?"Ban user":"Заблокировать";controls.appendChild(ban)}
     card.appendChild(controls);box.appendChild(card);
    });
-  }catch(e){box.textContent="Не удалось найти пользователей: "+e.message}
+   if(typeof applyLanguage==="function")applyLanguage(en?"en":"ru");
+  }catch(e){box.textContent=(en?"Could not find users: ":"Не удалось найти пользователей: ")+e.message}
  }
  function openAdminBanDialog(userId,email){
   if(typeof openSheet!=="function")return;
