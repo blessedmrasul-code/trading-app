@@ -64,6 +64,12 @@ Deno.serve(async (req: Request) => {
     if (!userResponse.ok) return json({ error: "Session expired. Sign in again." }, 401);
     const user = await userResponse.json();
     if (!user?.id) return json({ error: "Could not verify account" }, 401);
+    const banKey = keyFromEnv("SUPABASE_SECRET_KEYS", "SUPABASE_SERVICE_ROLE_KEY");
+    const banCheck = await fetch(`${supabaseUrl}/rest/v1/arvex_user_bans?user_id=eq.${encodeURIComponent(user.id)}&select=user_id`, {
+      headers: { apikey: banKey, Authorization: `Bearer ${banKey}` }
+    });
+    if (!banCheck.ok) return json({ error: "Could not verify account restrictions" }, 503);
+    if ((await banCheck.json()).length) return json({ error: "Аккаунт заблокирован администратором Mrasulv." }, 403);
 
     const ownerId = Deno.env.get("ARVEX_OWNER_USER_ID") || "";
     if (ownerId && user.id === ownerId) {
