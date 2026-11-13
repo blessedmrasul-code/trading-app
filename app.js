@@ -455,7 +455,7 @@ function applyLanguage(lang){
 function bind(){
  document.addEventListener("change",e=>{
   if(e.target&&e.target.id==="avPhoto")pickPhoto(e.target.files&&e.target.files[0]);
-  if(e.target&&e.target.id==="arvexLanguage"){localStorage.setItem("arvex_language",e.target.value);applyLanguage(e.target.value);const m=$("arvexSettingsMsg");if(m)m.textContent=e.target.value==="en"?"Language changed to English.":"Язык изменён на русский."}
+  if(e.target&&e.target.id==="arvexLanguage"){localStorage.setItem("arvex_language",e.target.value);applyLanguage(e.target.value);const m=$("arvexSettingsMsg");if(m)m.textContent=e.target.value==="en"?"Language changed to English.":"Язык изменён на русский.";if(typeof Cloud!=="undefined"&&Cloud.loadProfileData)Cloud.loadProfileData(true)}
   if(e.target&&e.target.id==="arvexNotificationsToggle"){localStorage.setItem("arvex_notifications_enabled",String(e.target.checked));const m=$("arvexSettingsMsg");if(m)m.textContent=e.target.checked?"Уведомления включены.":"Уведомления выключены."}
   if(e.target&&e.target.id==="arvexSoundToggle"){localStorage.setItem("arvex_sound_enabled",String(e.target.checked));const m=$("arvexSettingsMsg");if(m)m.textContent=e.target.checked?"Звуки включены.":"Звуки выключены.";if(e.target.checked)appFeedback()}
   if(e.target&&e.target.id==="arvexVibrationToggle"){localStorage.setItem("arvex_vibration_enabled",String(e.target.checked));const m=$("arvexSettingsMsg");if(m)m.textContent=e.target.checked?"Вибрация включена.":"Вибрация выключена.";if(e.target.checked)appFeedback()}
