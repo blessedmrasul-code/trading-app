@@ -162,7 +162,7 @@ const Cloud=(()=>{
  async function checkAccountStatus(){
   if(!session)return false;
   try{
-   const tok=await token(),rows=await req("/rest/v1/rpc/arvex_my_account_status",{method:"POST",headers:hdr(tok),body:"{}"});
+   const tok=await token(),rows=await req("/rest/v1/rpc/arvex_my_account_status",{method:"POST",headers:hdr(tok),body:JSON.stringify({confirm:"DELETE"})});
    const info=Array.isArray(rows)?rows[0]:rows;
    if(info&&info.is_banned){showBanScreen(info);return true}
    hideBanScreen();return false;
