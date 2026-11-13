@@ -11,7 +11,7 @@ const Cloud=(()=>{
   if(!path.endsWith("/"))path+="/";
   return location.origin+path;
  }
- let session=null,timer=null,busy=false,status="",profileDataLoading=false,profileDataLoadedAt=0;
+ let session=null,timer=null,busy=false,status="",profileDataLoading=false,profileDataLoadedAt=0,refreshPromise=null;
  try{session=JSON.parse(localStorage.getItem(SK)||"null")}catch(e){}
  // Keep the device-local demo state associated with the account that created it.
  if(session&&session.uid){const owner=localStorage.getItem(LOCAL_OWNER_KEY);if(owner&&owner!==session.uid)localStorage.removeItem(STATE_KEY);localStorage.setItem(LOCAL_OWNER_KEY,session.uid)}
@@ -44,9 +44,25 @@ const Cloud=(()=>{
  async function token(){
   if(!session)throw new Error("Нет входа");
   if(Date.now()>session.exp){
-   try{const j=await req("/auth/v1/token?grant_type=refresh_token",{method:"POST",headers:hdr(),body:JSON.stringify({refresh_token:session.refresh})});adopt(j)}
-   catch(e){keep(null);throw new Error("Сессия истекла, войди снова")}
+   // Несколько фоновых запросов могут стартовать одновременно при возврате
+   // приложения. Обновляем refresh token только один раз, иначе ротация токена
+   // может инвалидировать соседний запрос и неожиданно разлогинить пользователя.
+   if(!refreshPromise){
+    const refreshToken=session.refresh;
+    refreshPromise=(async()=>{
+     try{
+      const j=await req("/auth/v1/token?grant_type=refresh_token",{method:"POST",headers:hdr(),body:JSON.stringify({refresh_token:refreshToken})});
+      if(!adopt(j))throw new Error("Сервер не вернул новую сессию.");
+     }catch(e){
+      // Не стираем уже обновлённую сессию из-за запоздавшего параллельного ответа.
+      if(session&&session.refresh===refreshToken)keep(null);
+      throw new Error("Не удалось восстановить вход. Войди снова: "+(e.message||"ошибка сессии"));
+     }finally{refreshPromise=null}
+    })();
+   }
+   await refreshPromise;
   }
+  if(!session)throw new Error("Сессия отсутствует. Войди снова.");
   return session.access;
  }
  async function signUp(email,pw){
