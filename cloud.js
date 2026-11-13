@@ -43,7 +43,7 @@ const Cloud=(()=>{
   const clean=String(email||"").trim();
   if(!/^\\S+@\\S+\\.\\S+$/.test(clean))throw new Error("Проверь адрес электронной почты.");
   const redirectTo=location.origin+location.pathname+"?auth=recovery";
-  await req("/auth/v1/recover",{method:"POST",headers:hdr(),body:JSON.stringify({email:clean,redirect_to:redirectTo})});
+  await req("/auth/v1/recover?redirect_to="+encodeURIComponent(redirectTo),{method:"POST",headers:hdr(),body:JSON.stringify({email:clean})});
   return true;
  }
  async function updatePassword(password){
@@ -326,7 +326,7 @@ async function insertOrder(o){
  }
  function initLanguage(){const lang=localStorage.getItem("arvex_language")==="en"?"en":"ru";applyLanguage(lang)}
  document.addEventListener("DOMContentLoaded",initLanguage);
- if(recoverySessionFromUrl()){document.addEventListener("DOMContentLoaded",()=>{const box=document.getElementById("profileBody");if(box){box.insertAdjacentHTML("afterbegin",recoveryHTML());if(typeof go==="function")go("profile");}});}
+ if(recoverySessionFromUrl()){document.addEventListener("DOMContentLoaded",()=>{if(typeof go==="function")go("profile");const box=document.getElementById("profileBody");if(box)box.insertAdjacentHTML("afterbegin",recoveryHTML());});}
 
 
  return {insertOrder,myEntitlement,createStarsInvoice,createStarsBotLink,setStarsAutoRenew,createSupport,enabled,accountHTML,userToolsHTML,loadProfileData,click,schedule,sync,isIn:()=>!!session};
