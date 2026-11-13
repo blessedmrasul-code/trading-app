@@ -203,7 +203,7 @@ assert.ok(fs.existsSync(path.join(root, "mobile/apply-android-icons.sh")), "Andr
   const switchContext = {
     window: { ARVEX_CLOUD: { url: "https://example.supabase.co", anonKey: "public-test-key" } },
     document: { addEventListener() {}, getElementById() { return null; } },
-    location: { href: "https://arvex.example/app/?code=test-code", hash: "", pathname: "/app/", search: "?code=test-code", reload() { switchReloads++; } },
+    location: { href: "https://arvex.example/app/", hash: "", pathname: "/app/", search: "", reload() { switchReloads++; } },
     history: { replaceState() {} },
     localStorage: {
       getItem(key) { return switchStorage.get(key) ?? null; },
