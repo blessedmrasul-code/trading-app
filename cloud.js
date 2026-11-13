@@ -237,7 +237,7 @@ const Cloud=(()=>{
   if(t.closest("#arvexBanExit")){exitBlockedApp();return true}
   if(t.closest("#arvexBanAppeal")){return true}
   if(t.closest("#arvexDeleteAccount")){
-   if(typeof openSheet==="function")openSheet('<h3>Удалить аккаунт ARVEX?</h3><p class="muted">Это действие необратимо. Удалятся облачный аккаунт и связанные с ним данные. Для подтверждения введи DELETE.</p><input class="field" id="arvexDeleteConfirmText" placeholder="DELETE" autocomplete="off"><p class="muted" id="arvexDeleteMsg"></p><div class="dir-btns"><button class="ghost" id="sheetCancel">Отмена</button><button class="danger" id="arvexDeleteConfirm">Удалить аккаунт</button></div>');
+   if(typeof openSheet==="function")openSheet('<h3>Удалить аккаунт ARVEX?</h3><p class="muted">Это действие необратимо. Удалятся облачный аккаунт и связанные с ним данные. Если Premium продлевается автоматически, автопродление сначала будет отключено. Для подтверждения введи DELETE.</p><input class="field" id="arvexDeleteConfirmText" placeholder="DELETE" autocomplete="off"><p class="muted" id="arvexDeleteMsg"></p><div class="dir-btns"><button class="ghost" id="sheetCancel">Отмена</button><button class="danger" id="arvexDeleteConfirm">Удалить аккаунт</button></div>');
    return true;
   }
   if(t.closest("#arvexDeleteConfirm")){
