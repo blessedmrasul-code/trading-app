@@ -550,7 +550,7 @@ async function insertOrder(o){
 
  document.addEventListener("submit",e=>{const form=e.target;if(!form||form.id!=="arvexSupportForm")return;e.preventDefault();submitSupportForm(form)});
 
- return {insertOrder,myEntitlement,createStarsInvoice,createStarsBotLink,setStarsAutoRenew,createSupport,enabled,accountHTML,userToolsHTML,loadProfileData,click,schedule,sync,isIn:()=>!!session,changePasswordPrompt,startGoogleSignIn,acceptOAuthCallback,checkAccountStatus,deleteOwnAccount};
+ return {insertOrder,myEntitlement,createStarsInvoice,createStarsBotLink,setStarsAutoRenew,createSupport,enabled,accountHTML,userToolsHTML,loadProfileData,loadNotifications,deliverSystemNotifications,click,schedule,sync,isIn:()=>!!session,changePasswordPrompt,startGoogleSignIn,acceptOAuthCallback,checkAccountStatus,deleteOwnAccount};
 })();
 
 // Netlify production redeploy trigger: email confirmation redirects to the public site.
