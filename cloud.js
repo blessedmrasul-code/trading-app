@@ -120,6 +120,7 @@ const Cloud=(()=>{
   }catch(e){console.warn("ARVEX Google OAuth deep-link listener:",e);}
  }
  if(typeof window!=="undefined")installOAuthDeepLink();
+ if(typeof window!=="undefined"&&typeof setInterval==="function")setInterval(()=>{if(session)checkAccountStatus()},30000);
  async function signIn(email,pw){
   const j=await req("/auth/v1/token?grant_type=password",{method:"POST",headers:hdr(),body:JSON.stringify({email,password:pw})});
   adopt(j);return {ok:true};
@@ -509,12 +510,41 @@ async function insertOrder(o){
   try{const rows=await supportTickets();box.innerHTML=rows.length?rows.map(x=>'<div class="res-link"><b>'+esc(x.subject)+' · '+({open:"Открыто",in_progress:"В работе",closed:"Закрыто"}[x.status]||x.status)+'</b><span>'+esc(x.message)+' · '+new Date(x.created_at).toLocaleString("ru-RU")+'</span></div>').join(""):'<p class="muted">Обращений пока нет.</p>'}
   catch(e){box.textContent="Не удалось загрузить обращения: "+e.message}
  }
+ function notificationIdNumber(id){
+  const hex=String(id||"").replace(/[^0-9a-f]/gi,"").slice(0,8);
+  return (parseInt(hex,16)||1)&0x7fffffff;
+ }
+ async function deliverSystemNotifications(rows){
+  if(localStorage.getItem("arvex_notifications_enabled")==="false")return;
+  let delivered=[];try{delivered=JSON.parse(localStorage.getItem("arvex_delivered_notifications")||"[]")}catch(e){}
+  if(!Array.isArray(delivered))delivered=[];
+  const seen=new Set(delivered),pending=(rows||[]).filter(x=>!x.read_at&&!seen.has(x.id)).slice(0,10);
+  if(!pending.length)return;
+  const native=typeof window.ARVEX_CAP_IS_NATIVE==="function"?window.ARVEX_CAP_IS_NATIVE():!!(window.Capacitor&&window.Capacitor.isNativePlatform());
+  const plugin=window.ARVEX_CAP_LOCAL_NOTIFICATIONS;
+  try{
+   if(native&&plugin){
+    const permission=await plugin.checkPermissions();
+    if(permission&&permission.display==="granted"){
+     await plugin.schedule({notifications:pending.map(x=>({id:notificationIdNumber(x.id),title:String(x.title||"ARVEX"),body:String(x.body||""),schedule:{at:new Date(Date.now()+700)}}))});
+     pending.forEach(x=>seen.add(x.id));
+    }
+   }else if("Notification" in window&&Notification.permission==="granted"){
+    pending.forEach(x=>{new Notification(String(x.title||"ARVEX"),{body:String(x.body||""),icon:"icon-192.png",tag:"arvex-"+x.id});seen.add(x.id)});
+   }
+  }catch(e){console.warn("ARVEX notification delivery:",e)}
+  localStorage.setItem("arvex_delivered_notifications",JSON.stringify([...seen].slice(-300)));
+ }
  async function loadNotifications(){
   const box=document.getElementById("arvexNotificationsList");if(!box)return;
   box.textContent="Загрузка…";
-  try{const tok=await token(),rows=await req("/rest/v1/arvex_notifications?select=id,title,body,kind,created_at,read_at&user_id=eq."+encodeURIComponent(session.uid)+"&order=created_at.desc&limit=30",{headers:hdr(tok)});
-   box.innerHTML=rows.length?rows.map(x=>'<div class="res-link"><b>'+esc(x.title)+'</b><span>'+esc(x.body)+' · '+new Date(x.created_at).toLocaleString("ru-RU")+(x.read_at?' · Прочитано':'')+'</span></div>').join(""):'<p class="muted">Новых уведомлений нет.</p>';
-   const unread=rows.filter(x=>!x.read_at).map(x=>x.id);if(unread.length){await req("/rest/v1/arvex_notifications?id=in.("+unread.join(",")+")",{method:"PATCH",headers:{...hdr(tok),"Prefer":"return=minimal"},body:JSON.stringify({read_at:new Date().toISOString()})})}
+  try{
+   const tok=await token(),rows=await req("/rest/v1/arvex_notifications?select=id,title,body,kind,created_at,read_at&user_id=eq."+encodeURIComponent(session.uid)+"&order=created_at.desc&limit=30",{headers:hdr(tok)});
+   await deliverSystemNotifications(rows);
+   const en=localStorage.getItem("arvex_language")==="en";
+   box.innerHTML=rows.length?rows.map(x=>'<div class="res-link"><b>'+esc(x.title)+'</b><span>'+esc(x.body)+' · '+new Date(x.created_at).toLocaleString(en?"en-US":"ru-RU")+(x.read_at?(en?' · Read':' · Прочитано'):'')+'</span></div>').join(""):'<p class="muted">'+(en?'No new notifications.':'Новых уведомлений нет.')+'</p>';
+   const unread=rows.filter(x=>!x.read_at).map(x=>x.id);
+   if(unread.length)await req("/rest/v1/arvex_notifications?id=in.("+unread.join(",")+")",{method:"PATCH",headers:{...hdr(tok),"Prefer":"return=minimal"},body:JSON.stringify({read_at:new Date().toISOString()})});
   }catch(e){box.textContent="Не удалось загрузить уведомления: "+e.message}
  }
 
