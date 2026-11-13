@@ -84,9 +84,11 @@ const Cloud=(()=>{
  }
  function installOAuthDeepLink(){
   const app=window.ARVEX_CAP_APP;
-  if(!app)return;
-  app.addListener("appUrlOpen",e=>{if(e&&e.url)acceptOAuthCallback(e.url);});
-  app.getLaunchUrl().then(r=>{if(r&&r.url)acceptOAuthCallback(r.url);}).catch(()=>{});
+  if(!app||!window.Capacitor||typeof window.Capacitor.isNativePlatform!=="function"||!window.Capacitor.isNativePlatform())return;
+  try{
+   app.addListener("appUrlOpen",e=>{if(e&&e.url)acceptOAuthCallback(e.url);});
+   app.getLaunchUrl().then(r=>{if(r&&r.url)acceptOAuthCallback(r.url);}).catch(()=>{});
+  }catch(e){console.warn("ARVEX Google OAuth deep-link listener:",e);}
  }
  if(typeof window!=="undefined")installOAuthDeepLink();
  async function signIn(email,pw){
