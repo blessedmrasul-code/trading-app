@@ -89,7 +89,12 @@ jobs:
         run: npm install
 
       - name: Build web files (www)
-        run: npm run build:web
+        run: |
+          npm run build:web
+          # Keep the /app/ website route in sync with the exact bundle used by Android.
+          rm -rf ../app
+          mkdir -p ../app
+          cp -a www/. ../app/
 
       - name: Deploy website to Netlify
         continue-on-error: true
