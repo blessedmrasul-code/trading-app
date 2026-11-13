@@ -137,7 +137,7 @@ jobs:
       - name: Sync web files into Android project
         run: npx cap sync android
 
-      - name: Register ARVEX OAuth deep link
+      - name: Register ARVEX auth callback deep link
         run: node configure-android.js
 
       - name: Apply ARVEX Android launcher icons
