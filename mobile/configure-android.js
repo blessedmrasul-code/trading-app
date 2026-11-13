@@ -28,7 +28,7 @@ if (!fs.existsSync(manifest)) {
   process.exit(1);
 }
 let xml = fs.readFileSync(manifest, "utf8");
-const activityRe = /<activity\\b(?=[^>]*android:name="[^"]*MainActivity")[^>]*>[\\s\\S]*?<\\/activity>/;
+const activityRe = /<activity\b(?=[^>]*android:name="[^"]*MainActivity")[^>]*>[\s\S]*?<\/activity>/;
 const match = xml.match(activityRe);
 if (!match) {
   console.error("Не найдена MainActivity в AndroidManifest.xml.");
@@ -38,7 +38,7 @@ if (!match) {
 // OAuth redirects must reopen the existing Capacitor activity so its
 // appUrlOpen listener and WebView PKCE verifier remain available.
 let activity = match[0];
-activity = activity.replace(/<activity\\b([^>]*)>/, (tag, attrs) => {
+activity = activity.replace(/<activity\b([^>]*)>/, (tag, attrs) => {
   if (/android:launchMode=/.test(attrs)) return tag.replace(/android:launchMode="[^"]*"/, 'android:launchMode="singleTask"');
   return '<activity' + attrs + ' android:launchMode="singleTask">';
 });
@@ -53,7 +53,7 @@ if (!hasDeepLink) {
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="app.arvex.trading" android:host="auth" android:path="/callback" />
             </intent-filter>`;
-  activity = activity.replace(/<\\/activity>$/, filter + "\\n        </activity>");
+  activity = activity.replace(/<\/activity>$/, filter + "\n        </activity>");
 }
 if (activity !== match[0]) {
   xml = xml.replace(match[0], activity);
