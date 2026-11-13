@@ -1,14 +1,12 @@
 # Google-вход ARVEX — настройка Supabase
 
-ARVEX использует Google OAuth с PKCE (без передачи access token в адресной строке).
+ARVEX использует Google OAuth с PKCE. Пароли Google и Client Secret не передаются приложению.
 
-Redirect URI:
+Адреса возврата:
 - Android: `app.arvex.trading://auth/callback`
-- GitHub Pages main page: `https://blessedmrasul-code.github.io/trading-app/`
-- GitHub Pages app route: `https://blessedmrasul-code.github.io/trading-app/`
-
-`https://blessedmrasul-code.github.io/trading-app/app/`
-- Netlify web app: `https://sage-peony.netlify.app/`
+- GitHub Pages, главная страница: `https://blessedmrasul-code.github.io/trading-app/`
+- GitHub Pages, маршрут приложения: `https://blessedmrasul-code.github.io/trading-app/app/`
+- Netlify: `https://sage-peony.netlify.app/`
 
 ## 1. Google Cloud Console
 
@@ -28,23 +26,26 @@ Redirect URI:
 - вставьте Client Secret;
 - сохраните настройки.
 
-В Authentication → URL Configuration → Redirect URLs добавьте все адреса, с которых реально открывают приложение:
+В Authentication → URL Configuration → Redirect URLs добавьте адреса, с которых реально открывают приложение:
 
 `app.arvex.trading://auth/callback`
+
+`https://blessedmrasul-code.github.io/trading-app/`
 
 `https://blessedmrasul-code.github.io/trading-app/app/`
 
 `https://sage-peony.netlify.app/`
 
-Site URL и существующие redirect URL не удаляйте. Веб-версия возвращает пользователя на текущий путь приложения; Android — по custom scheme. Если используешь другой домен, добавь и его точный HTTPS-адрес в Redirect URLs.
+Site URL и существующие redirect URL не удаляйте. Веб-версия возвращает пользователя на текущий путь приложения; Android — по custom scheme. Если используется другой домен, добавьте и его точный HTTPS-адрес в Redirect URLs.
 
 ## 3. Проверка
 
-После включения провайдера соберите Android APK и проверьте:
+После включения провайдера проверьте:
 1. Google открывает выбор аккаунта.
-2. После выбора аккаунта Android возвращает пользователя в ARVEX.
-3. Профиль показывает email Google.
-4. Сессия переживает закрытие и повторное открытие приложения.
-5. Email/пароль, регистрация и восстановление пароля продолжают работать.
+2. После выбора аккаунта веб-сайт возвращает пользователя на ту же страницу ARVEX.
+3. Android возвращает пользователя обратно в приложение.
+4. Профиль показывает email Google.
+5. Сессия переживает закрытие и повторное открытие приложения.
+6. Email/пароль, регистрация и восстановление пароля продолжают работать.
 
 Client Secret хранится только в настройках Supabase. В APK используется только публичный ключ приложения.
