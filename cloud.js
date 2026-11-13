@@ -59,15 +59,15 @@ const Cloud=(()=>{
  }
  async function resendConfirmation(email){
   const e=String(email||"").trim();
-  if(!/^\\S+@\\S+\\.\\S+$/.test(e))throw new Error("Укажи корректный email.");
+  if(!/^\S+@\S+\.\S+$/.test(e))throw new Error("Укажи корректный email.");
   const redirect=authRedirectUrl();
   await req("/auth/v1/resend?redirect_to="+encodeURIComponent(redirect),{method:"POST",headers:hdr(),body:JSON.stringify({type:"signup",email:e})});
   return true;
  }
  async function verifyEmailCode(email,code){
-  const e=String(email||"").trim(),pin=String(code||"").replace(/\\s/g,"");
-  if(!/^\\S+@\\S+\\.\\S+$/.test(e))throw new Error("Укажи корректный email.");
-  if(!/^\\d{6}$/.test(pin))throw new Error("Введи все 6 цифр из письма.");
+  const e=String(email||"").trim(),pin=String(code||"").replace(/\s/g,"");
+  if(!/^\S+@\S+\.\S+$/.test(e))throw new Error("Укажи корректный email.");
+  if(!/^\d{6}$/.test(pin))throw new Error("Введи все 6 цифр из письма.");
   const j=await req("/auth/v1/verify",{method:"POST",headers:hdr(),body:JSON.stringify({type:"signup",email:e,token:pin})});
   if(!adopt(j))throw new Error("Код принят, но сервер не вернул сессию. Попробуй войти.");
   if(await checkAccountStatus())return true;
