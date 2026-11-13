@@ -150,6 +150,7 @@ const Cloud=(()=>{
  }
  async function startGoogleSignIn(){
   if(!enabled())throw new Error(localStorage.getItem("arvex_language")==="en"?"Cloud sign-in is currently unavailable.":"Облачная авторизация сейчас недоступна.");
+  const native=typeof window.ARVEX_CAP_IS_NATIVE==="function"?window.ARVEX_CAP_IS_NATIVE():!!(window.Capacitor&&window.Capacitor.isNativePlatform());
   const redirect=authRedirectUrl();
   const pkce=await makePkce(),u=new URL(cfg().url.replace(/\/$/,"")+"/auth/v1/authorize");
   u.searchParams.set("provider","google");u.searchParams.set("redirect_to",redirect);
@@ -158,10 +159,8 @@ const Cloud=(()=>{
   if(native&&browser)await browser.open({url:u.toString()});
   else location.href=u.toString();
  }
- if(typeof window!=="undefined"&&typeof location!=="undefined"){
-  const callbackHash=location.hash?new URLSearchParams(String(location.hash).replace(/^#/,"")):null;
-  if(callbackHash&&(callbackHash.get("type")==="signup"||callbackHash.get("type")==="email"))setTimeout(()=>acceptEmailConfirmation(location.href),0);
-  else if(/[?&]code=/.test(location.search))setTimeout(()=>acceptOAuthCallback(location.href),0);
+ if(typeof window!=="undefined"&&typeof location!=="undefined"&&/[?&]code=/.test(location.search)){
+  setTimeout(()=>acceptOAuthCallback(location.href),0);
  }
  function installOAuthDeepLink(){
   const app=window.ARVEX_CAP_APP;
