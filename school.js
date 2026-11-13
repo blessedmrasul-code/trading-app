@@ -167,6 +167,32 @@ const MASTER_LESSONS=[
 {q:"Изменил параметры после просмотра финальной выборки. Что теперь?",options:["Считать её независимой","Нужна новая независимая выборка","Удалить убыточные сделки"],answer:1,explain:"После подбора выборка перестаёт быть независимой."},
 {q:"Что делает форвард-тест недостоверным?",options:["Менять правила после каждого убытка без протокола","Записывать сделки","Задать дату завершения"],answer:0,explain:"Изменение правил на ходу разрушает сопоставимость."}
 ]}
+,
+{id:"master-execution",title:"Исполнение сделки: ликвидность, проскальзывание и гэпы",summary:"Почему расчётный риск отличается от фактического исполнения и как учитывать качество рынка.",body:[
+"План сделки должен учитывать не только уровень стопа, но и то, как ордер будет исполнен. Рыночный ордер prioritизирует исполнение, а не цену; лимитный контролирует цену, но может остаться неисполненным. Выбор типа ордера зависит от ликвидности, срочности и допустимого проскальзывания.",
+"Спред, глубина стакана и объём на уровнях влияют на фактическую цену. Крупная заявка относительно доступной ликвидности может пройти по нескольким ценам. Поэтому номинал позиции нельзя выбирать без оценки глубины и типичного объёма.",
+"Гэп или резкое движение может перескочить стоп-уровень. Стоп-маркет обычно стремится закрыть позицию по доступной цене, а стоп-лимит может не исполниться, если рынок уже ушёл за лимит. Стоп — это правило управления риском, а не гарантия точного убытка.",
+"Перед входом проверь спред, ликвидность, тип ордера, допустимое проскальзывание и сценарий резкого движения. Если реальное исполнение разрушает математическое ожидание стратегии, пропусти сделку."
+],points:["Рыночный ордер не гарантирует цену; лимитный не гарантирует исполнение.","Глубина стакана и спред входят в стоимость сделки.","Гэп может привести к исполнению хуже стоп-уровня.","Если издержки уничтожают преимущество — сделки нет."],quiz:[
+{q:"Почему лимитный стоп может не закрыть позицию после гэпа?",options:["Цена прошла лимит без встречного объёма","Лимитный ордер всегда исполняется мгновенно","Комиссия автоматически отменяет позицию"],answer:0,explain:"Лимит ограничивает цену исполнения, но не гарантирует наличие встречной ликвидности."},
+{q:"Что приоритетно для рыночного ордера?",options:["Гарантия заданной цены","Исполнение по доступной ликвидности","Отсутствие проскальзывания"],answer:1,explain:"Рыночный ордер стремится исполниться, но цена может отличаться от ожидаемой."},
+{q:"Спред резко расширился перед входом. Что разумнее?",options:["Увеличить размер позиции","Пересчитать издержки или пропустить сделку","Игнорировать спред"],answer:1,explain:"Расширенный спред ухудшает точку входа и чистое ожидание."},
+{q:"Заявка крупнее доступного объёма на лучшем уровне. Что вероятно?",options:["Исполнение по нескольким ценам","Гарантированное исполнение по одной цене","Отмена всех комиссий"],answer:0,explain:"Заявка может поглотить несколько уровней книги ордеров."},
+{q:"Как учитывать проскальзывание в бэктесте?",options:["Считать его всегда нулевым","Использовать реалистичную модель расходов и стресс-сценарии","Добавлять его только к убыточным сделкам"],answer:1,explain:"Оценка стратегии должна учитывать реальные торговые издержки."}
+]},
+{id:"master-psychology",title:"Дисциплина под давлением: протокол вместо эмоций",summary:"Как действовать после серии убытков, пропущенного входа и нарушения торгового плана.",body:[
+"Торговая дисциплина — это заранее определённый алгоритм решений, а не обещание всегда сохранять спокойствие. До сессии зафиксируй условия входа, размер риска, дневной лимит, время остановки и обстоятельства, при которых торговля запрещена.",
+"После серии убытков мозг склонен искать быстрый способ вернуть деньги. Увеличение плеча, перенос стопа и немедленный повторный вход превращают одну ошибку в цепочку. Используй паузу и чек-лист: нарушено ли правило, изменился ли рыночный режим, есть ли независимое подтверждение.",
+"Пропущенная сделка не является убытком и не создаёт обязательства догонять цену. Если точка входа ушла, дождись следующего сигнала по тем же правилам. Не меняй критерии только потому, что график уже двинулся.",
+"В журнале фиксируй не только PnL, но и качество решения: был ли сигнал, соблюдён ли риск, были ли издержки ожидаемыми, нарушен ли протокол. Разделяй результат отдельной сделки и качество процесса на серии наблюдений."
+],points:["План и лимиты фиксируются до начала сессии.","После нарушения лимита торговля прекращается.","Пропущенный вход не нужно преследовать.","Оценивай процесс на серии сделок, а не по одной прибыли или потере."],quiz:[
+{q:"После трёх убытков дневной лимит достигнут. Появился новый сигнал. Что делать?",options:["Открыть сделку меньшим стопом","Удвоить риск, чтобы вернуть потери","Остановиться согласно протоколу"],answer:2,explain:"Дневной лимит действует независимо от привлекательности следующего сигнала."},
+{q:"Цена ушла без входа. Что корректно?",options:["Догонять рынок увеличенным объёмом","Ждать следующего формального сигнала","Считать пропуск убытком"],answer:1,explain:"Пропущенная сделка не обязывает менять правила или преследовать цену."},
+{q:"Как оценивать качество системы?",options:["По одной самой прибыльной сделке","По серии сделок и соблюдению заранее заданных правил","По эмоциям после закрытия"],answer:1,explain:"Статистика на серии наблюдений информативнее единичного результата."},
+{q:"Что делать, если после убытка хочется немедленно отыграться?",options:["Сделать паузу и сверить чек-лист","Увеличить плечо","Убрать стоп"],answer:0,explain:"Пауза помогает вернуть решение к заранее определённому процессу."},
+{q:"Что полезнее записывать в журнал?",options:["Только итоговый PnL","Только направление сделки","Сигнал, риск, исполнение, отклонения и результат"],answer:2,explain:"Так можно отличить плохой результат при хорошем процессе от ошибки исполнения."}
+]}
+
 ];
 const MASTER_FINAL=[
 {q:"Счёт $12 000, риск 0,6%, стоп 1,2%. Номинал?",options:["$600","$6 000","$10 000"],answer:1,explain:"Риск $72; 72 / 0,012 = $6 000."},
@@ -181,21 +207,91 @@ const MASTER_FINAL=[
 {q:"20 сигналов пропущены из-за ошибок исполнения. Что анализировать?",options:["Только бэктест","Журнал сигналов, пропусков и ошибок","Удалить пропуски"],answer:1,explain:"Операционные ошибки входят в реальную реализацию стратегии."},
 {q:"30 сделок дали минус, правила соблюдались. Что делать?",options:["Удвоить риск","Сверить с протоколом и критериями выборки","Менять стопы задним числом"],answer:1,explain:"Решение принимают по заранее заданным критериям."},
 {q:"Что доказывает успешный демо-форвард-тест?",options:["Гарантию прибыли","Будущую доходность","Только соблюдение протокола на этой выборке"],answer:2,explain:"Ни один тест не гарантирует будущий результат."}
+
+const MASTER_STRESS=[
+{q:"Капитал $20 000, риск 0,5%, стоп 1,25%. Номинал позиции?",options:["$800","$4 000","$8 000"],answer:2,explain:"Риск $100; $100 / 0,0125 = $8 000."},
+{q:"Винрейт 40%, средний выигрыш 2,2R, средний убыток 1R. Ожидание до расходов?",options:["+0,28R","−0,12R","+0,40R"],answer:0,explain:"0,4×2,2 − 0,6×1 = +0,28R."},
+{q:"Ожидание +0,28R, средние расходы 0,35R. Чистое ожидание?",options:["+0,63R","+0,07R","−0,07R"],answer:2,explain:"0,28 − 0,35 = −0,07R."},
+{q:"Счёт просел на 30%. Какой рост нужен для возврата к исходному капиталу?",options:["30%","≈42,86%","≈70%"],answer:1,explain:"100 / 70 − 1 ≈ 42,86%."},
+{q:"Две позиции по 0,6R и 0,7R имеют высокую корреляцию. Как считать риск?",options:["Считать их полностью независимыми","Оценить общий стресс-сценарий портфеля","Учитывать только большую позицию"],answer:1,explain:"Общий фактор способен привести к одновременному убытку по обеим позициям."},
+{q:"Дневной лимит потерь 2R уже достигнут. На другом активе появился сигнал.",options:["Остановить торговлю до следующего периода","Открыть сделку с двойным плечом","Сбросить дневной счётчик"],answer:0,explain:"Дневной лимит относится к системе целиком, а не к одному инструменту."},
+{q:"Капитал $10 000, дневной лимит 2%. Какой денежный предел убытка?",options:["$20","$200","$2 000"],answer:1,explain:"10 000 × 0,02 = $200."},
+{q:"Funding −0,04% за 8 часов, SHORT номиналом $15 000. Кто платит и сколько за период?",options:["SHORT платит LONG $6","LONG платит SHORT $6","SHORT получает $60"],answer:0,explain:"При отрицательном funding обычно SHORT платит LONG; 15 000 × 0,0004 = $6."},
+{q:"Плечо 10x, цена движется на 3% против позиции. Приблизительное изменение маржи до комиссий?",options:["−3%","−10%","−30%"],answer:2,explain:"3% × 10 ≈ 30% маржи."},
+{q:"Номинал $12 000, маржа $2 000. Какое эффективное плечо?",options:["3x","6x","12x"],answer:1,explain:"12 000 / 2 000 = 6x."},
+{q:"Номинал $8 000, round-trip издержки 0,15%. Денежная стоимость?",options:["$1,20","$12","$120"],answer:1,explain:"8 000 × 0,0015 = $12."},
+{q:"Риск сделки $80, чистая прибыль $136. Результат в R?",options:["+1,7R","+0,59R","+2,16R"],answer:0,explain:"136 / 80 = 1,7R."},
+{q:"Средний выигрыш 1,5R, средний убыток 1R. Безубыточный win rate до расходов?",options:["25%","40%","60%"],answer:1,explain:"1 / (1,5 + 1) = 40%."},
+{q:"Просадка 25%. Какой рост нужен для восстановления?",options:["25%","≈33,33%","50%"],answer:1,explain:"100 / 75 − 1 = 33,33%."},
+{q:"Корреляция активов выросла во время кризиса. Какой вывод?",options:["Историческая корреляция гарантирована","Диверсификация могла ослабнуть именно в стрессовый период","Риск портфеля автоматически стал нулевым"],answer:1,explain:"Корреляции меняются; в стрессовых режимах активы могут двигаться более синхронно."},
+{q:"Стоп-лимит выставлен, но рынок перескочил лимитную цену. Что возможно?",options:["Позиция останется открытой","Ордер гарантированно исполнится по рынку","Биржа компенсирует разницу"],answer:0,explain:"Лимитный ордер не гарантирует исполнение при отсутствии подходящей встречной цены."},
+{q:"Параметры стратегии изменены после просмотра out-of-sample периода. Что теперь?",options:["Этот период остаётся независимым","Нужна новая независимая выборка","Можно удалить худшие сделки"],answer:1,explain:"После использования выборки для принятия решений она больше не является независимой."},
+{q:"Восемь сделок дали +6R. Какой вывод наиболее корректен?",options:["Преимущество доказано навсегда","Выборка мала; нужны дополнительные наблюдения и проверка издержек","Риск можно удвоить"],answer:1,explain:"Малая выборка подвержена случайности и не доказывает устойчивое преимущество."},
+{q:"Бэктест показывает +0,4R до расходов, форвард-тест −0,1R после расходов. Что проверить первым?",options:["Исполнение, расходы, режим рынка и соответствие правил","Удалить убыточные форвард-сделки","Увеличить плечо"],answer:0,explain:"Разница может возникать из-за нереалистичной модели расходов, смены режима или отклонений исполнения."},
+{q:"Сигнал выглядит идеально, но ликвидность резко упала и спред расширился.",options:["Открыть позицию обычного размера","Пересчитать допустимый размер или пропустить вход","Убрать стоп, чтобы не выбило"],answer:1,explain:"Качество исполнения и риск ухудшились; план должен учитывать текущую ликвидность."}
+];
+
 ];
 let masterState={view:"list",id:null,answers:[],result:null,deadline:0,questions:[]},masterTimer=null;
 function masterShuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
 function masterclassHTML(){
- if(typeof Access==="undefined"||!Access.isPremium())return '<div class="card"><span class="lesson-tag">BY MRASULV</span><h3>Личная мастерская создателя</h3><p>Два углублённых авторских модуля и итоговый экзамен повышенной сложности.</p><p class="muted">Доступ открывается после подтверждения Premium на сервере.</p><a class="primary" href="https://t.me/ArvexPremiumBot" data-premium-purchase style="display:block;text-align:center;text-decoration:none">Оформить Premium · 120 ⭐ / 30 дней</a></div>';
- if(masterState.view==="lesson"){const l=MASTER_LESSONS.find(x=>x.id===masterState.id);if(l)return '<button class="back-btn" data-master-act="back">← К мастерской</button><article class="lesson-view"><span class="lesson-tag">ЛИЧНЫЙ УРОК СОЗДАТЕЛЯ</span><h3>'+l.title+'</h3>'+l.body.map(p=>"<p>"+p+"</p>").join("")+'<div class="key-points"><b>Главное</b><ul>'+l.points.map(p=>"<li>"+p+"</li>").join("")+'</ul></div><button class="primary" data-master-act="quiz" data-master-id="'+l.id+'">Сложный тест · 5 вопросов</button></article>'}
- if(masterState.view==="quiz"||masterState.view==="final"){const qs=masterState.questions;if(masterState.result){const r=masterState.result;return '<button class="back-btn" data-master-act="back">← К мастерской</button><div class="card"><h3>'+ (masterState.view==="final"?"Итоговый экзамен":"Контрольный тест")+'</h3><div class="result '+(r.passed?"pass":"fail")+'">Результат: '+r.score+'/'+qs.length+'. '+(r.passed?"Зачёт получен.":"Не зачтено — изучи разбор и повтори.")+'</div>'+qs.map((q,i)=>'<div class="quiz-q"><b>'+(i+1)+'. '+q.q+'</b><p class="'+(masterState.answers[i]===q.answer?"pos":"neg")+'">Твой ответ: '+(q.options[masterState.answers[i]]||"Нет ответа")+'</p><small class="muted">Верно: '+q.options[q.answer]+'. '+q.explain+'</small></div>').join("")+'<button class="primary" data-master-act="'+(masterState.view==="final"?"final":"quiz")+'" '+(masterState.view==="quiz"?'data-master-id="'+masterState.id+'"':"")+' >Повторить испытание</button></div>'}
- return '<button class="back-btn" data-master-act="back">← К мастерской</button><div class="card"><div class="card-title">'+(masterState.view==="final"?"Итоговый экзамен · 12 вопросов":"Контрольный тест · 5 вопросов")+'</div><p class="muted">Время: '+(masterState.view==="final"?"15 минут":"8 минут")+'. Зачёт: '+(masterState.view==="final"?"10/12":"4/5")+'.</p><div id="masterTimer" class="badge">Таймер запущен</div>'+qs.map((q,i)=>'<fieldset class="quiz-q"><legend>'+(i+1)+'. '+q.q+'</legend>'+q.options.map((o,j)=>'<label class="opt"><input type="radio" name="master'+i+'" value="'+j+'" '+(masterState.answers[i]===j?"checked":"")+'><span>'+o+'</span></label>').join("")+'</fieldset>').join("")+'<button class="primary" data-master-act="submit">Завершить и проверить</button></div>';
+ if(typeof Access==="undefined"||!Access.isPremium())return '<div class="card"><span class="lesson-tag">BY MRASULV</span><h3>Личная мастерская создателя ARVEX</h3><p>Четыре углублённых авторских модуля, контрольные испытания и два экзамена повышенной сложности.</p><p class="muted">Доступ открывается после подтверждения Premium на сервере. Обучение помогает освоить процесс и риск-менеджмент, но не гарантирует прибыль на рынке.</p><a class="primary" href="https://t.me/ArvexPremiumBot" data-premium-purchase style="display:block;text-align:center;text-decoration:none">Оформить Premium · 120 ⭐ / 30 дней</a></div>';
+ if(masterState.view==="lesson"){const l=MASTER_LESSONS.find(x=>x.id===masterState.id);if(l){const rec=progress.masterclass?.["lesson:"+l.id];return '<button class="back-btn" data-master-act="back">← К мастерской</button><article class="lesson-view"><span class="lesson-tag">ЛИЧНЫЙ УРОК СОЗДАТЕЛЯ</span><h3>'+l.title+'</h3>'+l.body.map(p=>"<p>"+p+"</p>").join("")+'<div class="key-points"><b>Главное</b><ul>'+l.points.map(p=>"<li>"+p+"</li>").join("")+'</ul></div>'+(rec?.passed?'<p class="result pass">Контрольный тест уже сдан · лучший результат '+rec.best+'%</p>':"")+'<button class="primary" data-master-act="quiz" data-master-id="'+l.id+'">Сложный тест · 5 вопросов</button></article>'}}
+ if(["quiz","final","stress"].includes(masterState.view)){
+  const qs=masterState.questions,view=masterState.view;
+  if(masterState.result){
+   const r=masterState.result,act=view==="quiz"?"quiz":view;
+   const title=view==="quiz"?"Контрольный тест":view==="final"?"Итоговый экзамен создателя":"Профессиональный стресс-экзамен";
+   return '<button class="back-btn" data-master-act="back">← К мастерской</button><div class="card"><h3>'+title+'</h3><div class="result '+(r.passed?"pass":"fail")+'">Результат: '+r.score+'/'+qs.length+' ('+r.pct+'%). '+(r.passed?"Зачёт получен.":"Не зачтено — изучи разбор и повтори.")+' Нужно: '+r.required+'/'+qs.length+'. '+(r.xpText||"")+'</div>'+qs.map((q,i)=>'<div class="quiz-q"><b>'+(i+1)+'. '+q.q+'</b><p class="'+(masterState.answers[i]===q.answer?"pos":"neg")+'">Твой ответ: '+(q.options[masterState.answers[i]]||"Нет ответа")+'</p><small class="muted">Верно: '+q.options[q.answer]+'. '+q.explain+'</small></div>').join("")+'<button class="primary" data-master-act="'+act+'" '+(view==="quiz"?'data-master-id="'+masterState.id+'"':"")+' >Повторить испытание</button><button class="ghost" data-master-act="back">К списку</button></div>';
+  }
+  const title=view==="quiz"?"Контрольный тест · 5 вопросов":view==="final"?"Итоговый экзамен · 12 вопросов":"Стресс-экзамен · 20 вопросов";
+  const duration=view==="quiz"?"8 минут":view==="final"?"15 минут":"30 минут";
+  const threshold=view==="quiz"?"4/5":view==="final"?"10/12":"17/20";
+  return '<button class="back-btn" data-master-act="back">← К мастерской</button><div class="card"><div class="card-title">'+title+'</div><p class="muted">Время: '+duration+'. Зачёт: '+threshold+'. Вопросы перемешиваются при каждом запуске.</p><div id="masterTimer" class="badge">Таймер запущен</div>'+qs.map((q,i)=>'<fieldset class="quiz-q"><legend>'+(i+1)+'. '+q.q+'</legend>'+q.options.map((o,j)=>'<label class="opt"><input type="radio" name="master'+i+'" value="'+j+'" '+(masterState.answers[i]===j?"checked":"")+'><span>'+o+'</span></label>').join("")+'</fieldset>').join("")+'<button class="primary" data-master-act="submit">Завершить и проверить</button></div>';
  }
- return '<div class="card"><span class="lesson-tag">PERSONAL PROGRAM · BY MRASULV</span><h3>Личная мастерская создателя ARVEX</h3><p class="muted">Риск-менеджмент, проверка торгового преимущества и строгий экзаменационный протокол.</p></div>'+MASTER_LESSONS.map(l=>'<article class="card"><span class="lesson-tag">ADVANCED</span><h3>'+l.title+'</h3><p>'+l.summary+'</p><div class="meta"><span>4 главы</span><span>5 сложных вопросов</span></div><button class="primary" data-master-act="open" data-master-id="'+l.id+'">Изучить личный урок</button></article>').join("")+'<article class="card exam-card"><span class="lesson-tag">FINAL · PRO</span><h3>Закрытый экзамен создателя</h3><p>12 ситуационных задач и расчётов, 15 минут, проходной балл 10/12.</p><button class="primary" data-master-act="final">Начать финальный экзамен</button></article>';
+ const records=progress.masterclass||{};
+ const done=MASTER_LESSONS.filter(l=>records["lesson:"+l.id]?.passed).length;
+ const final=records["exam:final"],stress=records["exam:stress"];
+ return '<div class="card"><span class="lesson-tag">PERSONAL PROGRAM · BY MRASULV</span><h3>Личная мастерская создателя ARVEX</h3><p class="muted">Четыре авторских модуля: риск, проверка преимущества, исполнение и дисциплина. После каждого — сложный тест с разбором ошибок.</p><div class="meta"><span>Уроки: '+done+'/'+MASTER_LESSONS.length+'</span><span>Экзамены: '+(Number(!!final?.passed)+Number(!!stress?.passed))+'/2</span></div></div>'+
+ MASTER_LESSONS.map(l=>{const rec=records["lesson:"+l.id];return '<article class="card"><span class="lesson-tag">ADVANCED · BY MRASULV</span><h3>'+l.title+(rec?.passed?' <span class="tag long">СДАН</span>':"")+'</h3><p>'+l.summary+'</p><div class="meta"><span>4 главы</span><span>5 сложных вопросов</span>'+(rec?'<span>Лучший: '+rec.best+'%</span><span>Попыток: '+rec.attempts+'</span>':"")+'</div><button class="primary" data-master-act="open" data-master-id="'+l.id+'">'+(rec?.passed?"Повторить личный урок":"Изучить личный урок")+'</button></article>'}).join("")+
+ '<article class="card exam-card"><span class="lesson-tag">FINAL · CREATOR</span><h3>Итоговый экзамен создателя '+(final?.passed?'<span class="tag long">СДАН</span>':"")+'</h3><p>12 ситуационных задач и расчётов, 15 минут, проходной балл 10/12.</p>'+(final?'<div class="meta"><span>Лучший: '+final.best+'%</span><span>Попыток: '+final.attempts+'</span></div>':"")+'<button class="primary" data-master-act="final">Начать итоговый экзамен</button></article>'+
+ '<article class="card exam-card"><span class="lesson-tag">ELITE · PRO</span><h3>Профессиональный стресс-экзамен '+(stress?.passed?'<span class="tag long">СДАН</span>':"")+'</h3><p>20 сложных кейсов по риску, математике, ликвидности, издержкам и проверке стратегии. 30 минут, проходной балл 17/20.</p>'+(stress?'<div class="meta"><span>Лучший: '+stress.best+'%</span><span>Попыток: '+stress.attempts+'</span></div>':"")+'<button class="primary" data-master-act="stress">Начать стресс-экзамен</button></article>';
 }
-function masterStart(kind,id){const l=MASTER_LESSONS.find(x=>x.id===id);masterState={view:kind==="final"?"final":"quiz",id:id||null,answers:[],result:null,deadline:Date.now()+(kind==="final"?900:480)*1000,questions:kind==="final"?masterShuffle(MASTER_FINAL):masterShuffle(l.quiz)};clearInterval(masterTimer);masterTimer=setInterval(()=>{const el=$("masterTimer"),left=Math.max(0,Math.ceil((masterState.deadline-Date.now())/1000));if(el)el.textContent="Осталось "+Math.floor(left/60)+":"+String(left%60).padStart(2,"0");if(left===0)masterSubmit()},500);renderSchool();window.scrollTo(0,0)}
-function masterSubmit(){if(masterState.result)return;clearInterval(masterTimer);masterState.answers=masterState.questions.map((q,i)=>{const x=document.querySelector('input[name="master'+i+'"]:checked');return x?Number(x.value):null});const score=masterState.answers.filter((a,i)=>a===masterState.questions[i].answer).length;masterState.result={score,passed:score>=(masterState.view==="final"?10:4)};if(typeof showToast==="function")showToast(masterState.result.passed?"Испытание пройдено.":"Испытание не пройдено. Изучи разбор.");renderSchool();window.scrollTo(0,0)}
-function masterAction(action,b){if(!Access.isPremium()){if(typeof showToast==="function")showToast("Для мастерской нужен активный Premium.");return}if(action==="back"){clearInterval(masterTimer);masterState={view:"list",id:null,answers:[],result:null,deadline:0,questions:[]}}else if(action==="open")masterState={view:"lesson",id:b.dataset.masterId,answers:[],result:null,deadline:0,questions:[]};else if(action==="quiz")masterStart("quiz",b.dataset.masterId);else if(action==="final")masterStart("final");else if(action==="submit")masterSubmit();renderSchool()}
-
+function masterStart(kind,id){
+ const view=kind==="final"?"final":kind==="stress"?"stress":"quiz";
+ const questions=view==="final"?MASTER_FINAL:view==="stress"?MASTER_STRESS:MASTER_LESSONS.find(x=>x.id===id)?.quiz||[];
+ if(!questions.length)return;
+ const seconds=view==="final"?900:view==="stress"?1800:480;
+ masterState={view,id:id||null,answers:[],result:null,deadline:Date.now()+seconds*1000,questions:masterShuffle(questions)};
+ clearInterval(masterTimer);
+ masterTimer=setInterval(()=>{const el=$("masterTimer"),left=Math.max(0,Math.ceil((masterState.deadline-Date.now())/1000));if(el)el.textContent="Осталось "+Math.floor(left/60)+":"+String(left%60).padStart(2,"0");if(left===0)masterSubmit()},500);
+ renderSchool();window.scrollTo(0,0);
+}
+function masterSubmit(){
+ if(masterState.result||!masterState.questions.length)return;
+ clearInterval(masterTimer);
+ masterState.answers=masterState.questions.map((q,i)=>{const x=document.querySelector('input[name="master'+i+'"]:checked');return x?Number(x.value):null});
+ const view=masterState.view,score=masterState.answers.filter((a,i)=>a===masterState.questions[i].answer).length,n=masterState.questions.length;
+ const required=view==="final"?10:view==="stress"?17:4,passed=score>=required,pct=Math.round(score/n*100);
+ const key=view==="quiz"?"lesson:"+masterState.id:"exam:"+view,records=progress.masterclass||(progress.masterclass={});
+ const previous=records[key]||{best:0,passed:false,attempts:0,xpGiven:false};
+ const xp=view==="quiz"?50:view==="final"?250:350;
+ let xpText="";
+ if(passed&&!previous.xpGiven){const up=addXp(xp);xpText=" · +"+xp+" XP"+(up?" · Новый уровень "+level+"!":"");}
+ records[key]={best:Math.max(previous.best||0,pct),passed:!!previous.passed||passed,attempts:(previous.attempts||0)+1,xpGiven:!!previous.xpGiven||passed};
+ saveState();renderTop();
+ masterState.result={score,passed,required,pct,xpText};
+ if(typeof showToast==="function")showToast(passed?"Испытание пройдено."+xpText:"Испытание не пройдено. Изучи разбор.");
+ renderSchool();window.scrollTo(0,0);
+}
+function masterAction(action,b){
+ if(typeof Access==="undefined"||!Access.isPremium()){if(typeof showToast==="function")showToast("Для мастерской нужен активный Premium.");return}
+ if(action==="back"){clearInterval(masterTimer);masterState={view:"list",id:null,answers:[],result:null,deadline:0,questions:[]}}
+ else if(action==="open")masterState={view:"lesson",id:b.dataset.masterId,answers:[],result:null,deadline:0,questions:[]};
+ else if(action==="quiz"||action==="final"||action==="stress")masterStart(action,b.dataset.masterId);
+ else if(action==="submit")masterSubmit();
+ renderSchool();
+}
 /* ----- Словарь ----- */
 function glossaryHTML(){
  return `<div class="card"><input id="glSearch" class="field" type="search" placeholder="Поиск термина…" autocomplete="off"><div class="muted" style="margin:10px 2px 0;font-size:13px">Терминов: ${GLOSSARY.length}</div><div id="glList">${glossaryList("")}</div></div>`;
