@@ -285,14 +285,14 @@ begin
   with due as (
     select s.user_id, s.expires_at,
       case
-        when s.expires_at::date = (now() at time zone 'UTC')::date + 3 then 3
-        when s.expires_at::date = (now() at time zone 'UTC')::date + 1 then 1
+        when (s.expires_at at time zone 'UTC')::date = (now() at time zone 'UTC')::date + 3 then 3
+        when (s.expires_at at time zone 'UTC')::date = (now() at time zone 'UTC')::date + 1 then 1
       end as days_left
     from public.arvex_subscriptions s
     where coalesce(s.is_forever, false) = false
       and s.expires_at is not null
       and s.expires_at > now()
-      and s.expires_at::date in (
+      and (s.expires_at at time zone 'UTC')::date in (
         (now() at time zone 'UTC')::date + 3,
         (now() at time zone 'UTC')::date + 1
       )
@@ -307,8 +307,8 @@ begin
         then 'До окончания подписки осталось 3 дня. Продли её заранее, чтобы не потерять доступ.'
         else 'До окончания подписки остался 1 день. Продли её, чтобы сохранить доступ.'
       end,
-      'subscription_expiry',
-      'subscription-expiry:' || d.user_id::text || ':' || d.days_left::text || ':' || d.expires_at::date::text
+      'subscription',
+      'subscription-expiry:' || d.user_id::text || ':' || d.days_left::text || ':' || (d.expires_at at time zone 'UTC')::date::text
     from due d
     on conflict (dedupe_key) where dedupe_key is not null do nothing
     returning 1
