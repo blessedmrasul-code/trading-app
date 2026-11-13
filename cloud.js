@@ -100,6 +100,9 @@ const Cloud=(()=>{
   if(native&&browser)await browser.open({url:u.toString()});
   else location.href=u.toString();
  }
+ if(typeof window!=="undefined"&&(/[?&]code=/.test(location.search)||/access_token=/.test(location.hash||""))){
+  setTimeout(()=>acceptOAuthCallback(location.href),0);
+ }
  function installOAuthDeepLink(){
   const app=window.ARVEX_CAP_APP;
   if(!app||!window.Capacitor||typeof window.Capacitor.isNativePlatform!=="function"||!window.Capacitor.isNativePlatform())return;
@@ -113,7 +116,47 @@ const Cloud=(()=>{
   const j=await req("/auth/v1/token?grant_type=password",{method:"POST",headers:hdr(),body:JSON.stringify({email,password:pw})});
   adopt(j);return {ok:true};
  }
- function signOut(){keep(null);status="";if(typeof Access!=="undefined")Access.refresh()}
+ async function signOut(){
+  const old=session;
+  try{if(old&&old.access)await req("/auth/v1/logout?scope=global",{method:"POST",headers:hdr(old.access)});}catch(e){}
+  keep(null);status="";blocked=false;hideBanScreen();
+  if(typeof Access!=="undefined")Access.refresh();
+ }
+ let blocked=false;
+ function hideBanScreen(){const el=document.getElementById("arvexBanOverlay");if(el)el.remove();blocked=false}
+ function showBanScreen(info){
+  blocked=true;
+  let el=document.getElementById("arvexBanOverlay");
+  if(!el){el=document.createElement("div");el.id="arvexBanOverlay";document.body.appendChild(el)}
+  const reason=esc(info.reason||"Доступ к аккаунту ограничен администрацией ARVEX.");
+  const when=info.banned_at?new Date(info.banned_at).toLocaleString("ru-RU"):"";
+  el.style.cssText="position:fixed;inset:0;z-index:2147483000;background:rgba(5,7,16,.98);display:flex;align-items:center;justify-content:center;padding:20px;overflow:auto";
+  el.innerHTML='<div style="width:min(100%,440px);background:#111827;border:1px solid #754b5b;border-radius:20px;padding:26px;color:#f7f7fb;text-align:center;box-shadow:0 20px 80px #0009"><div style="font-size:48px;margin-bottom:12px">🔒</div><h2 style="margin:0 0 10px">Вы были заблокированы администратором</h2><p style="color:#b8c0d2;margin:0 0 6px">Администратор: <b>Mrasulv</b></p><div style="background:#1c2434;border-radius:12px;padding:14px;margin:14px 0;text-align:left"><b>Причина блокировки</b><p style="white-space:pre-wrap;margin:8px 0 0">'+reason+'</p></div><p style="color:#9ca8bb;font-size:12px;margin:0 0 16px">'+esc(when)+'</p><button id="arvexBanExit" class="danger" style="width:100%;margin-bottom:10px">Выйти из приложения</button><a href="https://t.me/mrasulv?text='+encodeURIComponent("Здравствуйте, хочу обжаловать блокировку аккаунта ARVEX. Email: "+(session?.email||"неизвестен")+". Причина: "+(info.reason||""))+'" target="_blank" rel="noopener" style="display:block;background:#7655e8;color:white;text-decoration:none;padding:13px;border-radius:10px;font-weight:700">Обжаловать блокировку</a></div>';
+ }
+ async function exitBlockedApp(){
+  await signOut();
+  const app=window.ARVEX_CAP_APP;
+  if(app&&typeof app.exitApp==="function"){try{await app.exitApp();return}catch(e){}}
+  try{location.replace("about:blank")}catch(e){}
+ }
+ async function checkAccountStatus(){
+  if(!session)return false;
+  try{
+   const tok=await token(),rows=await req("/rest/v1/rpc/arvex_my_account_status",{method:"POST",headers:hdr(tok),body:"{}"});
+   const info=Array.isArray(rows)?rows[0]:rows;
+   if(info&&info.is_banned){showBanScreen(info);return true}
+   hideBanScreen();return false;
+  }catch(e){if(e.status===401){keep(null)}return false}
+ }
+ async function deleteOwnAccount(){
+  if(!session)throw new Error("Сначала войди в аккаунт.");
+  const tok=await token();
+  const r=await fetch(cfg().url.replace(/\/$/,"")+"/functions/v1/delete-own-account",{method:"POST",headers:hdr(tok),body:"{}"});
+  const j=await r.json().catch(()=>null);
+  if(!r.ok)throw new Error((j&&j.error)||"Не удалось удалить аккаунт.");
+  keep(null);localStorage.removeItem("arvex_v3_state");localStorage.removeItem("arvex_google_pkce_verifier");
+  return true;
+ }
  async function pull(){
   const tok=await token();
   const rows=await req(`/rest/v1/arvex_saves?user_id=eq.${session.uid}&select=data,updated_at`,{headers:hdr(tok)});
@@ -126,6 +169,7 @@ const Cloud=(()=>{
  // Двусторонняя синхронизация: побеждает более свежее состояние (поле updatedAt).
  async function sync(){
   if(!enabled()||!session||busy)return;
+  if(await checkAccountStatus())return;
   busy=true;
   try{
    const row=await pull(),raw=localStorage.getItem(STORAGE_KEY);
@@ -143,7 +187,7 @@ const Cloud=(()=>{
  if(recoveryMode&&typeof window!=="undefined")setTimeout(()=>changePasswordPrompt(),700);
  function accountHTML(){
   if(!enabled())return `<p class="muted" style="margin:0">Сейчас профиль хранится на этом устройстве.</p><div class="soon">🔒 Облачные аккаунты подключаются владельцем проекта (см. README → «Облако»).</div>`;
-  if(session)return `<p style="margin:0 0 8px">Вход выполнен: <b>${esc(session.email)}</b></p><p class="muted" style="margin:0 0 10px">${esc(status||"Прогресс синхронизируется автоматически.")}</p><div class="btn-row"><button class="ghost" id="cloudSync">↻ Синхронизировать</button><button class="danger" id="cloudOut">Выйти</button></div>`;
+  if(session)return `<p style="margin:0 0 8px">Вход выполнен: <b>${esc(session.email)}</b></p><p class="muted" style="margin:0 0 10px">${esc(status||"Прогресс синхронизируется автоматически.")}</p><div class="btn-row"><button class="ghost" id="cloudSync">↻ Синхронизировать</button><button class="danger" id="cloudOut">Выйти</button><button class="ghost" id="arvexDeleteAccount">Удалить аккаунт</button></div>`;
   return `<p class="muted" style="margin:0 0 10px">Войди, чтобы сохранить прогресс в облаке и открыть его на другом устройстве.</p><input class="field" id="cEmail" type="email" placeholder="Email" autocomplete="email"><input class="field" id="cPass" type="password" placeholder="Пароль (от 8 символов)" autocomplete="current-password" style="margin-top:8px"><div class="btn-row" style="margin-top:10px"><button class="primary" id="cloudIn">Войти</button><button class="ghost" id="cloudUp">Регистрация</button><button class="ghost" id="cloudGoogle">G Google</button><button class="ghost" id="cloudForgot">Забыли пароль?</button></div><p class="muted" id="cloudMsg" style="margin:8px 0 0"></p>`;
  }
  async function form(kind){
@@ -154,10 +198,24 @@ const Cloud=(()=>{
   try{
    if(kind==="up"){const r=await signUp(e,p);if(r.confirm){m.textContent="Письмо отправлено. Подтверди почту и нажми «Войти».";return}}
    else await signIn(e,p);
+   if(await checkAccountStatus())return;
    showToast("Вход выполнен");await sync();
-  }catch(err){m.textContent=err.message}
+  }catch(err){m.textContent=/ban/i.test(err.message)?"Аккаунт заблокирован администратором Mrasulv. Для обжалования напиши @mrasulv.":err.message}
  }
  function click(t){
+  if(t.closest("#arvexBanExit")){exitBlockedApp();return true}
+  if(t.closest("#arvexBanAppeal")){return true}
+  if(t.closest("#arvexDeleteAccount")){
+   if(typeof openSheet==="function")openSheet('<h3>Удалить аккаунт ARVEX?</h3><p class="muted">Это действие необратимо. Удалятся облачный аккаунт и связанные с ним данные. Для подтверждения введи DELETE.</p><input class="field" id="arvexDeleteConfirmText" placeholder="DELETE" autocomplete="off"><p class="muted" id="arvexDeleteMsg"></p><div class="dir-btns"><button class="ghost" id="sheetCancel">Отмена</button><button class="danger" id="arvexDeleteConfirm">Удалить аккаунт</button></div>');
+   return true;
+  }
+  if(t.closest("#arvexDeleteConfirm")){
+   const m=document.getElementById("arvexDeleteMsg");
+   if(document.getElementById("arvexDeleteConfirmText")?.value!=="DELETE"){if(m)m.textContent="Введи DELETE для подтверждения.";return true}
+   if(m)m.textContent="Удаляем аккаунт…";
+   deleteOwnAccount().then(()=>{if(typeof closeSheet==="function")closeSheet();showToast("Аккаунт удалён.");if(typeof renderProfile==="function")renderProfile()}).catch(e=>{if(m)m.textContent=e.message});
+   return true;
+  }
   if(t.closest("#cloudGoogle")){
    const m=document.getElementById("cloudMsg");
    try{if(m)m.textContent="Открываем безопасный вход Google…";startGoogleSignIn();}
@@ -353,7 +411,7 @@ async function insertOrder(o){
 
  document.addEventListener("submit",e=>{const form=e.target;if(!form||form.id!=="arvexSupportForm")return;e.preventDefault();submitSupportForm(form)});
 
- return {insertOrder,myEntitlement,createStarsInvoice,createStarsBotLink,setStarsAutoRenew,createSupport,enabled,accountHTML,userToolsHTML,loadProfileData,click,schedule,sync,isIn:()=>!!session,changePasswordPrompt,startGoogleSignIn,acceptOAuthCallback};
+ return {insertOrder,myEntitlement,createStarsInvoice,createStarsBotLink,setStarsAutoRenew,createSupport,enabled,accountHTML,userToolsHTML,loadProfileData,click,schedule,sync,isIn:()=>!!session,changePasswordPrompt,startGoogleSignIn,acceptOAuthCallback,checkAccountStatus,deleteOwnAccount};
 })();
 
 // Netlify production redeploy trigger: email confirmation redirects to the public site.
