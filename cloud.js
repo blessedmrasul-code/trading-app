@@ -41,7 +41,7 @@ const Cloud=(()=>{
 
  async function requestPasswordReset(email){
   const clean=String(email||"").trim();
-  if(!/^\\S+@\\S+\\.\\S+$/.test(clean))throw new Error("Проверь адрес электронной почты.");
+  if(!/^\S+@\S+\.\S+$/.test(clean))throw new Error("Проверь адрес электронной почты.");
   const redirectTo=location.origin+location.pathname+"?auth=recovery";
   await req("/auth/v1/recover?redirect_to="+encodeURIComponent(redirectTo),{method:"POST",headers:hdr(),body:JSON.stringify({email:clean})});
   return true;
@@ -341,7 +341,7 @@ async function insertOrder(o){
    "Пароль должен содержать минимум 8 символов.":"Password must contain at least 8 characters.",
    "Пароль успешно изменён.":"Password changed successfully.","Пароль изменён. Теперь можно войти в ARVEX.":"Password changed. You can now sign in to ARVEX.",
    "Если аккаунт существует, письмо со ссылкой отправлено.":"If an account exists, a recovery link has been sent.",
-   "Не удалось изменить пароль:":"Could not change password:","Новый пароль":"New password","Повтори новый пароль":"Repeat new password",
+   "Не удалось изменить пароль:":"Could not change password:","Новый пароль":"New password","Повтори новый пароль":"Repeat new password","Ссылка подтверждена. Придумай новый пароль для ARVEX.":"Link verified. Create a new password for ARVEX.",
    "Язык сохраняется на этом устройстве.":"Language is saved on this device.","🇷🇺 Русский":"🇷🇺 Russian","🇬🇧 English":"🇬🇧 English"
   };
   document.documentElement.lang=en?"en":"ru";
