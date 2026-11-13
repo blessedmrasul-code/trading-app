@@ -79,6 +79,7 @@ assert.ok(cloud.includes('setInterval(()=>{if(session)checkAccountStatus()},3000
 assert.ok(read("mobile/configure-android.js").includes('android:scheme="app.arvex.trading"'), "Android manifest must register the OAuth callback scheme");
 assert.ok(!cloud.includes("blessedmrasul-code.github.io/trading-app"), "Email confirmation must not use the retired GitHub Pages redirect");
 assert.ok(cloud.includes('req("/auth/v1/signup?redirect_to="+encodeURIComponent(redirect)'), "Email confirmation must return to the app route instead of the subscription landing page");
+assert.ok((cloud.match(/authRedirectUrl\(\)/g)||[]).length>=4, "Signup, password recovery and Google OAuth must use the normalized app callback URL");
 assert.ok(cloud.includes("async function acceptEmailConfirmation") && cloud.includes("handleAuthDeepLink"), "Email confirmation must automatically sign the user back into the app");
 const sql = read("backend/supabase.sql");
 assert.ok(!sql.includes("'subscription_expiry'"), "Expiry notifications must use a kind allowed by the notifications table constraint");
