@@ -55,7 +55,34 @@ const Cloud=(()=>{
   const j=await req("/auth/v1/signup?redirect_to="+encodeURIComponent(redirect),{method:"POST",headers:hdr(),body:JSON.stringify({email,password:pw})});
   if(adopt(j))return {ok:true};
   if(j&&j.user&&Array.isArray(j.user.identities)&&j.user.identities.length===0)return {ok:false,exists:true};
-  return {ok:false,confirm:true}; // включено подтверждение почты
+  return {ok:false,confirm:true}; // подтверждение остаётся обязательным
+ }
+ async function resendConfirmation(email){
+  const e=String(email||"").trim();
+  if(!/^\\S+@\\S+\\.\\S+$/.test(e))throw new Error("Укажи корректный email.");
+  const redirect=authRedirectUrl();
+  await req("/auth/v1/resend?redirect_to="+encodeURIComponent(redirect),{method:"POST",headers:hdr(),body:JSON.stringify({type:"signup",email:e})});
+  return true;
+ }
+ async function verifyEmailCode(email,code){
+  const e=String(email||"").trim(),pin=String(code||"").replace(/\\s/g,"");
+  if(!/^\\S+@\\S+\\.\\S+$/.test(e))throw new Error("Укажи корректный email.");
+  if(!/^\\d{6}$/.test(pin))throw new Error("Введи все 6 цифр из письма.");
+  const j=await req("/auth/v1/verify",{method:"POST",headers:hdr(),body:JSON.stringify({type:"signup",email:e,token:pin})});
+  if(!adopt(j))throw new Error("Код принят, но сервер не вернул сессию. Попробуй войти.");
+  if(await checkAccountStatus())return true;
+  if(localStorage.getItem(LOCAL_RESET_KEY)==="1"){localStorage.removeItem(LOCAL_RESET_KEY);location.reload();return true;}
+  await sync();
+  if(typeof Access!=="undefined"&&Access.refresh)await Access.refresh();
+  status=localStorage.getItem("arvex_language")==="en"?"Email verified. You are signed in.":"Email подтверждён. Вы вошли в аккаунт.";
+  if(typeof renderProfile==="function")renderProfile();
+  return true;
+ }
+ function showEmailVerification(email){
+  const box=document.getElementById("cloudVerifyBox");
+  const input=document.getElementById("cEmail");
+  if(input&&email)input.value=email;
+  if(box)box.hidden=false;
  }
  async function resetPassword(email){
   const e=String(email||"").trim();if(!/^\S+@\S+\.\S+$/.test(e))throw new Error("Укажи корректный email.");
@@ -303,7 +330,7 @@ const Cloud=(()=>{
  function accountHTML(){
   if(!enabled())return `<p class="muted" style="margin:0">Сейчас профиль хранится на этом устройстве.</p><div class="soon">🔒 Облачные аккаунты подключаются владельцем проекта (см. README → «Облако»).</div>`;
   if(session)return `<p style="margin:0 0 8px">Вход выполнен: <b>${esc(session.email)}</b></p><p class="muted" style="margin:0 0 10px">${esc(status||"Прогресс синхронизируется автоматически.")}</p><div class="btn-row"><button class="ghost" id="cloudSync">↻ Синхронизировать</button><button class="danger" id="cloudOut">Выйти</button><button class="ghost" id="arvexDeleteAccount">Удалить аккаунт</button></div>`;
-  return `<p class="muted" style="margin:0 0 10px">Войди, чтобы сохранить прогресс в облаке и открыть его на другом устройстве.</p><input class="field" id="cEmail" type="email" placeholder="Email" autocomplete="email"><input class="field" id="cPass" type="password" placeholder="Пароль (от 8 символов)" autocomplete="current-password" style="margin-top:8px"><div class="btn-row" style="margin-top:10px"><button class="primary" id="cloudIn">Войти</button><button class="ghost" id="cloudUp">Регистрация</button><button class="ghost" id="cloudForgot">Забыли пароль?</button></div><p class="muted" id="cloudMsg" style="margin:8px 0 0"></p>`;
+  return `<p class="muted" style="margin:0 0 10px">Войди, чтобы сохранить прогресс в облаке и открыть его на другом устройстве.</p><input class="field" id="cEmail" type="email" placeholder="Email" autocomplete="email"><input class="field" id="cPass" type="password" placeholder="Пароль (от 8 символов)" autocomplete="current-password" style="margin-top:8px"><div class="btn-row" style="margin-top:10px"><button class="primary" id="cloudIn">Войти</button><button class="ghost" id="cloudUp">Регистрация</button><button class="ghost" id="cloudForgot">Забыли пароль?</button></div><div id="cloudVerifyBox" hidden style="margin-top:12px;padding:12px;border:1px solid var(--border);border-radius:12px"><b>Подтверждение email</b><p class="muted" style="margin:5px 0 9px">Введи 6-значный код из письма. Если письмо не пришло, отправь его повторно.</p><input class="field" id="cloudEmailCode" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" placeholder="123456"><div class="btn-row" style="margin-top:8px"><button class="primary" id="cloudVerifyCode">Подтвердить код</button><button class="ghost" id="cloudResend">Отправить письмо ещё раз</button></div></div><p class="muted" id="cloudMsg" style="margin:8px 0 0"></p>`;
  }
  async function form(kind){
   const e=($("cEmail").value||"").trim(),p=$("cPass").value||"",m=$("cloudMsg"),en=localStorage.getItem("arvex_language")==="en";
@@ -314,8 +341,8 @@ const Cloud=(()=>{
   try{
    if(kind==="up"){
     const r=await signUp(e,p);
-    if(r.exists){m.textContent=say("Этот email уже зарегистрирован. Нажми «Войти» или «Забыли пароль?».","This email is already registered. Sign in or reset your password.");return}
-    if(r.confirm){m.textContent=say("Письмо отправлено. Подтверди почту и нажми «Войти».","Confirmation email sent. Verify it, then sign in.");return}
+    if(r.exists){showEmailVerification(e);m.textContent=say("Этот email уже зарегистрирован. Если аккаунт ещё не подтверждён, отправь письмо повторно или введи код.","This email is already registered. If it is not verified yet, resend the email or enter the code.");return}
+    if(r.confirm){showEmailVerification(e);m.textContent=say("Запрос на подтверждение создан. Введи 6-значный код из письма. Если письма нет — нажми «Отправить письмо ещё раз».","Confirmation requested. Enter the 6-digit code from your email. If it does not arrive, tap Resend email.");return}
    }else await signIn(e,p);
    if(await checkAccountStatus())return;
    if(localStorage.getItem(LOCAL_RESET_KEY)==="1"){localStorage.removeItem(LOCAL_RESET_KEY);location.reload();return}
@@ -346,6 +373,8 @@ const Cloud=(()=>{
   if(t.closest("#cloudIn")){form("in");return true}
   if(t.closest("#cloudUp")){form("up");return true}
   if(t.closest("#cloudForgot")){const email=(document.getElementById("cEmail")?.value||"").trim(),m=document.getElementById("cloudMsg");if(!email){if(m)m.textContent="Сначала введи email.";return true}m.textContent="Отправляем ссылку для восстановления…";resetPassword(email).then(()=>m.textContent="Если аккаунт с таким email существует, письмо для сброса пароля отправлено.").catch(e=>m.textContent=e.message);return true}
+  if(t.closest("#cloudResend")){const email=(document.getElementById("cEmail")?.value||"").trim(),m=document.getElementById("cloudMsg"),button=t.closest("#cloudResend");if(!email){if(m)m.textContent="Сначала введи email.";return true}button.disabled=true;if(m)m.textContent="Отправляем новое письмо…";resendConfirmation(email).then(()=>{if(m)m.textContent="Запрос принят. Проверь входящие и папку «Спам». Если включён кодовый шаблон ARVEX, введи последние 6 цифр из письма."}).catch(e=>{if(m)m.textContent=e.message}).finally(()=>{button.disabled=false});return true}
+  if(t.closest("#cloudVerifyCode")){const email=(document.getElementById("cEmail")?.value||"").trim(),code=document.getElementById("cloudEmailCode")?.value||"",m=document.getElementById("cloudMsg"),button=t.closest("#cloudVerifyCode");button.disabled=true;if(m)m.textContent="Проверяю код…";verifyEmailCode(email,code).then(()=>{if(m)m.textContent="Email подтверждён. Вход выполнен."}).catch(e=>{if(m)m.textContent=e.message}).finally(()=>{button.disabled=false});return true}
   if(t.closest("#arvexPasswordSave")){const p=document.getElementById("arvexNewPassword")?.value||"",p2=document.getElementById("arvexNewPassword2")?.value||"",m=document.getElementById("arvexPasswordMsg");if(p.length<8){m.textContent="Минимум 8 символов.";return true}if(p!==p2){m.textContent="Пароли не совпадают.";return true}m.textContent="Сохраняю…";updatePassword(p).then(()=>{m.textContent="Пароль изменён.";setTimeout(()=>{if(typeof closeSheet==="function")closeSheet()},900)}).catch(e=>m.textContent=e.message);return true}
   if(t.closest("#cloudSync")){sync();return true}
   if(t.closest("#cloudOut")){signOut().then(()=>{if(typeof renderProfile==="function")renderProfile()});return true}
@@ -682,7 +711,7 @@ async function insertOrder(o){
 
  document.addEventListener("submit",e=>{const form=e.target;if(!form||form.id!=="arvexSupportForm")return;e.preventDefault();submitSupportForm(form)});
 
- return {insertOrder,myEntitlement,createStarsInvoice,createStarsBotLink,setStarsAutoRenew,createSupport,enabled,accountHTML,userToolsHTML,loadProfileData,loadNotifications,deliverSystemNotifications,click,schedule,sync,isIn:()=>!!session,changePasswordPrompt,acceptRecoveryCallback,acceptEmailConfirmation,handleAuthDeepLink,checkAccountStatus,deleteOwnAccount,exitBlockedApp};
+ return {insertOrder,myEntitlement,createStarsInvoice,createStarsBotLink,setStarsAutoRenew,createSupport,enabled,accountHTML,userToolsHTML,loadProfileData,loadNotifications,deliverSystemNotifications,click,schedule,sync,isIn:()=>!!session,changePasswordPrompt,acceptRecoveryCallback,acceptEmailConfirmation,resendConfirmation,verifyEmailCode,handleAuthDeepLink,checkAccountStatus,deleteOwnAccount,exitBlockedApp};
 })();
 
 // Netlify production redeploy trigger: email confirmation redirects to the public site.
