@@ -88,7 +88,7 @@ assert.ok(cloud.includes('setInterval(()=>{if(session)checkAccountStatus()},3000
 assert.ok(read("mobile/configure-android.js").includes('android:scheme="app.arvex.trading"'), "Android manifest must register the app callback scheme for email confirmation and recovery");
 assert.ok(!cloud.includes("blessedmrasul-code.github.io/trading-app"), "Email confirmation must not use the retired GitHub Pages redirect");
 assert.ok(cloud.includes('req("/auth/v1/signup"') && cloud.includes('req("/auth/v1/resend"'), "Signup and resend must use in-app OTP requests without redirect URLs");
-assert.ok(cloud.includes('type:"recovery",email:e,token:pin') && cloud.includes('type:"signup",email:e,token:pin') && cloud.includes('/^\\d{9}$/') && cloud.includes('maxlength="9"'), "Password recovery must accept nine-digit OTPs while signup keeps its separate six-digit flow");
+assert.ok(cloud.includes('type:"recovery",email:e,token:pin') && cloud.includes('type:"signup",email:e,token:pin') && cloud.includes('/^\\d{8}$/') && cloud.includes('maxlength="8"'), "Password recovery must accept eight-digit OTPs while signup keeps its separate six-digit flow");
 assert.ok(cloud.includes("async function acceptEmailConfirmation") && cloud.includes("handleAuthDeepLink"), "Email confirmation must automatically sign the user back into the app");
 const sql = read("backend/supabase.sql");
 assert.ok(!sql.includes("'subscription_expiry'"), "Expiry notifications must use a kind allowed by the notifications table constraint");
@@ -446,8 +446,8 @@ assert.ok(fs.existsSync(path.join(root, "mobile/apply-android-icons.sh")), "Andr
     URL, URLSearchParams
   };
   const recoveryUrl = "app.arvex.trading://auth/callback#access_token=recovery-access&refresh_token=recovery-refresh&expires_in=3600&type=recovery";
-  await vm.runInNewContext(cloud + "\n;(async () => { await Cloud.acceptRecoveryCallback(" + JSON.stringify(recoveryUrl) + "); await Cloud.verifyRecoveryCode(\"recovery@example.com\", \"123456789\"); })();", recoveryContext);
-  assert.deepEqual(recoveryVerifyBodies[0], { type: "recovery", email: "recovery@example.com", token: "123456789" }, "Password recovery must send all nine digits to Supabase");
+  await vm.runInNewContext(cloud + "\n;(async () => { await Cloud.acceptRecoveryCallback(" + JSON.stringify(recoveryUrl) + "); await Cloud.verifyRecoveryCode(\"recovery@example.com\", \"12345678\"); })();", recoveryContext);
+  assert.deepEqual(recoveryVerifyBodies[0], { type: "recovery", email: "recovery@example.com", token: "12345678" }, "Password recovery must send all eight digits to Supabase");
   assert.equal(recoverySheetOpened, 2, "Android password recovery must open the new-password form after callback and OTP verification");
   assert.equal(JSON.parse(recoveryStorage.get("arvex_cloud_session")).uid, "recovery-user", "Password recovery callback must establish the verified session");
   console.log(`ARVEX checks passed: ${LESSONS.length} lessons, ${Object.keys(EXAMS).length} standard exams, ${MASTER_LESSONS.length} creator lessons, ${MASTER_FINAL.length} final questions, ${MASTER_STRESS.length} stress questions, 30 randomized runs per standard exam, support submit, bans/unbans, Premium grants/revokes, payment routing, account deletion, notifications, and auth recovery.`);
