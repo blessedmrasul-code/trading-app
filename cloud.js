@@ -219,7 +219,7 @@ const Cloud=(()=>{
   try{
    if(kind==="up"){
     const r=await signUp(e,p);
-    if(r.exists){m.textContent=say("Этот email уже зарегистрирован. Нажми «Войти» или «Забыли пароль?» .","This email is already registered. Sign in or reset your password.");return}
+    if(r.exists){m.textContent=say("Этот email уже зарегистрирован. Нажми «Войти» или «Забыли пароль?».","This email is already registered. Sign in or reset your password.");return}
     if(r.confirm){m.textContent=say("Письмо отправлено. Подтверди почту и нажми «Войти».","Confirmation email sent. Verify it, then sign in.");return}
    }else await signIn(e,p);
    if(await checkAccountStatus())return;
