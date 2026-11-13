@@ -141,6 +141,14 @@ assert.ok(premium.includes("PREMIUM_KEYS.every(feature => !Access.locked(feature
 for (const feature of ["RSI","EMA","MACD","Боллинджера","Риск-лаборатория","Торговый дневник","Избранные рынки","Profit factor"]) assert.ok(premium.includes(feature), `Premium module is missing ${feature}`);
 assert.ok(premium.includes("localStorage.getItem(\"arvex_local_state_owner\")"), "Premium journal and watchlist must be isolated by account owner");
 assert.ok(premium.includes("escapeHTML(entry.body)"), "User journal text must be HTML-escaped before rendering");
+
+const school = read("school.js");
+assert.ok(appHtml.includes('data-premium-purchase') && appHtml.includes('https://t.me/ArvexPremiumBot'), "Footer Premium CTA must target the official Telegram bot");
+assert.ok(access.includes('t.closest("[data-premium-purchase]")') && access.includes("openBotPurchase"), "Premium purchase actions must open the bot and create a personalized invoice for signed-in users");
+assert.ok(premium.includes('id="proUpgrade"') && !premium.includes('goProfile();return;'), "Premium main CTA must not redirect users to Profile");
+assert.ok(appHtml.includes('data-tab="masterclass"') && school.includes("MASTER_LESSONS") && school.includes("MASTER_FINAL"), "Premium school must contain creator masterclass lessons and final exam");
+assert.ok(school.includes("Access.isPremium()") && school.includes("masterSubmit"), "Creator masterclass and exams must be gated by server-verified Premium");
+
 const manifest = JSON.parse(read("manifest.webmanifest"));
 for (const icon of manifest.icons) assert.ok(fs.existsSync(path.join(root, icon.src)), `Missing PWA icon: ${icon.src}`);
 assert.ok(fs.existsSync(path.join(root, "icon-512.png")), "Android launcher source icon is missing");
