@@ -526,8 +526,12 @@ async function insertOrder(o){
    if(native&&plugin){
     const permission=await plugin.checkPermissions();
     if(permission&&permission.display==="granted"){
-     await plugin.schedule({notifications:pending.map(x=>({id:notificationIdNumber(x.id),title:String(x.title||"ARVEX"),body:String(x.body||""),schedule:{at:new Date(Date.now()+700)}}))});
+     const vibration=localStorage.getItem("arvex_vibration_enabled")==="true";
+     const channelId=vibration?"arvex-notifications-vibrate":"arvex-notifications-silent";
+     if(typeof plugin.createChannel==="function")await plugin.createChannel({id:channelId,name:"ARVEX",description:"Уведомления приложения ARVEX",importance:3,vibration});
+     await plugin.schedule({notifications:pending.map(x=>({id:notificationIdNumber(x.id),title:String(x.title||"ARVEX"),body:String(x.body||""),channelId,schedule:{at:new Date(Date.now()+700)}}))});
      pending.forEach(x=>seen.add(x.id));
+     if(typeof appFeedback==="function")appFeedback();
     }
    }else if("Notification" in window&&Notification.permission==="granted"){
     pending.forEach(x=>{new Notification(String(x.title||"ARVEX"),{body:String(x.body||""),icon:"icon-192.png",tag:"arvex-"+x.id});seen.add(x.id)});
