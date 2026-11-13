@@ -481,7 +481,13 @@ function bind(){
   const sc=t.closest("#sheetConfirm");if(sc){closeSheet();openTrade(sc.dataset.dir);return}
   if(t.closest("#resetConfirm")){balance=10000;closedPnl=0;positions=[];history=[];saveState();closeSheet();renderTop();renderPositions();renderPortfolio();updateOrderPreview();showToast("Демо-счёт сброшен.");return}
   if(t.closest("#arvexChangePassword")){if(typeof Cloud!=="undefined"&&Cloud.isIn())Cloud.changePasswordPrompt();else showToast("Сначала войди в аккаунт ARVEX.");return}
-  if(t.closest("#arvexNotificationsPermission")){const m=$("arvexSettingsMsg");if(!("Notification" in window)){if(m)m.textContent="Этот браузер не поддерживает системные уведомления.";return}Notification.requestPermission().then(v=>{if(m)m.textContent=v==="granted"?"Системные уведомления разрешены.":"Разрешение на уведомления не получено."});return}
+  if(t.closest("#arvexNotificationsPermission")){
+   const m=$("arvexSettingsMsg"),native=typeof window.ARVEX_CAP_IS_NATIVE==="function"?window.ARVEX_CAP_IS_NATIVE():!!(window.Capacitor&&window.Capacitor.isNativePlatform()),plugin=window.ARVEX_CAP_LOCAL_NOTIFICATIONS;
+   if(native&&plugin){plugin.requestPermissions().then(v=>{if(m)m.textContent=v&&v.display==="granted"?"Системные уведомления разрешены.":"Разрешение на уведомления не получено."}).catch(e=>{if(m)m.textContent="Не удалось запросить разрешение: "+e.message});return}
+   if(!("Notification" in window)){if(m)m.textContent="Этот браузер не поддерживает системные уведомления.";return}
+   Notification.requestPermission().then(v=>{if(m)m.textContent=v==="granted"?"Системные уведомления разрешены.":"Разрешение на уведомления не получено."});
+   return;
+  }
   if(t.closest("#editProfile")){openProfileModal(true);return}
   if(t.closest("#resetAccount")){resetAccount();return}
   if(t.id==="sheet"){closeSheet();return}
