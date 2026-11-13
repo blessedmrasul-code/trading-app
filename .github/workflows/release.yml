@@ -107,13 +107,13 @@ jobs:
       - name: Type-check Supabase Edge Functions
         working-directory: .
         run: |
-          npx --yes deno --version
-          npx --yes deno check supabase/functions/create-stars-invoice/index.ts
-          npx --yes deno check supabase/functions/create-stars-bot-link/index.ts
-          npx --yes deno check supabase/functions/cancel-stars-subscription/index.ts
-          npx --yes deno check supabase/functions/telegram-stars-webhook/index.ts
-          npx --yes deno check supabase/functions/admin-user-ban/index.ts
-          npx --yes deno check supabase/functions/delete-own-account/index.ts
+          deno --version
+          deno check supabase/functions/create-stars-invoice/index.ts
+          deno check supabase/functions/create-stars-bot-link/index.ts
+          deno check supabase/functions/cancel-stars-subscription/index.ts
+          deno check supabase/functions/telegram-stars-webhook/index.ts
+          deno check supabase/functions/admin-user-ban/index.ts
+          deno check supabase/functions/delete-own-account/index.ts
 
       - name: Check application JavaScript syntax and smoke tests
         working-directory: .
