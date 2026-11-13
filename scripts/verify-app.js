@@ -47,6 +47,7 @@ for (const id of ["novice", "advanced", "expert"]) {
 const css = read("style.css");
 assert.ok(css.includes("textarea.field{display:block;color:var(--text)"), "Textarea must explicitly use readable foreground color");
 assert.ok(css.includes("[hidden]{display:none!important}"), "The hidden attribute must override inline display styles");
+const app = read("app.js");
 const cloud = read("cloud.js");
 assert.ok(cloud.includes('const GOOGLE_REDIRECT="app.arvex.trading://auth/callback"'), "Google OAuth must return to the ARVEX Android deep link");
 assert.ok(cloud.includes('id="cloudGoogle"'), "Profile must render the Google sign-in button");
@@ -69,7 +70,6 @@ assert.ok(cloud.includes('document.addEventListener("submit"'), "Support form mu
 assert.ok(cloud.includes('Prefer":"return=representation'), "Support creation must verify a returned row");
 assert.ok(cloud.includes("arvex_admin_list_support_tickets"), "Admin support inbox must call the protected RPC");
 assert.ok(cloud.includes("arvex_admin_set_support_status"), "Admin must be able to update ticket status");
-const app = read("app.js");
 assert.ok(app.includes("Cloud.accountHTML()"), "Profile must render cloud sign-in and registration controls");
 assert.ok(app.includes("Access.cardHTML()"), "Profile must render the subscription purchase card");
 assert.ok(app.includes("Cloud.userToolsHTML()"), "Profile must render promo codes and account tools");
