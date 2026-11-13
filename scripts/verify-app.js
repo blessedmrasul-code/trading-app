@@ -54,6 +54,7 @@ assert.ok(app.includes("Cloud.loadNotifications()") && cloud.includes("loadNotif
 assert.ok(cloud.includes('const GOOGLE_REDIRECT="app.arvex.trading://auth/callback"'), "Google OAuth must return to the ARVEX Android deep link");
 assert.ok(cloud.includes('id="cloudGoogle"'), "Profile must render the Google sign-in button");
 assert.ok(cloud.includes("startGoogleSignIn") && cloud.includes("acceptOAuthCallback"), "Google OAuth start and callback handlers must exist");
+assert.ok(cloud.includes("/auth/v1/recover?redirect_to=") && cloud.includes("recoveryType"), "Password recovery must return to the app and support native callback tokens");
 assert.ok(cloud.includes("cleanOAuthCallbackUrl") && cloud.includes('searchParams.delete(key)'), "OAuth code, state and error parameters must be removed from browser history");
 
 
@@ -403,7 +404,34 @@ assert.ok(fs.existsSync(path.join(root, "mobile/apply-android-icons.sh")), "Andr
   assert.equal(switchStorage.has("arvex_v3_state"), false, "Previous account's local progress must not carry over to another account");
   assert.equal(switchReloads, 1, "Account switch must reload before using the previous account's in-memory state");
   assert.equal(switchCleanedUrl, "/app/", "OAuth authorization code and state must be removed from the address bar after exchange");
-  console.log(`ARVEX checks passed: ${LESSONS.length} lessons, ${Object.keys(EXAMS).length} exams, 30 randomized runs per exam, support submit, ban RPC, account deletion, account isolation, notification delivery/deduplication, OAuth URL cleanup, and UI guards.`);
+
+  const recoveryStorage = new Map();
+  let recoverySheetOpened = 0;
+  const recoveryContext = {
+    window: { ARVEX_CLOUD: { url: "https://example.supabase.co", anonKey: "public-test-key" } },
+    document: { addEventListener() {}, getElementById() { return null; } },
+    location: { href: "https://arvex.example/app/", hash: "", pathname: "/app/", search: "" },
+    history: { replaceState() {} },
+    localStorage: {
+      getItem(key) { return recoveryStorage.get(key) ?? null; },
+      setItem(key, value) { recoveryStorage.set(key, value); },
+      removeItem(key) { recoveryStorage.delete(key); }
+    },
+    fetch: async (url) => ({
+      ok: true, status: 200,
+      json: async () => url.includes("/auth/v1/user")
+        ? { id: "recovery-user", email: "recovery@example.com" }
+        : [{ is_banned: false }]
+    }),
+    setTimeout(callback) { callback(); return 1; },
+    openSheet() { recoverySheetOpened++; },
+    URL, URLSearchParams
+  };
+  const recoveryUrl = "app.arvex.trading://auth/callback#access_token=recovery-access&refresh_token=recovery-refresh&expires_in=3600&type=recovery";
+  await vm.runInNewContext(cloud + "\n;Cloud.acceptOAuthCallback(" + JSON.stringify(recoveryUrl) + ");", recoveryContext);
+  assert.equal(recoverySheetOpened, 1, "Android password recovery must open the new-password form after callback");
+  assert.equal(JSON.parse(recoveryStorage.get("arvex_cloud_session")).uid, "recovery-user", "Password recovery callback must establish the verified session");
+  console.log(`ARVEX checks passed: ${LESSONS.length} lessons, ${Object.keys(EXAMS).length} exams, 30 randomized runs per exam, support submit, ban RPC, account deletion, account isolation, notification delivery/deduplication, OAuth URL cleanup and password recovery, and UI guards.`);
 })().catch((error) => {
   console.error(error);
   process.exitCode = 1;
