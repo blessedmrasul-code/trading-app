@@ -91,6 +91,11 @@ assert.ok(app.includes("arvexSoundToggle") && app.includes("arvexVibrationToggle
 assert.ok(read("mobile/build-web.js").includes("'offer.html'") && fs.existsSync(path.join(root,"offer.html")), "Android web bundle must include the Premium terms page");
 assert.ok(read("mobile/package.json").includes('"@capacitor/browser": "8.0.0"'), "Native Google OAuth browser dependency must be pinned");
 assert.ok(read("supabase/migrations/20261113120000_arvex_bans_and_account_controls.sql").includes("arvex_user_bans"), "Ban migration must exist");
+
+const notificationGrants = read("supabase/migrations/20261113130000_arvex_notifications_privileges_hardening.sql");
+assert.ok(notificationGrants.includes("revoke all on table public.arvex_notifications from public, anon, authenticated"), "Anonymous users must have no direct notification table privileges");
+assert.ok(notificationGrants.includes("grant select, update on table public.arvex_notifications to authenticated"), "Signed-in users may only read and mark their own notifications; RLS enforces row ownership");
+
 assert.ok(read("supabase/functions/admin-user-ban/index.ts").includes("arvex_admin_record_ban"), "Ban and unban actions must be recorded by the admin-only RPC");
 assert.ok(read("supabase/migrations/20261113120000_arvex_bans_and_account_controls.sql").includes("arvex_is_banned()"), "Banned accounts must be denied by database RLS");
 assert.ok(read("supabase/functions/delete-own-account/index.ts").includes("/auth/v1/admin/users/"), "Self-service deletion must use the server-side Auth Admin API");
