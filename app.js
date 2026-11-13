@@ -29,6 +29,7 @@ function signed(n){return (n>0?"+":"")+money(n)}
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 function appFeedback(){
  try{
+  if(localStorage.getItem("arvex_notifications_enabled")==="false")return;
   if(localStorage.getItem("arvex_vibration_enabled")==="true"&&navigator.vibrate)navigator.vibrate(35);
   if(localStorage.getItem("arvex_sound_enabled")==="true"){
    const Audio=window.AudioContext||window.webkitAudioContext;
@@ -427,7 +428,14 @@ const UI_EN={
 "Уроки":"Lessons","Экзамен":"Exam","Словарь":"Glossary","Калькулятор":"Calculator","Помощник":"Assistant",
 "Создать профиль":"Create profile","Сохранить":"Save","Отмена":"Cancel","Закрыть":"Close",
 "Добро пожаловать в ARVEX":"Welcome to ARVEX","Имя":"Name","Аватар":"Avatar",
-"Счёт":"Balance","Funding Rate":"Funding Rate","Демо-счёт сброшен.":"Demo account reset."
+"Счёт":"Balance","Funding Rate":"Funding Rate","Демо-счёт сброшен.":"Demo account reset.",
+"Управление аккаунтами":"Account management","Активные блокировки":"Active bans","Найти пользователя":"Find user","Заблокировать":"Ban user","Снять блокировку":"Remove ban","Причина блокировки":"Reason for the ban","Обжаловать блокировку":"Appeal the ban","Выйти из приложения":"Exit the app","G Продолжить с Google":"Continue with Google",
+"Этот email уже зарегистрирован. Нажми «Войти» или «Забыли пароль?»." :"This email is already registered. Sign in or reset your password.",
+"Сначала подтверди email по ссылке из письма, затем войди.":"Verify your email using the link we sent, then sign in.",
+"Неверный email или пароль. Если входил через Google, нажми кнопку Google.":"Incorrect email or password. If you used Google, choose Continue with Google.",
+"Уведомления включены.":"Notifications enabled.","Уведомления выключены.":"Notifications disabled.",
+"Звуки включены.":"Sounds enabled.","Звуки выключены.":"Sounds disabled.",
+"Вибрация включена.":"Vibration enabled.","Вибрация выключена.":"Vibration disabled."
 };
 function applyLanguage(lang){
  const en=lang==="en";document.documentElement.lang=en?"en":"ru";
