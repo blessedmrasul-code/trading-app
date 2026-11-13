@@ -3,6 +3,26 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 const manifest = path.resolve(__dirname, "android/app/src/main/AndroidManifest.xml");
+const rawDir = path.resolve(__dirname, "android/app/src/main/res/raw");
+fs.mkdirSync(rawDir, { recursive: true });
+// Short, soft original ARVEX notification chime used only when sound is enabled.
+const sampleRate = 22050;
+const sampleCount = Math.floor(sampleRate * 0.16);
+const dataBytes = sampleCount * 2;
+const wav = Buffer.alloc(44 + dataBytes);
+wav.write("RIFF", 0); wav.writeUInt32LE(36 + dataBytes, 4);
+wav.write("WAVE", 8); wav.write("fmt ", 12); wav.writeUInt32LE(16, 16);
+wav.writeUInt16LE(1, 20); wav.writeUInt16LE(1, 22);
+wav.writeUInt32LE(sampleRate, 24); wav.writeUInt32LE(sampleRate * 2, 28);
+wav.writeUInt16LE(2, 32); wav.writeUInt16LE(16, 34);
+wav.write("data", 36); wav.writeUInt32LE(dataBytes, 40);
+for (let i = 0; i < sampleCount; i++) {
+  const fadeIn = Math.min(1, i / (sampleRate * 0.012));
+  const fadeOut = Math.max(0, 1 - i / sampleCount);
+  const sample = Math.round(7200 * fadeIn * fadeOut * Math.sin(2 * Math.PI * 880 * i / sampleRate));
+  wav.writeInt16LE(sample, 44 + i * 2);
+}
+fs.writeFileSync(path.join(rawDir, "arvex_notification.wav"), wav);
 if (!fs.existsSync(manifest)) {
   console.error("AndroidManifest.xml не найден. Сначала выполните npx cap add android.");
   process.exit(1);
