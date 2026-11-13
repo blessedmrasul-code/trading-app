@@ -3,11 +3,6 @@ const cors={"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"au
 const json=(data:unknown,status=200)=>new Response(JSON.stringify(data),{status,headers:{...cors,"Content-Type":"application/json"}});
 const url=()=>Deno.env.get("SUPABASE_URL")||"";
 function key(name:string,legacy:string){if(Deno.env.get(legacy))return Deno.env.get(legacy)!;try{return JSON.parse(Deno.env.get(name)||"{}").default||""}catch{return ""}}
-async function request(path:string,init:RequestInit={},secret=false){
- const k=secret?key("SUPABASE_SECRET_KEYS","SUPABASE_SERVICE_ROLE_KEY"):key("SUPABASE_PUBLISHABLE_KEYS","SUPABASE_ANON_KEY");
- const r=await fetch(url()+path,{...init,headers:{apikey:k,Authorization:init.headers instanceof Headers?init.headers.get("Authorization")||"":String((init.headers as Record<string,string>|undefined)?.Authorization||"Bearer "+k),"Content-Type":"application/json",...(init.headers||{})}});
- const body=await r.json().catch(()=>null);return {ok:r.ok,status:r.status,body};
-}
 Deno.serve(async(req:Request)=>{
  if(req.method==="OPTIONS")return new Response("ok",{headers:cors});
  if(req.method!=="POST")return json({error:"Method not allowed"},405);
@@ -30,16 +25,11 @@ Deno.serve(async(req:Request)=>{
   if(action!=="ban"&&action!=="unban")return json({error:"Неизвестное действие"},400);
   const reason=String(body.reason||"").trim().slice(0,1000);
   if(action==="ban"&&reason.length<5)return json({error:"Причина должна содержать минимум 5 символов"},400);
-  if(action==="ban"){
-   const authUpdate=await request("/auth/v1/admin/users/"+encodeURIComponent(userId),{method:"PUT",body:JSON.stringify({ban_duration:"876000h"})},true);
-   if(!authUpdate.ok)return json({error:"Supabase Auth не применил блокировку"},502);
-   const recorded=await fetch(url()+"/rest/v1/rpc/arvex_admin_record_ban",{method:"POST",headers:{apikey:publishable,Authorization:"Bearer "+jwt,"Content-Type":"application/json"},body:JSON.stringify({p_user_id:userId,p_reason:reason,p_action:"ban"})});
-   if(!recorded.ok){await request("/auth/v1/admin/users/"+encodeURIComponent(userId),{method:"PUT",body:JSON.stringify({ban_duration:"none"})},true);return json({error:"Не удалось сохранить причину блокировки"},502)}
-  }else{
-   const authUpdate=await request("/auth/v1/admin/users/"+encodeURIComponent(userId),{method:"PUT",body:JSON.stringify({ban_duration:"none"})},true);
-   if(!authUpdate.ok)return json({error:"Supabase Auth не снял блокировку"},502);
-   const recorded=await fetch(url()+"/rest/v1/rpc/arvex_admin_record_ban",{method:"POST",headers:{apikey:publishable,Authorization:"Bearer "+jwt,"Content-Type":"application/json"},body:JSON.stringify({p_user_id:userId,p_reason:"",p_action:"unban"})});
-   if(!recorded.ok)return json({error:"Auth разблокирован, но запись блокировки не удалена. Повтори снятие блокировки."},502);
+  const recorded=await fetch(url()+"/rest/v1/rpc/arvex_admin_record_ban",{method:"POST",headers:{apikey:publishable,Authorization:"Bearer "+jwt,"Content-Type":"application/json"},body:JSON.stringify({p_user_id:userId,p_reason:reason,p_action:action})});
+  if(!recorded.ok){
+    const detail=await recorded.text().catch(()=>"");
+    console.error("arvex_admin_record_ban failed",recorded.status,detail.slice(0,300));
+    return json({error:"Не удалось сохранить изменение блокировки"},recorded.status===403?403:502);
   }
   return json({ok:true,action,user_id:userId,administrator:"Mrasulv"});
  }catch(e){console.error("admin-user-ban",e);return json({error:"Внутренняя ошибка управления блокировкой"},500)}
