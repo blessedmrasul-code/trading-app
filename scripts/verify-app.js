@@ -132,6 +132,14 @@ assert.ok(appHtml.indexOf('src="cloud.js"') < appHtml.indexOf('src="app.js"'), "
 assert.ok(appHtml.indexOf('src="access.js"') < appHtml.indexOf('src="app.js"'), "Premium entitlement must load before app initialization");
 
 assert.ok(appHtml.includes('id="subscribeFooterLink"') && appHtml.includes('id="footerPremiumStatus"'), "Footer must switch to Premium status");
+const premium = read("premium.js");
+assert.ok(appHtml.includes('data-go="premium"') && appHtml.includes('id="screen-premium"') && appHtml.includes('id="premiumBody"'), "ARVEX Premium screen must be reachable from navigation");
+assert.ok(read("mobile/build-web.js").includes("'premium.js'"), "Android web bundle must include the Premium module");
+assert.ok(read("shop-config.js").includes('"pro_analytics"') && read("shop-config.js").includes('"pro_risk_lab"') && read("shop-config.js").includes('"pro_journal"') && read("shop-config.js").includes('"pro_watchlist"'), "Premium feature gates must be configured");
+assert.ok(access.includes("locked=f=>") && access.includes("isPremium()"), "Premium access must depend on the server entitlement state");
+for (const feature of ["RSI","EMA","MACD","Bollinger","Риск-лаборатория","Торговый дневник","Избранные рынки","Profit factor"]) assert.ok(premium.includes(feature), `Premium module is missing ${feature}`);
+assert.ok(premium.includes("localStorage.getItem(\"arvex_local_state_owner\")"), "Premium journal and watchlist must be isolated by account owner");
+assert.ok(premium.includes("escapeHTML(entry.body)"), "User journal text must be HTML-escaped before rendering");
 const manifest = JSON.parse(read("manifest.webmanifest"));
 for (const icon of manifest.icons) assert.ok(fs.existsSync(path.join(root, icon.src)), `Missing PWA icon: ${icon.src}`);
 assert.ok(fs.existsSync(path.join(root, "icon-512.png")), "Android launcher source icon is missing");
