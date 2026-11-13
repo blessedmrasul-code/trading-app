@@ -80,7 +80,9 @@ const Cloud=(()=>{
   u.searchParams.set("provider","google");
   u.searchParams.set("redirect_to",GOOGLE_REDIRECT);
   u.searchParams.set("flow_type","implicit");
-  location.href=u.toString();
+  const browser=window.ARVEX_CAP_BROWSER;
+  if(browser&&window.Capacitor&&window.Capacitor.isNativePlatform())browser.open({url:u.toString()});
+  else location.href=u.toString();
  }
  function installOAuthDeepLink(){
   const app=window.ARVEX_CAP_APP;
