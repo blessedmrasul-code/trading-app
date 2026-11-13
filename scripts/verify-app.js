@@ -53,6 +53,8 @@ const cloud = read("cloud.js");
 assert.ok(cloud.includes('const GOOGLE_REDIRECT="app.arvex.trading://auth/callback"'), "Google OAuth must return to the ARVEX Android deep link");
 assert.ok(cloud.includes('id="cloudGoogle"'), "Profile must render the Google sign-in button");
 assert.ok(cloud.includes("startGoogleSignIn") && cloud.includes("acceptOAuthCallback"), "Google OAuth start and callback handlers must exist");
+assert.ok(cloud.includes("cleanOAuthCallbackUrl") && cloud.includes('searchParams.delete(key)'), "OAuth code, state and error parameters must be removed from browser history");
+
 
 assert.ok(cloud.includes('setAttribute("aria-modal","true")') && cloud.includes("child.inert=true") && cloud.includes('e.key==="Tab"'), "Ban overlay must trap keyboard focus and disable background controls");
 assert.ok(cloud.includes('id="arvexBanAppeal"') && cloud.includes("Mrasulv"), "Ban overlay must show the administrator and provide an appeal link");
@@ -243,8 +245,8 @@ assert.ok(fs.existsSync(path.join(root, "mobile/apply-android-icons.sh")), "Andr
   const switchContext = {
     window: { ARVEX_CLOUD: { url: "https://example.supabase.co", anonKey: "public-test-key" } },
     document: { addEventListener() {}, getElementById() { return null; } },
-    location: { href: "https://arvex.example/app/", hash: "", pathname: "/app/", search: "", reload() { switchReloads++; } },
-    history: { replaceState() {} },
+    location: { href: "https://arvex.example/app/?code=test-code&state=temporary", hash: "", pathname: "/app/", search: "?code=test-code&state=temporary", reload() { switchReloads++; } },
+    history: { replaceState(_state, _title, url) { switchReloads.cleanedUrl = url; } },
     localStorage: {
       getItem(key) { return switchStorage.get(key) ?? null; },
       setItem(key, value) { switchStorage.set(key, value); },
@@ -262,6 +264,7 @@ assert.ok(fs.existsSync(path.join(root, "mobile/apply-android-icons.sh")), "Andr
   assert.equal(switchStorage.get("arvex_local_state_owner"), "new-user", "New account must become the owner of device-local progress");
   assert.equal(switchStorage.has("arvex_v3_state"), false, "Previous account's local progress must not carry over to another account");
   assert.equal(switchReloads, 1, "Account switch must reload before using the previous account's in-memory state");
+  assert.equal(switchReloads.cleanedUrl, "/app/", "OAuth authorization code and state must be removed from the address bar after exchange");
   console.log(`ARVEX checks passed: ${LESSONS.length} lessons, ${Object.keys(EXAMS).length} exams, 30 randomized runs per exam, support submit, ban RPC, account deletion, account isolation, and UI guards.`);
 })().catch((error) => {
   console.error(error);
