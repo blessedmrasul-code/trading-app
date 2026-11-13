@@ -465,6 +465,7 @@ function bind(){
  });
  document.addEventListener("click",e=>{
   const t=e.target;
+  if(t.closest("[data-premium-purchase]"))e.preventDefault();
   if(typeof Cloud!=="undefined"&&Cloud.click(t))return;
   if(typeof Access!=="undefined"&&Access.click(t))return;
   if(t.closest("#avPhotoDel")){pendingPhoto="";renderAvatarPicker();return}
