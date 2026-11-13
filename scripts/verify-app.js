@@ -61,6 +61,7 @@ assert.ok(cloud.includes("cleanOAuthCallbackUrl") && cloud.includes('searchParam
 
 assert.ok(cloud.includes('setAttribute("aria-modal","true")') && cloud.includes("child.inert=true") && cloud.includes('e.key==="Tab"'), "Ban overlay must trap keyboard focus and disable background controls");
 assert.ok(cloud.includes('id="arvexBanAppeal"') && cloud.includes("Mrasulv"), "Ban overlay must show the administrator and provide an appeal link");
+assert.ok(!cloud.includes("async function exitBlockedApp(){\n  await signOut();"), "Leaving a ban screen must not sign the blocked user out and enable guest bypass");
 assert.ok(cloud.includes('browser.open({url:appealLink.href})'), "Android ban appeals must open in the system browser");
 
 assert.ok(cloud.includes('/^\\S+@\\S+\\.\\S+$/'), "Password recovery must validate email with a working non-whitespace regex");
@@ -380,6 +381,23 @@ assert.ok(fs.existsSync(path.join(root, "mobile/apply-android-icons.sh")), "Andr
   assert.equal(confirmedSession.uid, "verified-user", "Email confirmation must create a signed-in session automatically");
   assert.equal(emailConfirmCleanedUrl, "/app/", "Email confirmation tokens must be removed from the address bar");
   assert.match(emailConfirmMessage.textContent, /Email подтверждён/, "The app must confirm successful email verification");
+
+  const blockedSessionStorage = new Map([["arvex_cloud_session", JSON.stringify(session)]]);
+  let blockedExitCalls = 0;
+  const blockedExitContext = {
+    window: { ARVEX_CLOUD: { url: "https://example.supabase.co", anonKey: "public-test-key" }, ARVEX_CAP_IS_NATIVE: () => true, ARVEX_CAP_APP: { exitApp() { blockedExitCalls++; } } },
+    document: { addEventListener() {}, getElementById() { return null; } },
+    location: { href: "https://arvex.example/app/", pathname: "/app/", search: "", hash: "", replace() {} },
+    localStorage: {
+      getItem(key) { return blockedSessionStorage.get(key) ?? null; },
+      setItem(key, value) { blockedSessionStorage.set(key, value); },
+      removeItem(key) { blockedSessionStorage.delete(key); }
+    },
+    URL, URLSearchParams
+  };
+  await vm.runInNewContext(cloud + "\n;Cloud.exitBlockedApp();", blockedExitContext);
+  assert.equal(blockedExitCalls, 1, "Ban screen exit must close the Android app");
+  assert.equal(blockedSessionStorage.has("arvex_cloud_session"), true, "Exiting a ban screen must preserve the blocked session for the next launch");
 
   const switchStorage = new Map([
     ["arvex_cloud_session", JSON.stringify({ access: "old-access", refresh: "old-refresh", exp: Date.now() + 3600000, uid: "old-user", email: "old@example.com" })],
