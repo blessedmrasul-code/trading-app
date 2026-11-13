@@ -61,7 +61,7 @@ assert.ok(cloud.includes('const AUTH_REDIRECT="app.arvex.trading://auth/callback
 assert.ok(!cloud.includes('id="cloudGoogle"') && !cloud.includes("startGoogleSignIn"), "Google sign-in must be absent from the app");
 assert.ok(app.includes("Cloud.acceptEmailConfirmation()") && cloud.includes("async function acceptEmailConfirmation"), "Email confirmation must be processed automatically during app initialization");
 assert.ok(cloud.includes("/auth/v1/recover?redirect_to=") && cloud.includes("recoveryType"), "Password recovery must return to the app and support native callback tokens");
-assert.ok(cloud.includes("cleanOAuthCallbackUrl") && cloud.includes('searchParams.delete(key)'), "OAuth code, state and error parameters must be removed from browser history");
+assert.ok(cloud.includes("cleanAuthCallbackUrl") && cloud.includes('searchParams.delete(key)'), "Auth callback tokens and error parameters must be removed from browser history");
 
 
 assert.ok(cloud.includes('setAttribute("aria-modal","true")') && cloud.includes("child.inert=true") && cloud.includes('e.key==="Tab"'), "Ban overlay must trap keyboard focus and disable background controls");
@@ -165,7 +165,7 @@ assert.ok(app.includes('Access.refresh().then(()=>{if(typeof schoolTab!=="undefi
 assert.ok(cloud.includes("/functions/v1/admin-user-ban") && cloud.includes("data-admin-unban-user"), "Admin must be able to ban and unban accounts");
 assert.ok(cloud.includes("arvex_admin_set_subscription") && cloud.includes("arvex_admin_revoke_subscription"), "Admin panel must grant, extend and revoke Premium");
 assert.ok(cloud.includes("data-admin-grant-user") && cloud.includes("data-admin-revoke-user"), "Admin search results must expose Premium management controls");
-assert.ok(!cloud.includes("Continue with Google") && !cloud.includes("входил через Google"), "Email sign-in copy must not mention the removed Google option");
+assert.ok(!cloud.includes("Google") && !app.includes("Продолжить с Google") && !app.includes("Continue with Google"), "Google sign-in must be fully removed from ARVEX");
 
 const manifest = JSON.parse(read("manifest.webmanifest"));
 for (const icon of manifest.icons) assert.ok(fs.existsSync(path.join(root, icon.src)), `Missing PWA icon: ${icon.src}`);
@@ -281,27 +281,6 @@ assert.ok(fs.existsSync(path.join(root, "mobile/apply-android-icons.sh")), "Andr
   assert.equal(deniedNotificationReadUpdates, 0, "Notifications without permission must remain unread when the notifications panel is not open");
 
 
-  const oauthErrorStorage = new Map([["arvex_google_pkce_verifier", "test-verifier"]]);
-  const oauthErrorMessage = { textContent: "" };
-  let oauthErrorCleanedUrl = "";
-  const oauthErrorContext = {
-    window: { ARVEX_CLOUD: { url: "https://example.supabase.co", anonKey: "public-test-key" }, ARVEX_CAP_IS_NATIVE: () => false },
-    location: { href: "https://arvex.example/app/?error=access_denied&error_description=OAuth%20state%20parameter%20missing", origin: "https://arvex.example", pathname: "/app/", search: "?error=access_denied&error_description=OAuth%20state%20parameter%20missing", hash: "" },
-    history: { replaceState(_state, _title, url) { oauthErrorCleanedUrl = url; } },
-    document: { addEventListener() {}, getElementById(id) { return id === "cloudMsg" ? oauthErrorMessage : null; } },
-    localStorage: {
-      getItem(key) { return oauthErrorStorage.get(key) ?? null; },
-      setItem(key, value) { oauthErrorStorage.set(key, value); },
-      removeItem(key) { oauthErrorStorage.delete(key); }
-    },
-    renderProfile() {},
-    URL, URLSearchParams
-  };
-  await vm.runInNewContext(cloud + "\n;Cloud.acceptOAuthCallback('https://arvex.example/app/?error=access_denied&error_description=OAuth%20state%20parameter%20missing');", oauthErrorContext);
-  assert.match(oauthErrorMessage.textContent, /OAuth state parameter missing/, "Google OAuth errors must be visible in the account form");
-  assert.equal(oauthErrorCleanedUrl, "/app/", "Failed OAuth callback parameters must be removed from browser history");
-  assert.equal(oauthErrorStorage.has("arvex_google_pkce_verifier"), false, "Failed OAuth must clear its one-time PKCE verifier");
-
   const pollingStorage = new Map([
     ["arvex_cloud_session", JSON.stringify(session)],
     ["arvex_notifications_enabled", "true"],
@@ -406,39 +385,6 @@ assert.ok(fs.existsSync(path.join(root, "mobile/apply-android-icons.sh")), "Andr
   assert.equal(blockedExitCalls, 1, "Ban screen exit must close the Android app");
   assert.equal(blockedSessionStorage.has("arvex_cloud_session"), true, "Exiting a ban screen must preserve the blocked session for the next launch");
 
-  const switchStorage = new Map([
-    ["arvex_cloud_session", JSON.stringify({ access: "old-access", refresh: "old-refresh", exp: Date.now() + 3600000, uid: "old-user", email: "old@example.com" })],
-    ["arvex_local_state_owner", "old-user"],
-    ["arvex_v3_state", JSON.stringify({ balance: 1234, history: [], positions: [], updatedAt: Date.now() })],
-    ["arvex_google_pkce_verifier", "test-verifier"]
-  ]);
-  let switchReloads = 0;
-  let switchCleanedUrl = "";
-  const switchContext = {
-    window: { ARVEX_CLOUD: { url: "https://example.supabase.co", anonKey: "public-test-key" } },
-    document: { addEventListener() {}, getElementById() { return null; } },
-    location: { href: "https://arvex.example/app/?code=test-code&state=temporary", hash: "", pathname: "/app/", search: "?code=test-code&state=temporary", reload() { switchReloads++; } },
-    setTimeout() { return 0; },
-    history: { replaceState(_state, _title, url) { switchCleanedUrl = url; } },
-    localStorage: {
-      getItem(key) { return switchStorage.get(key) ?? null; },
-      setItem(key, value) { switchStorage.set(key, value); },
-      removeItem(key) { switchStorage.delete(key); }
-    },
-    fetch: async (url) => ({
-      ok: true, status: 200,
-      json: async () => url.includes("grant_type=pkce")
-        ? { access_token: "new-access", refresh_token: "new-refresh", expires_in: 3600, user: { id: "new-user", email: "new@example.com" } }
-        : [{ is_banned: false }]
-    }),
-    URL, URLSearchParams
-  };
-  await vm.runInNewContext(cloud + "\n;Cloud.acceptOAuthCallback('https://arvex.example/app/?code=test-code');", switchContext);
-  assert.equal(switchStorage.get("arvex_local_state_owner"), "new-user", "New account must become the owner of device-local progress");
-  assert.equal(switchStorage.has("arvex_v3_state"), false, "Previous account's local progress must not carry over to another account");
-  assert.equal(switchReloads, 1, "Account switch must reload before using the previous account's in-memory state");
-  assert.equal(switchCleanedUrl, "/app/", "OAuth authorization code and state must be removed from the address bar after exchange");
-
   const recoveryStorage = new Map();
   let recoverySheetOpened = 0;
   const recoveryContext = {
@@ -462,7 +408,7 @@ assert.ok(fs.existsSync(path.join(root, "mobile/apply-android-icons.sh")), "Andr
     URL, URLSearchParams
   };
   const recoveryUrl = "app.arvex.trading://auth/callback#access_token=recovery-access&refresh_token=recovery-refresh&expires_in=3600&type=recovery";
-  await vm.runInNewContext(cloud + "\n;Cloud.acceptOAuthCallback(" + JSON.stringify(recoveryUrl) + ");", recoveryContext);
+  await vm.runInNewContext(cloud + "\n;Cloud.acceptRecoveryCallback(" + JSON.stringify(recoveryUrl) + ");", recoveryContext);
   assert.equal(recoverySheetOpened, 1, "Android password recovery must open the new-password form after callback");
   assert.equal(JSON.parse(recoveryStorage.get("arvex_cloud_session")).uid, "recovery-user", "Password recovery callback must establish the verified session");
   console.log(`ARVEX checks passed: ${LESSONS.length} lessons, ${Object.keys(EXAMS).length} standard exams, ${MASTER_LESSONS.length} creator lessons, ${MASTER_FINAL.length} final questions, ${MASTER_STRESS.length} stress questions, 30 randomized runs per standard exam, support submit, bans/unbans, Premium grants/revokes, payment routing, account deletion, notifications, and auth recovery.`);
