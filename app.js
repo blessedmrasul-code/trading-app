@@ -435,7 +435,9 @@ const UI_EN={
 "Неверный email или пароль. Если входил через Google, нажми кнопку Google.":"Incorrect email or password. If you used Google, choose Continue with Google.",
 "Уведомления включены.":"Notifications enabled.","Уведомления выключены.":"Notifications disabled.",
 "Звуки включены.":"Sounds enabled.","Звуки выключены.":"Sounds disabled.",
-"Вибрация включена.":"Vibration enabled.","Вибрация выключена.":"Vibration disabled."
+"Вибрация включена.":"Vibration enabled.","Вибрация выключена.":"Vibration disabled.",
+"Системные уведомления разрешены.":"System notifications are allowed.","Разрешение на уведомления не получено.":"Notification permission was not granted.",
+"Этот браузер не поддерживает системные уведомления.":"This browser does not support system notifications.","Уведомления включены.":"Notifications enabled.","Уведомления выключены.":"Notifications disabled."
 };
 function applyLanguage(lang){
  const en=lang==="en";document.documentElement.lang=en?"en":"ru";
