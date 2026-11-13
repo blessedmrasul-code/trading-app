@@ -87,6 +87,21 @@ const Access=(()=>{
   }catch(e){if(paymentWindow)paymentWindow.close();if(m)m.textContent=e.message}
   finally{if(b){b.disabled=false;b.textContent="Оплатить через бота · 120 ⭐"}}
  }
+ async function openBotPurchase(){
+  const popup=window.open("about:blank","_blank");
+  try{
+   let url="https://t.me/ArvexPremiumBot";
+   if(typeof Cloud!=="undefined"&&Cloud.isIn()&&Cloud.createStarsBotLink){
+    const invoice=await Cloud.createStarsBotLink();
+    if(invoice.lifetime){if(popup)popup.close();await refresh();if(typeof showToast==="function")showToast("Пожизненный Premium уже активен.");return;}
+    if(invoice.url)url=invoice.url;
+   }
+   if(popup)popup.location.href=url;else window.location.href=url;
+  }catch(e){
+   if(popup)popup.close();
+   if(typeof showToast==="function")showToast(e.message||"Не удалось открыть Telegram-бота.");
+  }
+ }
  async function toggleStarsRenew(){
   const enabled=entitlement?.auto_renew===false;
   const b=document.getElementById("accStarsToggle"),m=document.getElementById("accStarsMsg");
@@ -116,6 +131,7 @@ const Access=(()=>{
   if(t.closest("#accManualStars")){const s=shop(),tg=String(s.telegram||"mrasulv").replace(/^@/,""),stars=Number(s.stars)||120,days=Number(s.subscriptionDays)||30;const msg=`Здравствуйте! Хочу оформить ARVEX Premium на ${days} дней за ${stars} Telegram Stars. Подскажите, как оплатить. Мой email аккаунта ARVEX: `;window.open(`https://t.me/${encodeURIComponent(tg)}?text=${encodeURIComponent(msg)}`,"_blank","noopener");return true}
   if(t.closest("#accStarsToggle")){toggleStarsRenew();return true}
   if(t.closest("#accStarsBuy")){buyStars();return true}
+  if(t.closest("#proUpgrade")||t.closest("[data-premium-purchase]")){openBotPurchase();return true}
   if(t.closest("#accStarsCheck")){refresh();const m=document.getElementById("accStarsMsg");if(m)m.textContent="Проверка завершена. Если платёж только что прошёл, подожди несколько секунд и проверь ещё раз.";return true}
   if(t.closest("#accBuy")){openSheet(formHTML());return true}
   if(t.closest("#accOffer")){window.open("offer.html","_blank","noopener");return true}
@@ -123,5 +139,5 @@ const Access=(()=>{
   if(t.closest("#accTgBtn")){tgOpen();return true}
   return false;
  }
- return {cardHTML,click,refresh,isPremium,locked,price};
+ return {cardHTML,click,refresh,isPremium,locked,price,openBotPurchase};
 })();
