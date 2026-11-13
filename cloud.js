@@ -67,6 +67,14 @@ const Cloud=(()=>{
  }
  // Google OAuth: Supabase возвращает токены на custom Android deep link.
  const PKCE_KEY="arvex_google_pkce_verifier";
+ function cleanOAuthCallbackUrl(){
+  try{
+   const clean=new URL(location.href);
+   ["code","error","error_description","error_code","state"].forEach(key=>clean.searchParams.delete(key));
+   clean.hash="";
+   history.replaceState(null,"",clean.pathname+clean.search);
+  }catch(e){}
+ }
  function base64url(bytes){let bin="";for(const b of bytes)bin+=String.fromCharCode(b);return btoa(bin).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"")}
  async function makePkce(){
   const bytes=new Uint8Array(64);crypto.getRandomValues(bytes);
@@ -78,7 +86,7 @@ const Cloud=(()=>{
   try{
    const u=new URL(rawUrl,location.href),hash=new URLSearchParams((u.hash||"").replace(/^#/,""));
    const error=u.searchParams.get("error_description")||u.searchParams.get("error")||hash.get("error_description")||hash.get("error");
-   if(error){status="Ошибка входа Google: "+error;if(typeof renderProfile==="function")renderProfile();return false;}
+   if(error){cleanOAuthCallbackUrl();status="Ошибка входа Google: "+error;if(typeof renderProfile==="function")renderProfile();return false;}
    let tokens=null;
    const code=u.searchParams.get("code");
    if(code){
@@ -91,7 +99,7 @@ const Cloud=(()=>{
    }else return false;
    if(!tokens.user){tokens.user=await req("/auth/v1/user",{headers:hdr(tokens.access_token)});}
    const ok=adopt(tokens);
-   if(ok){history.replaceState(null,"",location.pathname+location.search);status="Вход через Google выполнен";if(await checkAccountStatus())return true;if(localStorage.getItem(LOCAL_RESET_KEY)==="1"){localStorage.removeItem(LOCAL_RESET_KEY);location.reload();return true}await sync();if(typeof renderProfile==="function")renderProfile();return true;}
+   if(ok){cleanOAuthCallbackUrl();status="Вход через Google выполнен";if(await checkAccountStatus())return true;if(localStorage.getItem(LOCAL_RESET_KEY)==="1"){localStorage.removeItem(LOCAL_RESET_KEY);location.reload();return true}await sync();if(typeof renderProfile==="function")renderProfile();return true;}
   }catch(e){status="Не удалось завершить вход Google: "+e.message;if(typeof renderProfile==="function")renderProfile();}
   return false;
  }
