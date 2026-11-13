@@ -42,6 +42,7 @@ const Cloud=(()=>{
   // После подтверждения пользователь может вернуться в ARVEX и нажать «Войти».
   const j=await req("/auth/v1/signup",{method:"POST",headers:hdr(),body:JSON.stringify({email,password:pw})});
   if(adopt(j))return {ok:true};
+  if(j&&j.user&&Array.isArray(j.user.identities)&&j.user.identities.length===0)return {ok:false,exists:true};
   return {ok:false,confirm:true}; // включено подтверждение почты
  }
  async function resetPassword(email){
@@ -195,7 +196,7 @@ const Cloud=(()=>{
  function accountHTML(){
   if(!enabled())return `<p class="muted" style="margin:0">Сейчас профиль хранится на этом устройстве.</p><div class="soon">🔒 Облачные аккаунты подключаются владельцем проекта (см. README → «Облако»).</div>`;
   if(session)return `<p style="margin:0 0 8px">Вход выполнен: <b>${esc(session.email)}</b></p><p class="muted" style="margin:0 0 10px">${esc(status||"Прогресс синхронизируется автоматически.")}</p><div class="btn-row"><button class="ghost" id="cloudSync">↻ Синхронизировать</button><button class="danger" id="cloudOut">Выйти</button><button class="ghost" id="arvexDeleteAccount">Удалить аккаунт</button></div>`;
-  return `<p class="muted" style="margin:0 0 10px">Войди, чтобы сохранить прогресс в облаке и открыть его на другом устройстве.</p><input class="field" id="cEmail" type="email" placeholder="Email" autocomplete="email"><input class="field" id="cPass" type="password" placeholder="Пароль (от 8 символов)" autocomplete="current-password" style="margin-top:8px"><div class="btn-row" style="margin-top:10px"><button class="primary" id="cloudIn">Войти</button><button class="ghost" id="cloudUp">Регистрация</button><button class="ghost" id="cloudGoogle">G Google</button><button class="ghost" id="cloudForgot">Забыли пароль?</button></div><p class="muted" id="cloudMsg" style="margin:8px 0 0"></p>`;
+  return `<p class="muted" style="margin:0 0 10px">Войди, чтобы сохранить прогресс в облаке и открыть его на другом устройстве.</p><input class="field" id="cEmail" type="email" placeholder="Email" autocomplete="email"><input class="field" id="cPass" type="password" placeholder="Пароль (от 8 символов)" autocomplete="current-password" style="margin-top:8px"><div class="btn-row" style="margin-top:10px"><button class="primary" id="cloudIn">Войти</button><button class="ghost" id="cloudUp">Регистрация</button><button class="ghost" id="cloudGoogle">G Продолжить с Google</button><button class="ghost" id="cloudForgot">Забыли пароль?</button></div><p class="muted" id="cloudMsg" style="margin:8px 0 0"></p>`;
  }
  async function form(kind){
   const e=($("cEmail").value||"").trim(),p=$("cPass").value||"",m=$("cloudMsg");
@@ -203,11 +204,21 @@ const Cloud=(()=>{
   if(p.length<8){m.textContent="Пароль — минимум 8 символов.";return}
   m.textContent="Подождите…";
   try{
-   if(kind==="up"){const r=await signUp(e,p);if(r.confirm){m.textContent="Письмо отправлено. Подтверди почту и нажми «Войти».";return}}
-   else await signIn(e,p);
+   if(kind==="up"){
+    const r=await signUp(e,p);
+    if(r.exists){m.textContent="Этот email уже зарегистрирован. Нажми «Войти» или «Забыли пароль?».";return}
+    if(r.confirm){m.textContent="Письмо отправлено. Подтверди почту и нажми «Войти».";return}
+   }else await signIn(e,p);
    if(await checkAccountStatus())return;
    showToast("Вход выполнен");await sync();
-  }catch(err){m.textContent=/ban/i.test(err.message)?"Аккаунт заблокирован администратором Mrasulv. Для обжалования напиши @mrasulv.":err.message}
+  }catch(err){
+   const code=String(err.code||"").toLowerCase(),msg=String(err.message||"");
+   if(/ban/i.test(msg))m.textContent="Аккаунт заблокирован администратором Mrasulv. Для обжалования напиши @mrasulv.";
+   else if(code==="email_not_confirmed"||/email not confirmed/i.test(msg))m.textContent="Сначала подтверди email по ссылке из письма, затем войди.";
+   else if(code==="invalid_credentials"||/invalid login credentials/i.test(msg))m.textContent="Неверный email или пароль. Если входил через Google, нажми кнопку Google.";
+   else if(/provider.*not enabled|unsupported provider/i.test(msg))m.textContent="Вход Google пока не настроен в Supabase. Попробуй позже или войди по email.";
+   else m.textContent=msg;
+  }
  }
  function click(t){
   if(t.closest("#arvexBanExit")){exitBlockedApp();return true}
