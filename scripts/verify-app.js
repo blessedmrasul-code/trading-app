@@ -48,6 +48,7 @@ const css = read("style.css");
 assert.ok(css.includes("textarea.field{display:block;color:var(--text)"), "Textarea must explicitly use readable foreground color");
 assert.ok(css.includes("[hidden]{display:none!important}"), "The hidden attribute must override inline display styles");
 const app = read("app.js");
+assert.ok(app.includes("ARVEX_CAP_LOCAL_NOTIFICATIONS") && app.includes("requestPermissions"), "Settings must request Android notification permission");
 const cloud = read("cloud.js");
 assert.ok(cloud.includes('const GOOGLE_REDIRECT="app.arvex.trading://auth/callback"'), "Google OAuth must return to the ARVEX Android deep link");
 assert.ok(cloud.includes('id="cloudGoogle"'), "Profile must render the Google sign-in button");
@@ -57,7 +58,6 @@ assert.ok(read("mobile/package.json").includes('"@capacitor/app"'), "Capacitor A
 assert.ok(read("mobile/package.json").includes('"@capacitor/local-notifications"'), "Android system notifications plugin must be included");
 assert.ok(read("mobile/capacitor-app-bridge.js").includes("LocalNotifications"), "Native notification plugin must be exposed to the app");
 assert.ok(cloud.includes("deliverSystemNotifications") && cloud.includes("ARVEX_CAP_LOCAL_NOTIFICATIONS"), "Unread account notifications must be delivered to the Android notification center");
-assert.ok(app.includes("ARVEX_CAP_LOCAL_NOTIFICATIONS") && app.includes("requestPermissions"), "Settings must request Android notification permission");
 assert.ok(cloud.includes('setInterval(()=>{if(session)checkAccountStatus()},30000)'), "Active sessions must be rechecked for administrator bans periodically");
 
 assert.ok(read("mobile/configure-android.js").includes('android:scheme="app.arvex.trading"'), "Android manifest must register the OAuth callback scheme");
