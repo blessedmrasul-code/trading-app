@@ -513,8 +513,11 @@ function init(){
  bind();
  renderTop();renderTicker();renderHead();renderPositions();renderPortfolio();updateOrderPreview();
  loadCandles();fetchPrices();
- if(typeof Cloud!=="undefined")Cloud.sync();
- if(typeof Access!=="undefined")Access.refresh();
+ if(typeof Cloud!=="undefined"){
+  if(Cloud.acceptEmailConfirmation){
+   Cloud.acceptEmailConfirmation().then(handled=>{if(!handled){Cloud.sync();if(typeof Access!=="undefined")Access.refresh()}}).catch(()=>{Cloud.sync();if(typeof Access!=="undefined")Access.refresh()});
+  }else{Cloud.sync();if(typeof Access!=="undefined")Access.refresh()}
+ }else if(typeof Access!=="undefined")Access.refresh();
  if("serviceWorker" in navigator&&!window.Capacitor&&/^https?:/.test(location.protocol))navigator.serviceWorker.register("sw.js").catch(()=>{});
  setInterval(fetchPrices,5000);setInterval(loadCandles,45000);
  runSplash(()=>{if(!profile)openProfileModal(false)});
