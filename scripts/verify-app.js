@@ -53,6 +53,10 @@ const cloud = read("cloud.js");
 assert.ok(cloud.includes('const GOOGLE_REDIRECT="app.arvex.trading://auth/callback"'), "Google OAuth must return to the ARVEX Android deep link");
 assert.ok(cloud.includes('id="cloudGoogle"'), "Profile must render the Google sign-in button");
 assert.ok(cloud.includes("startGoogleSignIn") && cloud.includes("acceptOAuthCallback"), "Google OAuth start and callback handlers must exist");
+
+assert.ok(cloud.includes('setAttribute("aria-modal","true")') && cloud.includes("child.inert=true") && cloud.includes('e.key==="Tab"'), "Ban overlay must trap keyboard focus and disable background controls");
+assert.ok(cloud.includes('id="arvexBanAppeal"') && cloud.includes("Mrasulv"), "Ban overlay must show the administrator and provide an appeal link");
+
 assert.ok(cloud.includes('/^\\S+@\\S+\\.\\S+$/'), "Password recovery must validate email with a working non-whitespace regex");
 assert.ok(read("mobile/package.json").includes('"@capacitor/app"'), "Capacitor App plugin is required for native OAuth callbacks");
 assert.ok(read("mobile/package.json").includes('"@capacitor/local-notifications"'), "Android system notifications plugin must be included");
