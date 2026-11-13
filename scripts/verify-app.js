@@ -57,6 +57,17 @@ assert.ok(cloud.includes('document.addEventListener("submit"'), "Support form mu
 assert.ok(cloud.includes('Prefer":"return=representation'), "Support creation must verify a returned row");
 assert.ok(cloud.includes("arvex_admin_list_support_tickets"), "Admin support inbox must call the protected RPC");
 assert.ok(cloud.includes("arvex_admin_set_support_status"), "Admin must be able to update ticket status");
+assert.ok(cloud.includes('async function requestPasswordReset(email)'), "Password recovery request must be implemented");
+assert.ok(cloud.includes('if(!/^\\S+@\\S+\\.\\S+$/.test(clean))'), "Password recovery must validate email addresses");
+assert.ok(cloud.includes('/auth/v1/recover?redirect_to='), "Password recovery must pass an explicit return URL");
+assert.ok(cloud.includes('"?auth=recovery"'), "Password recovery must return to the in-app recovery route");
+assert.ok(cloud.includes('params.get("type")!=="recovery"') && cloud.includes('params.get("access_token")'), "Recovery route must accept only Supabase recovery sessions");
+assert.ok(cloud.includes('params.get("error_description")') && cloud.includes('recoveryError'), "Invalid and expired recovery links must show an in-app error");
+assert.ok(cloud.includes('document.readyState==="loading"'), "Recovery screen must mount whether DOMContentLoaded has fired or not");
+assert.ok(cloud.includes('req("/auth/v1/user",{method:"PUT"') && cloud.includes('JSON.stringify({password})'), "New password must be saved through Supabase Auth");
+assert.ok(cloud.includes('id="cloudForgot"'), "Login form must expose the forgot-password action");
+assert.ok(cloud.includes('id="arvexLanguage"') && cloud.includes('localStorage.setItem("arvex_language"'), "Language preference must be selectable and persistent");
+
 const access = read("access.js");
 assert.ok(access.includes("link.hidden=active"), "Active Premium users must not see the purchase CTA");
 const appHtml = read("app/index.html");
