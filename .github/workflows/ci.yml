@@ -59,7 +59,7 @@ jobs:
       - name: Upload Android debug APK for device testing
         uses: actions/upload-artifact@v4
         with:
-          name: ARVEX-1.1.2-debug-APK
+          name: ARVEX-debug-APK
           path: mobile/android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 7
