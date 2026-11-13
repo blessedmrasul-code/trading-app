@@ -242,11 +242,12 @@ assert.ok(fs.existsSync(path.join(root, "mobile/apply-android-icons.sh")), "Andr
     ["arvex_google_pkce_verifier", "test-verifier"]
   ]);
   let switchReloads = 0;
+  let switchCleanedUrl = "";
   const switchContext = {
     window: { ARVEX_CLOUD: { url: "https://example.supabase.co", anonKey: "public-test-key" } },
     document: { addEventListener() {}, getElementById() { return null; } },
     location: { href: "https://arvex.example/app/?code=test-code&state=temporary", hash: "", pathname: "/app/", search: "?code=test-code&state=temporary", reload() { switchReloads++; } },
-    history: { replaceState(_state, _title, url) { switchReloads.cleanedUrl = url; } },
+    history: { replaceState(_state, _title, url) { switchCleanedUrl = url; } },
     localStorage: {
       getItem(key) { return switchStorage.get(key) ?? null; },
       setItem(key, value) { switchStorage.set(key, value); },
@@ -264,7 +265,7 @@ assert.ok(fs.existsSync(path.join(root, "mobile/apply-android-icons.sh")), "Andr
   assert.equal(switchStorage.get("arvex_local_state_owner"), "new-user", "New account must become the owner of device-local progress");
   assert.equal(switchStorage.has("arvex_v3_state"), false, "Previous account's local progress must not carry over to another account");
   assert.equal(switchReloads, 1, "Account switch must reload before using the previous account's in-memory state");
-  assert.equal(switchReloads.cleanedUrl, "/app/", "OAuth authorization code and state must be removed from the address bar after exchange");
+  assert.equal(switchCleanedUrl, "/app/", "OAuth authorization code and state must be removed from the address bar after exchange");
   console.log(`ARVEX checks passed: ${LESSONS.length} lessons, ${Object.keys(EXAMS).length} exams, 30 randomized runs per exam, support submit, ban RPC, account deletion, account isolation, and UI guards.`);
 })().catch((error) => {
   console.error(error);
