@@ -72,6 +72,7 @@ assert.ok(cloud.includes('code_challenge_method","s256"'), "Google OAuth must us
 assert.ok(cloud.includes('location.origin+location.pathname'), "Web Google OAuth must return to the current app route");
 assert.ok(cloud.includes('app.arvex.trading://auth/callback'), "Android Google OAuth deep link must remain registered");
 assert.ok(cloud.includes("arvex_my_account_status") && cloud.includes("arvexBanOverlay"), "Signed-in users must be checked for account bans and shown the block screen");
+assert.ok(cloud.includes('arvex_my_account_status",{method:"POST",headers:hdr(tok),body:"{}"}'), "Ban status RPC must be called with its zero-argument signature");
 assert.ok(cloud.includes("delete-own-account") && cloud.includes("arvexDeleteConfirm"), "Account deletion must use the protected server endpoint and explicit confirmation");
 assert.ok(cloud.includes("admin-user-ban") && cloud.includes("arvex_admin_list_bans") && cloud.includes("arvex_admin_ban_history"), "Creator panel must support audited ban and unban management");
 assert.ok(app.includes("arvexSoundToggle") && app.includes("arvexVibrationToggle") && app.includes("arvexNotificationsToggle"), "Settings must expose notification, sound and vibration preferences");
