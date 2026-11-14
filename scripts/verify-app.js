@@ -22,6 +22,11 @@ const { MASTER_LESSONS, MASTER_FINAL, MASTER_STRESS } = vm.runInNewContext(
 );
 assert.ok(!schoolSource.includes("Архитектура риска: выживание серии"), "Premium lesson bodies must not be bundled in public school.js");
 assert.ok(!schoolSource.includes("Капитал $20 000, риск 0,5%"), "Premium stress exam must not be bundled in public school.js");
+for (const file of ["app.js", "lessons.js", "exam.js"]) {
+  const source = read(file);
+  assert.ok(!source.includes("Архитектура риска: выживание серии") && !source.includes("Капитал $20 000, риск 0,5%"), "Premium content leaked into " + file);
+}
+
 const premiumEndpoint = read("supabase/functions/premium-academy/index.ts");
 assert.ok(premiumEndpoint.includes("/auth/v1/user") && premiumEndpoint.includes("arvex_user_bans") && premiumEndpoint.includes("arvex_subscriptions"), "Premium endpoint must validate JWT, bans, and subscription server-side");
 assert.ok(premiumEndpoint.includes("Cache-Control") && premiumEndpoint.includes("is_forever") && premiumEndpoint.includes("expires_at"), "Premium endpoint must validate expiry and prevent caching");
