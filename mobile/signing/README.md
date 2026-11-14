@@ -41,11 +41,11 @@ Keystore не публикуется в репозитории и не загр�
 ## 4. Собрать релиз
 
 Откройте **Actions → Release (signed APK + AAB) → Run workflow**:
-- version name: `1.2.0`
-- version code: `21`
-- publish release: `true`
+- version name: `1.2.3`
+- version code: `24`
+- publish release: `true`, только когда готовы опубликовать APK и AAB.
 
-Для каждого следующего релиза увеличивайте version code. После успешной сборки APK и AAB появятся в GitHub Releases и в Artifacts.
+Текущий опубликованный релиз — ARVEX 1.2.2 с version code 23. Для каждого следующего релиза увеличивайте version code. После успешной сборки APK и AAB появятся в GitHub Releases и в Artifacts.
 
 ## Важно
 
