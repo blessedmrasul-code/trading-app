@@ -1,0 +1,33 @@
+name: Render ARVEX 2D advertisement
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "video-ad/render_arvex_ad.py"
+      - ".github/workflows/render-arvex-ad.yml"
+    branches: [main]
+permissions:
+  contents: read
+  actions: write
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install renderer
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg python3-pil fonts-dejavu-core
+      - name: Render 60 FPS MP4
+        run: |
+          mkdir -p output
+          python3 video-ad/render_arvex_ad.py
+          mv ARVEX_2D_TikTok_Ad_60FPS.mp4 output/
+          ffprobe -v error -select_streams v:0 -show_entries stream=width,height,r_frame_rate,codec_name -show_entries format=duration -of default=noprint_wrappers=1 output/ARVEX_2D_TikTok_Ad_60FPS.mp4
+      - name: Upload finished video
+        uses: actions/upload-artifact@v4
+        with:
+          name: ARVEX-2D-TikTok-Ad-60FPS
+          path: output/ARVEX_2D_TikTok_Ad_60FPS.mp4
+          retention-days: 30
