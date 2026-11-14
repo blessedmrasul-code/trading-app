@@ -13,6 +13,10 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
+      - name: Scan repository for leaked secrets
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
@@ -42,6 +46,7 @@ jobs:
         working-directory: mobile
         run: |
           npm install
+          npm audit --audit-level=high
           npm run build:web
           test -f www/capacitor-app-bridge.bundle.js
           test -f www/offer.html
