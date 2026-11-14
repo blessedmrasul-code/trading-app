@@ -13,6 +13,12 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Scan repository for leaked secrets
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
@@ -29,6 +35,8 @@ jobs:
             echo "Checking $file"
             deno check "$file"
           done
+      - name: Test Premium authorization helpers
+        run: deno test scripts/test-premium-access.ts
       - name: Check JavaScript syntax
         run: |
           for file in app.js cloud.js access.js shop-config.js cloud-config.js chart.js school.js tools.js premium.js lessons.js exam.js glossary.js scripts/verify-app.js; do
@@ -36,10 +44,13 @@ jobs:
           done
       - name: Run ARVEX regression tests
         run: node scripts/verify-app.js
+      - name: Reject anonymous and invalid Premium endpoint requests
+        run: node scripts/test-premium-endpoint.js
       - name: Build shared web bundle
         working-directory: mobile
         run: |
           npm install
+          npm audit --audit-level=high
           npm run build:web
           test -f www/capacitor-app-bridge.bundle.js
           test -f www/offer.html
@@ -56,6 +67,16 @@ jobs:
           chmod +x ./gradlew
           ./gradlew --no-daemon assembleDebug
 
+      - name: Verify Android APK metadata and signature
+        working-directory: mobile/android
+        run: |
+          APK="app/build/outputs/apk/debug/app-debug.apk"
+          AAPT="$(find "$ANDROID_HOME/build-tools" -type f -name aapt | sort -V | tail -n 1)"
+          APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
+          test -n "$AAPT" && test -n "$APKSIGNER"
+          "$AAPT" dump badging "$APK" | tee /tmp/arvex-badging.txt
+          grep -F "package: name='app.arvex.trading' versionCode='1203' versionName='1.2.3'" /tmp/arvex-badging.txt
+          "$APKSIGNER" verify --verbose "$APK"
       - name: Upload Android debug APK for device testing
         uses: actions/upload-artifact@v4
         with:
