@@ -32,7 +32,7 @@ for (const lesson of MASTER_LESSONS) {
   }
 }
 const premiumGate = vm.runInNewContext(
-  lessonSource + "\\n" + examSource + "\\n" + schoolLogic + "\\n;({ masterclassHTML })",
+  lessonSource + "\n" + examSource + "\n" + schoolLogic + "\n;({ masterclassHTML })",
   { Access: { isPremium: () => false } }
 );
 const lockedMasterclass = premiumGate.masterclassHTML();
