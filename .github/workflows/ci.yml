@@ -36,6 +36,8 @@ jobs:
           done
       - name: Run ARVEX regression tests
         run: node scripts/verify-app.js
+      - name: Reject anonymous and invalid Premium endpoint requests
+        run: node scripts/test-premium-endpoint.js
       - name: Build shared web bundle
         working-directory: mobile
         run: |
