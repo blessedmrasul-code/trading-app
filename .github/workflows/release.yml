@@ -10,12 +10,12 @@ on:
       version_name:
         description: "Версия приложения, например 1.0.0"
         required: true
-        default: "1.2.0"
+        default: "1.2.3"
         type: string
       version_code:
         description: "Целое число версии (должно расти с каждым релизом)"
         required: true
-        default: "21"
+        default: "24"
         type: string
       publish_release:
         description: "Опубликовать APK и AAB в GitHub Releases"
