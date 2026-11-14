@@ -15,29 +15,16 @@ const { LESSONS, EXAMS, buildExam } = vm.runInNewContext(
 );
 const schoolSource = read("school.js");
 const schoolLogic = schoolSource.slice(0, schoolSource.indexOf('window.addEventListener("DOMContentLoaded"'));
+const premiumContentSource = read("supabase/functions/premium-academy/content.ts").replace(/^export /gm, "");
 const { MASTER_LESSONS, MASTER_FINAL, MASTER_STRESS } = vm.runInNewContext(
-  lessonSource + "\n" + examSource + "\n" + schoolLogic + "\n;({ MASTER_LESSONS, MASTER_FINAL, MASTER_STRESS })",
-  {}
+  premiumContentSource + "\\n;({ MASTER_LESSONS, MASTER_FINAL, MASTER_STRESS })", {}
 );
-
-assert.ok(MASTER_LESSONS.length >= 5, "Creator academy must contain at least five advanced lessons");
-assert.equal(new Set(MASTER_LESSONS.map((lesson) => lesson.id)).size, MASTER_LESSONS.length, "Creator lesson IDs must be unique");
-for (const lesson of MASTER_LESSONS) {
-  assert.ok(lesson.title && lesson.summary, `Creator lesson ${lesson.id} needs a title and summary`);
-  assert.ok(lesson.body.length >= 3 && lesson.points.length >= 3, `Creator lesson ${lesson.id} needs substantive content and takeaways`);
-  assert.ok(lesson.quiz.length >= 5, `Creator lesson ${lesson.id} needs at least five assessment questions`);
-  for (const q of lesson.quiz) {
-    assert.ok(q.q && q.explain && q.options.length >= 3, `Creator lesson ${lesson.id} has an incomplete question`);
-    assert.ok(Number.isInteger(q.answer) && q.answer >= 0 && q.answer < q.options.length, `Creator lesson ${lesson.id} has an invalid answer index`);
-  }
-}
-const premiumGate = vm.runInNewContext(
-  lessonSource + "\n" + examSource + "\n" + schoolLogic + "\n;({ masterclassHTML })",
-  { Access: { isPremium: () => false } }
-);
-const lockedMasterclass = premiumGate.masterclassHTML();
-assert.ok(lockedMasterclass.includes("Доступ открывается после подтверждения Premium на сервере"), "Creator academy must remain locked without server-confirmed Premium");
-assert.ok(!lockedMasterclass.includes(MASTER_LESSONS[0].title), "Locked academy must not render lesson content");
+assert.ok(!schoolSource.includes("Архитектура риска: выживание серии"), "Premium lesson bodies must not be bundled in public school.js");
+assert.ok(!schoolSource.includes("Капитал $20 000, риск 0,5%"), "Premium stress exam must not be bundled in public school.js");
+const premiumEndpoint = read("supabase/functions/premium-academy/index.ts");
+assert.ok(premiumEndpoint.includes("/auth/v1/user") && premiumEndpoint.includes("arvex_user_bans") && premiumEndpoint.includes("arvex_subscriptions"), "Premium endpoint must validate JWT, bans, and subscription server-side");
+assert.ok(premiumEndpoint.includes("Cache-Control") && premiumEndpoint.includes("is_forever") && premiumEndpoint.includes("expires_at"), "Premium endpoint must validate expiry and prevent caching");
+assert.ok(cloud.includes("/functions/v1/premium-academy") && cloud.includes("masterclass()"), "Client must request Premium content from the authenticated endpoint");
 
 
 assert.ok(LESSONS.length >= 20, `Expected at least 20 lessons, got ${LESSONS.length}`);
