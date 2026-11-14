@@ -1,4 +1,4 @@
-# Подпись Android-релиза ARVEX
+# Подпись Android APK-релиза ARVEX
 
 Для подписанного release APK и AAB нужен постоянный приватный Android keystore. Ключ создаётся один раз и используется для всех будущих обновлений. Не создавайте новый ключ для каждого релиза.
 
@@ -38,14 +38,16 @@ Keystore не публикуется в репозитории и не загр�
 
 После успешного выполнения откройте настройки своего GitHub-аккаунта → Developer settings → Personal access tokens и **отзовите временный токен**.
 
-## 4. Собрать релиз
+## 4. Собрать релиз APK
 
 Откройте **Actions → Release (signed APK + AAB) → Run workflow**:
 - version name: `1.2.3`
 - version code: `24`
-- publish release: `true`, только когда готовы опубликовать APK и AAB.
+- publish release: `true`, чтобы опубликовать APK в GitHub Releases.
 
-Текущий опубликованный релиз — ARVEX 1.2.2 с version code 23. Для каждого следующего релиза увеличивайте version code. После успешной сборки APK и AAB появятся в GitHub Releases и в Artifacts.
+Проект распространяется напрямую, Google Play не используется. Workflow собирает только подписанный APK — файл AAB не создаётся. После успешной сборки APK появится в GitHub Releases и в Artifacts.
+
+Текущий опубликованный релиз — ARVEX 1.2.2 с version code 23. Для каждого следующего релиза увеличивайте version code.
 
 ## Важно
 
