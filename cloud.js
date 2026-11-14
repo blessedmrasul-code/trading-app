@@ -483,6 +483,15 @@ async function insertOrder(o){
   if(!r.ok)throw new Error((j&&j.error)||("HTTP "+r.status));
   return j||{};
  }
+ async function masterclass(){
+  if(!enabled()||!session)throw new Error("Сначала войди в аккаунт ARVEX.");
+  const tok=await token();
+  const r=await fetch(cfg().url.replace(/\/$/,"")+"/functions/v1/premium-academy",{method:"POST",headers:hdr(tok),body:"{}"});
+  let j=null;try{j=await r.json()}catch(e){}
+  if(!r.ok)throw new Error((j&&j.error)||("HTTP "+r.status));
+  if(!j||!Array.isArray(j.lessons)||!Array.isArray(j.final)||!Array.isArray(j.stress))throw new Error("Сервер не вернул учебные материалы.");
+  return j;
+ }
  async function myEntitlement(){
   const tok=await token();
   const rows=await req(`/rest/v1/arvex_subscriptions?user_id=eq.${session.uid}&select=is_forever,expires_at,auto_renew`,{headers:hdr(tok)});
@@ -739,7 +748,7 @@ async function insertOrder(o){
 
  document.addEventListener("submit",e=>{const form=e.target;if(!form||form.id!=="arvexSupportForm")return;e.preventDefault();submitSupportForm(form)});
 
- return {insertOrder,myEntitlement,createStarsInvoice,createStarsBotLink,setStarsAutoRenew,createSupport,enabled,accountHTML,userToolsHTML,loadProfileData,loadNotifications,deliverSystemNotifications,click,schedule,sync,isIn:()=>!!session,changePasswordPrompt,acceptRecoveryCallback,acceptEmailConfirmation,resendConfirmation,verifyEmailCode,verifyRecoveryCode,handleAuthDeepLink,checkAccountStatus,deleteOwnAccount,exitBlockedApp};
+ return {insertOrder,myEntitlement,masterclass,createStarsInvoice,createStarsBotLink,setStarsAutoRenew,createSupport,enabled,accountHTML,userToolsHTML,loadProfileData,loadNotifications,deliverSystemNotifications,click,schedule,sync,isIn:()=>!!session,changePasswordPrompt,acceptRecoveryCallback,acceptEmailConfirmation,resendConfirmation,verifyEmailCode,verifyRecoveryCode,handleAuthDeepLink,checkAccountStatus,deleteOwnAccount,exitBlockedApp};
 })();
 
 // Netlify production redeploy trigger: email confirmation redirects to the public site.
