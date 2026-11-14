@@ -35,6 +35,8 @@ jobs:
             echo "Checking $file"
             deno check "$file"
           done
+      - name: Test Premium authorization helpers
+        run: deno test scripts/test-premium-access.ts
       - name: Check JavaScript syntax
         run: |
           for file in app.js cloud.js access.js shop-config.js cloud-config.js chart.js school.js tools.js premium.js lessons.js exam.js glossary.js scripts/verify-app.js; do
