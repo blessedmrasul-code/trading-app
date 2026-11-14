@@ -18,7 +18,7 @@ on:
         default: "24"
         type: string
       publish_release:
-        description: "Опубликовать APK и AAB в GitHub Releases"
+        description: "Опубликовать APK в GitHub Releases"
         required: true
         default: false
         type: boolean
@@ -145,7 +145,7 @@ jobs:
         working-directory: mobile
         run: bash ./apply-android-icons.sh
 
-      - name: Build signed release APK and AAB
+      - name: Build signed release APK
         working-directory: mobile/android
         env:
           ARVEX_KEYSTORE: ${{ github.workspace }}/mobile/arvex-release.keystore
@@ -158,14 +158,13 @@ jobs:
           chmod +x ./gradlew
           ./gradlew --no-daemon \
             -I ../signing.init.gradle \
-            assembleRelease bundleRelease \
+            assembleRelease \
             -Pandroid.injected.version.code="$ARVEX_VERSION_CODE" \
             -Pandroid.injected.version.name="$ARVEX_VERSION_NAME"
           mkdir -p ../release-output
           cp app/build/outputs/apk/release/*.apk ../release-output/ARVEX-${ARVEX_VERSION_NAME}.apk
-          cp app/build/outputs/bundle/release/*.aab ../release-output/ARVEX-${ARVEX_VERSION_NAME}.aab
 
-      - name: Upload signed release files
+      - name: Upload signed APK
         uses: actions/upload-artifact@v4
         with:
           name: arvex-release-${{ steps.release.outputs.version_name }}
@@ -183,15 +182,13 @@ jobs:
           if gh release view "v$VERSION_NAME" >/dev/null 2>&1; then
             gh release upload "v$VERSION_NAME" \
               "mobile/release-output/ARVEX-$VERSION_NAME.apk" \
-              "mobile/release-output/ARVEX-$VERSION_NAME.aab" \
               --clobber
             gh release edit "v$VERSION_NAME" \
               --title "ARVEX $VERSION_NAME" \
-              --notes "Подписанный релиз ARVEX. APK для установки на Android; AAB для Google Play. Учебный симулятор, используются виртуальные средства."
+              --notes "Подписанный APK ARVEX для прямой установки на Android. Учебный симулятор, используются виртуальные средства."
           else
             gh release create "v$VERSION_NAME" \
               "mobile/release-output/ARVEX-$VERSION_NAME.apk" \
-              "mobile/release-output/ARVEX-$VERSION_NAME.aab" \
               --title "ARVEX $VERSION_NAME" \
               --notes "Подписанный релиз ARVEX. APK для установки на Android; AAB для Google Play. Учебный симулятор, используются виртуальные средства."
           fi
