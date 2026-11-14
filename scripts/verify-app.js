@@ -20,6 +20,26 @@ const { MASTER_LESSONS, MASTER_FINAL, MASTER_STRESS } = vm.runInNewContext(
   {}
 );
 
+assert.ok(MASTER_LESSONS.length >= 5, "Creator academy must contain at least five advanced lessons");
+assert.equal(new Set(MASTER_LESSONS.map((lesson) => lesson.id)).size, MASTER_LESSONS.length, "Creator lesson IDs must be unique");
+for (const lesson of MASTER_LESSONS) {
+  assert.ok(lesson.title && lesson.summary, `Creator lesson ${lesson.id} needs a title and summary`);
+  assert.ok(lesson.body.length >= 3 && lesson.points.length >= 3, `Creator lesson ${lesson.id} needs substantive content and takeaways`);
+  assert.ok(lesson.quiz.length >= 5, `Creator lesson ${lesson.id} needs at least five assessment questions`);
+  for (const q of lesson.quiz) {
+    assert.ok(q.q && q.explain && q.options.length >= 3, `Creator lesson ${lesson.id} has an incomplete question`);
+    assert.ok(Number.isInteger(q.answer) && q.answer >= 0 && q.answer < q.options.length, `Creator lesson ${lesson.id} has an invalid answer index`);
+  }
+}
+const premiumGate = vm.runInNewContext(
+  lessonSource + "\\n" + examSource + "\\n" + schoolLogic + "\\n;({ masterclassHTML })",
+  { Access: { isPremium: () => false } }
+);
+const lockedMasterclass = premiumGate.masterclassHTML();
+assert.ok(lockedMasterclass.includes("Доступ открывается после подтверждения Premium на сервере"), "Creator academy must remain locked without server-confirmed Premium");
+assert.ok(!lockedMasterclass.includes(MASTER_LESSONS[0].title), "Locked academy must not render lesson content");
+
+
 assert.ok(LESSONS.length >= 20, `Expected at least 20 lessons, got ${LESSONS.length}`);
 assert.equal(new Set(LESSONS.map((lesson) => lesson.id)).size, LESSONS.length, "Lesson IDs must be unique");
 for (const lesson of LESSONS) {
