@@ -35,9 +35,8 @@ Deno.serve(async (req: Request) => {
 
     // New sb_secret_* keys are opaque API keys, not JWTs: send them only as apikey.
     // Legacy service_role keys are JWTs and must also be sent as Bearer tokens.
-    const headers = secret.startsWith("sb_secret_")
-      ? { apikey: secret }
-      : { apikey: secret, Authorization: "Bearer " + secret };
+    const headers: Record<string, string> = { apikey: secret };
+    if (!secret.startsWith("sb_secret_")) headers.Authorization = "Bearer " + secret;
     const userId = encodeURIComponent(user.id);
     const banResponse = await fetch(base + "/rest/v1/arvex_user_bans?user_id=eq." + userId + "&select=user_id&limit=1", { headers });
     if (!banResponse.ok) return json({ error: "Не удалось проверить ограничения аккаунта." }, 503);
