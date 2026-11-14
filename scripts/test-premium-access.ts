@@ -44,5 +44,5 @@ Deno.test("missing subscription is rejected", () => {
 Deno.test("ban rows are handled fail-closed", () => {
   assert(hasActiveBan([{ user_id: "test" }]), "existing ban row must block access");
   assert(!hasActiveBan([]), "empty ban result must allow next authorization check");
-  assert(!hasActiveBan(null), "invalid ban response must not be interpreted as a ban");
+  assert(hasActiveBan(null), "malformed ban response must block access");
 });
