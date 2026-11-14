@@ -13,6 +13,7 @@ const { LESSONS, EXAMS, buildExam } = vm.runInNewContext(
   lessonSource + "\n" + examSource + "\n;({ LESSONS, EXAMS, buildExam })",
   {}
 );
+const cloud = read("cloud.js");
 const schoolSource = read("school.js");
 const schoolLogic = schoolSource.slice(0, schoolSource.indexOf('window.addEventListener("DOMContentLoaded"'));
 const premiumContentSource = read("supabase/functions/premium-academy/content.ts").replace(/^export /gm, "");
@@ -62,7 +63,6 @@ assert.ok(css.includes("textarea.field{display:block;color:var(--text)"), "Texta
 assert.ok(css.includes("[hidden]{display:none!important}"), "The hidden attribute must override inline display styles");
 const app = read("app.js");
 assert.ok(app.includes("ARVEX_CAP_LOCAL_NOTIFICATIONS") && app.includes("requestPermissions"), "Settings must request Android notification permission");
-const cloud = read("cloud.js");
 assert.ok(app.includes("Cloud.loadNotifications()") && cloud.includes("loadNotifications()"), "Notifications must refresh when the app returns to the foreground");
 assert.ok(cloud.includes('const AUTH_REDIRECT="app.arvex.trading://auth/callback"'), "Email confirmation and password recovery must return to the ARVEX app");
 assert.ok(!cloud.includes('id="cloudGoogle"') && !cloud.includes("startGoogleSignIn"), "Google sign-in must be absent from the app");
