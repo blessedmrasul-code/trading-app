@@ -52,6 +52,13 @@ jobs:
           npm run build:web
           test -f www/capacitor-app-bridge.bundle.js
           test -f www/offer.html
+      - name: Upload generated mobile dependency lockfile
+        uses: actions/upload-artifact@v7
+        with:
+          name: ARVEX-mobile-package-lock
+          path: mobile/package-lock.json
+          if-no-files-found: error
+          retention-days: 7
       - name: Create and sync Android project
         working-directory: mobile
         run: |
