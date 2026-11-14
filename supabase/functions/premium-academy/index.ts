@@ -1,5 +1,3 @@
-import { MASTER_LESSONS, MASTER_FINAL, MASTER_STRESS } from "./content.ts";
-
 const cors = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-client-info",
@@ -56,7 +54,19 @@ Deno.serve(async (req: Request) => {
       (Number.isFinite(expiresAt) && expiresAt > now)
     );
     if (!active) return json({ error: "Для доступа необходима активная Premium-подписка." }, 403);
-    return json({ lessons: MASTER_LESSONS, final: MASTER_FINAL, stress: MASTER_STRESS });
+
+    // The private payload is stored in a service-role-only table, never in the public Git repository or app bundle.
+    const contentResponse = await fetch(
+      base + "/rest/v1/arvex_premium_academy_content?id=eq.creator_academy&select=content&limit=1",
+      { headers },
+    );
+    if (!contentResponse.ok) return json({ error: "Не удалось загрузить учебную программу." }, 503);
+    const contentRows = await contentResponse.json();
+    const payload = Array.isArray(contentRows) ? contentRows[0]?.content : null;
+    if (!payload || !Array.isArray(payload.lessons) || !Array.isArray(payload.final) || !Array.isArray(payload.stress)) {
+      return json({ error: "Учебная программа временно недоступна." }, 503);
+    }
+    return json(payload);
   } catch (error) {
     console.error("premium-academy:", error);
     return json({ error: "Не удалось загрузить материалы. Попробуй позже." }, 500);
