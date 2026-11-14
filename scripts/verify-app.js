@@ -18,7 +18,7 @@ const schoolSource = read("school.js");
 const schoolLogic = schoolSource.slice(0, schoolSource.indexOf('window.addEventListener("DOMContentLoaded"'));
 const premiumContentSource = read("supabase/functions/premium-academy/content.ts").replace(/^export /gm, "");
 const { MASTER_LESSONS, MASTER_FINAL, MASTER_STRESS } = vm.runInNewContext(
-  premiumContentSource + "\\n;({ MASTER_LESSONS, MASTER_FINAL, MASTER_STRESS })", {}
+  premiumContentSource + "\n;({ MASTER_LESSONS, MASTER_FINAL, MASTER_STRESS })", {}
 );
 assert.ok(!schoolSource.includes("Архитектура риска: выживание серии"), "Premium lesson bodies must not be bundled in public school.js");
 assert.ok(!schoolSource.includes("Капитал $20 000, риск 0,5%"), "Premium stress exam must not be bundled in public school.js");
