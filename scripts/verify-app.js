@@ -16,22 +16,16 @@ const { LESSONS, EXAMS, buildExam } = vm.runInNewContext(
 const cloud = read("cloud.js");
 const schoolSource = read("school.js");
 const schoolLogic = schoolSource.slice(0, schoolSource.indexOf('window.addEventListener("DOMContentLoaded"'));
-const premiumContentSource = read("supabase/functions/premium-academy/content.ts").replace(/^export /gm, "");
-const { MASTER_LESSONS, MASTER_FINAL, MASTER_STRESS } = vm.runInNewContext(
-  premiumContentSource + "\n;({ MASTER_LESSONS, MASTER_FINAL, MASTER_STRESS })", {}
-);
 assert.ok(!schoolSource.includes("Архитектура риска: выживание серии"), "Premium lesson bodies must not be bundled in public school.js");
 assert.ok(!schoolSource.includes("Капитал $20 000, риск 0,5%"), "Premium stress exam must not be bundled in public school.js");
 for (const file of ["app.js", "lessons.js", "exam.js"]) {
   const source = read(file);
   assert.ok(!source.includes("Архитектура риска: выживание серии") && !source.includes("Капитал $20 000, риск 0,5%"), "Premium content leaked into " + file);
 }
-
 const premiumEndpoint = read("supabase/functions/premium-academy/index.ts");
 assert.ok(premiumEndpoint.includes("/auth/v1/user") && premiumEndpoint.includes("arvex_user_bans") && premiumEndpoint.includes("arvex_subscriptions"), "Premium endpoint must validate JWT, bans, and subscription server-side");
-assert.ok(premiumEndpoint.includes("Cache-Control") && premiumEndpoint.includes("is_forever") && premiumEndpoint.includes("expires_at"), "Premium endpoint must validate expiry and prevent caching");
+assert.ok(premiumEndpoint.includes("arvex_premium_academy_content") && premiumEndpoint.includes("Cache-Control") && premiumEndpoint.includes("expires_at"), "Premium endpoint must load private database content and prevent caching");
 assert.ok(cloud.includes("/functions/v1/premium-academy") && cloud.includes("masterclass()"), "Client must request Premium content from the authenticated endpoint");
-
 
 assert.ok(LESSONS.length >= 20, `Expected at least 20 lessons, got ${LESSONS.length}`);
 assert.equal(new Set(LESSONS.map((lesson) => lesson.id)).size, LESSONS.length, "Lesson IDs must be unique");
