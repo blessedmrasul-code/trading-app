@@ -161,16 +161,15 @@ assert.ok(access.includes('t.closest("[data-premium-purchase]")') && access.incl
 assert.ok(access.includes('browser.open({url})') && access.includes("isNativeApp()"), "Android Premium checkout must open Telegram externally through Capacitor Browser");
 assert.ok(access.includes("!Cloud.createStarsBotLink"), "Premium payment must validate the exact bot-link function it calls");
 assert.ok(premium.includes('id="proUpgrade"') && !premium.includes('goProfile();return;'), "Premium main CTA must not redirect users to Profile");
-assert.ok(appHtml.includes('data-tab="masterclass"') && school.includes("MASTER_LESSONS") && school.includes("MASTER_FINAL") && school.includes("MASTER_STRESS"), "Premium school must contain creator lessons and both advanced exams");
+assert.ok(appHtml.includes('data-tab="masterclass"') && school.includes("masterData.lessons") && school.includes("loadMasterclassData"), "Premium school must load creator lessons from the authenticated server endpoint");
 assert.ok(school.includes("Access.isPremium()") && school.includes("masterSubmit"), "Creator masterclass and exams must be gated by server-verified Premium");
-assert.equal(MASTER_LESSONS.length, 5, "Creator masterclass must contain five advanced lessons");
-for (const lesson of MASTER_LESSONS) {
-  assert.ok(lesson.body.length >= 4 && lesson.points.length >= 4 && lesson.quiz.length >= 5, `Creator lesson ${lesson.id} needs full material and a five-question test`);
-  for (const q of lesson.quiz) assert.ok(Number.isInteger(q.answer) && q.answer >= 0 && q.answer < q.options.length, `Creator lesson ${lesson.id} has an invalid answer`);
-}
-assert.equal(MASTER_FINAL.length, 12, "Creator final exam must contain twelve questions");
-assert.equal(MASTER_STRESS.length, 20, "Premium stress exam must contain twenty questions");
-for (const q of MASTER_STRESS) assert.ok(q.options.length >= 3 && Number.isInteger(q.answer) && q.answer >= 0 && q.answer < q.options.length, "Stress exam question has invalid answer data");
+const premiumGate = vm.runInNewContext(
+  lessonSource + "\n" + examSource + "\n" + schoolLogic + "\n;({ masterclassHTML })",
+  { Access: { isPremium: () => false } }
+);
+const lockedMasterclass = premiumGate.masterclassHTML();
+assert.ok(lockedMasterclass.includes("Доступ открывается после подтверждения Premium на сервере"), "Creator academy must remain locked without server-confirmed Premium");
+assert.ok(!lockedMasterclass.includes("Архитектура риска: выживание серии"), "Locked academy must not render Premium lesson content");
 assert.ok(app.includes("masterclass:{}") && app.includes("masterclass:{...(s.progress.masterclass||{})}"), "Creator masterclass progress must persist without resetting existing progress");
 assert.ok(app.includes('Access.refresh().then(()=>{if(typeof schoolTab!=="undefined"&&schoolTab==="masterclass"'), "Premium entitlement must refresh when the app returns from Telegram payment");
 assert.ok(cloud.includes("/functions/v1/admin-user-ban") && cloud.includes("data-admin-unban-user"), "Admin must be able to ban and unban accounts");
