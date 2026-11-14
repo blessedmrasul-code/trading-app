@@ -65,6 +65,16 @@ jobs:
           chmod +x ./gradlew
           ./gradlew --no-daemon assembleDebug
 
+      - name: Verify Android APK metadata and signature
+        working-directory: mobile/android
+        run: |
+          APK="app/build/outputs/apk/debug/app-debug.apk"
+          AAPT="$(find "$ANDROID_HOME/build-tools" -type f -name aapt | sort -V | tail -n 1)"
+          APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
+          test -n "$AAPT" && test -n "$APKSIGNER"
+          "$AAPT" dump badging "$APK" | tee /tmp/arvex-badging.txt
+          grep -F "package: name='app.arvex.trading' versionCode='1203' versionName='1.2.3'" /tmp/arvex-badging.txt
+          "$APKSIGNER" verify --verbose "$APK"
       - name: Upload Android debug APK for device testing
         uses: actions/upload-artifact@v4
         with:
