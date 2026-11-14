@@ -50,3 +50,16 @@ Keystore не публикуется в репозитории и не загр�
 ## Важно
 
 Не удаляйте и не перезаписывайте секреты подписи. Один и тот же keystore нужен для всех обновлений установленного приложения. Храните резервную копию ключа и паролей в безопасном месте, если позже решите экспортировать их из защищённого хранилища.
+
+## Если Setup ARVEX signing key завершился с ошибкой 403
+
+Если в Actions видно `Resource not accessible by personal access token`, токен прошёл проверку аккаунта и доступа к репозиторию, но GitHub не разрешил записать Actions Secrets.
+
+Исправление:
+1. Отзовите старый временный токен в **Settings → Developer settings → Personal access tokens → Fine-grained tokens**. Не отправляйте его никому.
+2. Создайте **новый** Fine-grained token (права уже созданного токена изменить нельзя).
+3. Проверьте, что Resource owner — `blessedmrasul-code`, Repository access включает именно `trading-app`, а в **Repository permissions → Secrets** установлено **Read and write**.
+4. Добавьте новый токен в `ARVEX_BOOTSTRAP_TOKEN` через **Settings → Secrets and variables → Actions** (если секрет уже есть, откройте его и обновите значение).
+5. Повторно запустите **Actions → Setup ARVEX signing key → Run workflow**.
+
+Не запускайте Release workflow, пока Setup не завершится успешно и постоянные секреты подписи не будут созданы. При ошибке 403 keystore не был сохранён в репозитории; повторный запуск создаст новый временный ключ, поэтому после успешного запуска используйте только сохранённые GitHub Secrets.
