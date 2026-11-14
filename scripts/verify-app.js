@@ -176,7 +176,7 @@ assert.ok(access.includes("!Cloud.createStarsBotLink"), "Premium payment must va
 assert.ok(premium.includes('id="proUpgrade"') && !premium.includes('goProfile();return;'), "Premium main CTA must not redirect users to Profile");
 assert.ok(appHtml.includes('data-tab="masterclass"') && school.includes("MASTER_LESSONS") && school.includes("MASTER_FINAL") && school.includes("MASTER_STRESS"), "Premium school must contain creator lessons and both advanced exams");
 assert.ok(school.includes("Access.isPremium()") && school.includes("masterSubmit"), "Creator masterclass and exams must be gated by server-verified Premium");
-assert.equal(MASTER_LESSONS.length, 4, "Creator masterclass must contain four advanced lessons");
+assert.equal(MASTER_LESSONS.length, 5, "Creator masterclass must contain five advanced lessons");
 for (const lesson of MASTER_LESSONS) {
   assert.ok(lesson.body.length >= 4 && lesson.points.length >= 4 && lesson.quiz.length >= 5, `Creator lesson ${lesson.id} needs full material and a five-question test`);
   for (const q of lesson.quiz) assert.ok(Number.isInteger(q.answer) && q.answer >= 0 && q.answer < q.options.length, `Creator lesson ${lesson.id} has an invalid answer`);
