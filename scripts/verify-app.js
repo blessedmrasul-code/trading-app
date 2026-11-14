@@ -1,5 +1,5 @@
-// CI verification for the Premium server-side content gate.
 #!/usr/bin/env node
+// CI verification for the Premium server-side content gate.
 "use strict";
 const fs = require("node:fs");
 const path = require("node:path");
