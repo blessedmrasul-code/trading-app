@@ -119,6 +119,7 @@ assert.ok(cloud.includes("admin-user-ban") && cloud.includes("arvex_admin_list_b
 assert.ok(app.includes("arvexSoundToggle") && app.includes("arvexVibrationToggle") && app.includes("arvexNotificationsToggle"), "Settings must expose notification, sound and vibration preferences");
 assert.ok(read("mobile/build-web.js").includes("'offer.html'") && fs.existsSync(path.join(root,"offer.html")), "Android web bundle must include the Premium terms page");
 assert.ok(read("mobile/package.json").includes('"@capacitor/browser": "8.0.0"'), "Capacitor browser dependency must remain pinned for external app links");
+assert.ok(read("mobile/configure-android.js").includes("versionCode 1203") && read("mobile/configure-android.js").includes('versionName "1.2.3"'), "Android release metadata must match ARVEX 1.2.3");
 assert.ok(read("supabase/migrations/20261113110431_arvex_bans_and_account_controls.sql").includes("arvex_user_bans"), "Ban migration must exist");
 
 const notificationGrants = read("supabase/migrations/20261113111707_arvex_notifications_privileges_hardening.sql");
