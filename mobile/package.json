@@ -1,6 +1,6 @@
 {
   "name": "arvex-mobile",
-  "version": "1.0.0",
+  "version": "1.2.3",
   "private": true,
   "description": "Capacitor-обёртка ARVEX для Android",
   "scripts": {
