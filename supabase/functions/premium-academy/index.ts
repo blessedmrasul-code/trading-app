@@ -1,3 +1,5 @@
+import { hasActiveBan, hasActivePremiumSubscription } from "./access.ts";
+
 const cors = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-client-info",
@@ -40,7 +42,7 @@ Deno.serve(async (req: Request) => {
     const userId = encodeURIComponent(user.id);
     const banResponse = await fetch(base + "/rest/v1/arvex_user_bans?user_id=eq." + userId + "&select=user_id&limit=1", { headers });
     if (!banResponse.ok) return json({ error: "Не удалось проверить ограничения аккаунта." }, 503);
-    if ((await banResponse.json()).length) return json({ error: "Аккаунт заблокирован администратором." }, 403);
+    if (hasActiveBan(await banResponse.json())) return json({ error: "Аккаунт заблокирован администратором." }, 403);
 
     const subscriptionResponse = await fetch(
       base + "/rest/v1/arvex_subscriptions?user_id=eq." + userId + "&select=starts_at,expires_at,is_forever&limit=1",
@@ -49,14 +51,9 @@ Deno.serve(async (req: Request) => {
     if (!subscriptionResponse.ok) return json({ error: "Не удалось проверить Premium-подписку." }, 503);
     const rows = await subscriptionResponse.json();
     const subscription = Array.isArray(rows) ? rows[0] : null;
-    const now = Date.now();
-    const startsAt = subscription?.starts_at ? Date.parse(subscription.starts_at) : NaN;
-    const expiresAt = subscription?.expires_at ? Date.parse(subscription.expires_at) : NaN;
-    const active = !!subscription && Number.isFinite(startsAt) && startsAt <= now && (
-      subscription.is_forever === true ||
-      (Number.isFinite(expiresAt) && expiresAt > now)
-    );
-    if (!active) return json({ error: "Для доступа необходима активная Premium-подписка." }, 403);
+    if (!hasActivePremiumSubscription(subscription)) {
+      return json({ error: "Для доступа необходима активная Premium-подписка." }, 403);
+    }
 
     // The private payload is stored in a service-role-only table, never in the public Git repository or app bundle.
     const contentResponse = await fetch(
