@@ -2,6 +2,18 @@
 const fs = require("node:fs");
 const path = require("node:path");
 
+const gradleFile = path.resolve(__dirname, "android/app/build.gradle");
+if (fs.existsSync(gradleFile)) {
+  let gradle = fs.readFileSync(gradleFile, "utf8");
+  if (!/versionCode\\s+\\d+/.test(gradle) || !/versionName\\s+"[^"]+"/.test(gradle)) {
+    console.error("Не удалось определить versionCode/versionName Android.");
+    process.exit(1);
+  }
+  gradle = gradle.replace(/versionCode\\s+\\d+/, "versionCode 1203");
+  gradle = gradle.replace(/versionName\\s+"[^"]+"/, 'versionName "1.2.3"');
+  fs.writeFileSync(gradleFile, gradle);
+  console.log("Android version set to 1.2.3 (versionCode 1203).");
+}
 const manifest = path.resolve(__dirname, "android/app/src/main/AndroidManifest.xml");
 const rawDir = path.resolve(__dirname, "android/app/src/main/res/raw");
 fs.mkdirSync(rawDir, { recursive: true });
