@@ -62,6 +62,18 @@ jobs:
                   detail = exc.read().decode(errors="replace")
                   raise RuntimeError(f"GitHub API returned HTTP {exc.code}: {detail[:300]}")
 
+          # Diagnose token identity and effective repository access before writing secrets.
+          user = request("https://api.github.com/user")
+          repo_info = request(f"https://api.github.com/repos/{repo}")
+          login = user.get("login", "unknown")
+          perms = repo_info.get("permissions") or {}
+          print(f"Bootstrap token authenticated as GitHub user: {login}")
+          print(f"Token-visible repository permissions: admin={perms.get('admin')}, maintain={perms.get('maintain')}, push={perms.get('push')}")
+          if login.lower() != repo.split("/")[0].lower():
+              raise RuntimeError("The bootstrap token belongs to a different GitHub account than the repository owner.")
+          if not perms.get("admin"):
+              raise RuntimeError("The token owner does not have effective admin access to this repository.")
+
           public_key = request(api + "/public-key")
           box = SealedBox(PublicKey(base64.b64decode(public_key["key"])))
           values = {
