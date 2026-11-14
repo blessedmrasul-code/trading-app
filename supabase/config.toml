@@ -1,2 +1,5 @@
 [functions.telegram-stars-webhook]
 verify_jwt = false
+
+[functions.premium-academy]
+verify_jwt = true
