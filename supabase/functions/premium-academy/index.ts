@@ -23,7 +23,7 @@ Deno.serve(async (req: Request) => {
     const publishable = keyFromEnv("SUPABASE_PUBLISHABLE_KEYS", "SUPABASE_ANON_KEY");
     const secret = keyFromEnv("SUPABASE_SECRET_KEYS", "SUPABASE_SERVICE_ROLE_KEY");
     const authorization = req.headers.get("Authorization") || "";
-    const jwt = authorization.replace(/^Bearer\\s+/i, "");
+    const jwt = authorization.replace(/^Bearer\s+/i, "");
     if (!base || !publishable || !secret) return json({ error: "Сервер Premium временно недоступен." }, 503);
     if (!jwt || jwt === authorization) return json({ error: "Сначала войди в аккаунт ARVEX." }, 401);
 
@@ -51,9 +51,9 @@ Deno.serve(async (req: Request) => {
     const now = Date.now();
     const startsAt = subscription?.starts_at ? Date.parse(subscription.starts_at) : NaN;
     const expiresAt = subscription?.expires_at ? Date.parse(subscription.expires_at) : NaN;
-    const active = !!subscription && (
+    const active = !!subscription && Number.isFinite(startsAt) && startsAt <= now && (
       subscription.is_forever === true ||
-      (Number.isFinite(startsAt) && startsAt <= now && Number.isFinite(expiresAt) && expiresAt > now)
+      (Number.isFinite(expiresAt) && expiresAt > now)
     );
     if (!active) return json({ error: "Для доступа необходима активная Premium-подписка." }, 403);
     return json({ lessons: MASTER_LESSONS, final: MASTER_FINAL, stress: MASTER_STRESS });
