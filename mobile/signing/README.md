@@ -40,7 +40,7 @@ Keystore не публикуется в репозитории и не загр�
 
 ## 4. Собрать релиз APK
 
-Откройте **Actions → Release (signed APK + AAB) → Run workflow**:
+Откройте **Actions → Release (signed APK only) → Run workflow**:
 - version name: `1.2.3`
 - version code: `24`
 - publish release: `true`, чтобы опубликовать APK в GitHub Releases.
