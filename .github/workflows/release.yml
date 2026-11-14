@@ -1,4 +1,4 @@
-name: Release (signed APK + AAB)
+name: Release (signed APK only)
 
 on:
   push:
@@ -190,5 +190,5 @@ jobs:
             gh release create "v$VERSION_NAME" \
               "mobile/release-output/ARVEX-$VERSION_NAME.apk" \
               --title "ARVEX $VERSION_NAME" \
-              --notes "Подписанный релиз ARVEX. APK для установки на Android; AAB для Google Play. Учебный симулятор, используются виртуальные средства."
+              --notes "Подписанный APK ARVEX для прямой установки на Android. Учебный симулятор, используются виртуальные средства."
           fi
