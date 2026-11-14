@@ -18,5 +18,5 @@ export function hasActivePremiumSubscription(
 }
 
 export function hasActiveBan(rows: unknown): boolean {
-  return Array.isArray(rows) && rows.length > 0;
+  return !Array.isArray(rows) || rows.length > 0;
 }
