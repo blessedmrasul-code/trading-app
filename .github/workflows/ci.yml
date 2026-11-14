@@ -7,19 +7,25 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+  pull-requests: write
 jobs:
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: 21
@@ -42,6 +48,7 @@ jobs:
         working-directory: mobile
         run: |
           npm install
+          npm audit --audit-level=high
           npm run build:web
           test -f www/capacitor-app-bridge.bundle.js
           test -f www/offer.html
@@ -59,7 +66,7 @@ jobs:
           ./gradlew --no-daemon assembleDebug
 
       - name: Upload Android debug APK for device testing
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ARVEX-debug-APK
           path: mobile/android/app/build/outputs/apk/debug/app-debug.apk
