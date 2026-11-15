@@ -55,9 +55,14 @@ async function growthFor(userId: string) {
   } catch (error) {
     console.error("Monthly referral finalization fallback:", error);
   }
-  return await adminRequest("rpc/arvex_growth_dashboard", {
+  const growth = await adminRequest("rpc/arvex_growth_dashboard", {
     method: "POST", body: JSON.stringify({ p_user_id: userId })
   });
+  const total = Number(growth?.total_referrals || 0);
+  const tierBonus = total >= 100 ? 10 : total >= 60 ? 8 : total >= 30 ? 6 : total >= 15 ? 4 : total >= 5 ? 2 : 0;
+  growth.checkin_reward = 10 + tierBonus;
+  growth.quiz_reward = 20 + tierBonus;
+  return growth;
 }
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
