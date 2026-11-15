@@ -66,8 +66,11 @@ const Cloud=(()=>{
   return session.access;
  }
  async function signUp(email,pw){
+  let referralCode="";
+  try{referralCode=String(new URLSearchParams(location.search).get("ref")||"").trim().toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,16)}catch(e){}
+  const data=referralCode?{arvex_referral_code:referralCode}:{};
   // Подтверждение регистрации выполняется шестизначным кодом внутри ARVEX.
-  const j=await req("/auth/v1/signup",{method:"POST",headers:hdr(),body:JSON.stringify({email,password:pw})});
+  const j=await req("/auth/v1/signup",{method:"POST",headers:hdr(),body:JSON.stringify({email,password:pw,data})});
   if(adopt(j))return {ok:true};
   if(j&&j.user&&Array.isArray(j.user.identities)&&j.user.identities.length===0)return {ok:false,exists:true};
   return {ok:false,confirm:true}; // подтверждение остаётся обязательным
@@ -404,8 +407,10 @@ const Cloud=(()=>{
   if(t.closest("#cloudVerifyCode")){const email=(document.getElementById("cEmail")?.value||"").trim(),code=document.getElementById("cloudEmailCode")?.value||"",m=document.getElementById("cloudMsg"),button=t.closest("#cloudVerifyCode");button.disabled=true;if(m)m.textContent="Проверяю код…";verifyEmailCode(email,code).then(()=>{if(m)m.textContent="Email подтверждён. Вход выполнен."}).catch(e=>{if(m)m.textContent=e.message}).finally(()=>{button.disabled=false});return true}
   if(t.closest("#cloudVerifyRecovery")){const email=(document.getElementById("cEmail")?.value||"").trim(),code=document.getElementById("cloudRecoveryCode")?.value||"",m=document.getElementById("cloudMsg"),button=t.closest("#cloudVerifyRecovery");button.disabled=true;if(m)m.textContent="Проверяю код восстановления…";verifyRecoveryCode(email,code).then(()=>{if(m)m.textContent="Код подтверждён. Задай новый пароль."}).catch(e=>{if(m)m.textContent=e.message}).finally(()=>{button.disabled=false});return true}
   if(t.closest("#arvexPasswordSave")){const p=document.getElementById("arvexNewPassword")?.value||"",p2=document.getElementById("arvexNewPassword2")?.value||"",m=document.getElementById("arvexPasswordMsg");if(p.length<8){m.textContent="Минимум 8 символов.";return true}if(p!==p2){m.textContent="Пароли не совпадают.";return true}m.textContent="Сохраняю…";updatePassword(p).then(()=>{m.textContent="Пароль изменён.";setTimeout(()=>{if(typeof closeSheet==="function")closeSheet()},900)}).catch(e=>m.textContent=e.message);return true}
+  if(t.closest("#arvexDashboardRefresh")){loadAccountDashboard();return true}
+  if(t.closest("#arvexReferralCopy")){const link=accountDashboard?.referrals?.link||"";if(link&&navigator.clipboard?.writeText)navigator.clipboard.writeText(link).then(()=>showToast("Реферальная ссылка скопирована.")).catch(()=>showToast("Не удалось скопировать ссылку."));else showToast("Ссылка пока недоступна.");return true}
   if(t.closest("#cloudSync")){sync();return true}
-  if(t.closest("#cloudOut")){signOut().then(()=>{if(typeof renderProfile==="function")renderProfile()});return true}
+  if(t.closest("#cloudOut")){signOut().then(()=>{accountDashboard=null;if(typeof renderProfile==="function")renderProfile()});return true}
   if(t.closest("#arvexPromoApply")){const m=document.getElementById("arvexPromoMsg");m.textContent="Проверяю…";redeemPromo(document.getElementById("arvexPromoCode").value).then(()=>{m.textContent="Промокод активирован!";if(typeof renderProfile==="function")renderProfile()}).catch(e=>m.textContent=e.message);return true}
   if(t.closest("#arvexPaymentsLoad")){loadPayments();return true}
   if(t.closest("#arvexNotificationsLoad")){loadNotifications();return true}
@@ -685,10 +690,60 @@ async function insertOrder(o){
   if(!session)return;
   try{if(await adminStatus()){const box=document.getElementById("arvexAdminTools");if(box){box.classList.remove("hidden");await Promise.all([loadAdminPromos(),loadAdminSupport(),loadAdminBans(),loadAdminBanHistory()])}}}catch(e){}
  }
+ let accountDashboard=null;
+ function accountDashboardHTML(){
+  if(!enabled())return "";
+  if(!session)return '<div class="card"><div class="card-title">Мой кабинет ARVEX</div><p class="muted">Войди в аккаунт, чтобы увидеть статус Premium, платежи и реферальную статистику.</p></div>';
+  return '<div class="card"><div class="card-title">Мой кабинет ARVEX <button class="ghost" id="arvexDashboardRefresh" type="button" style="float:right;padding:5px 9px">↻</button></div><div id="arvexAccountDashboard" class="muted">Загружаю данные аккаунта…</div></div>';
+ }
+ function renderAccountDashboard(){
+  const box=document.getElementById("arvexAccountDashboard");if(!box)return;
+  if(!accountDashboard){box.textContent="Загружаю данные аккаунта…";return}
+  const d=accountDashboard,p=d.premium||{},pay=d.payments||{},ref=d.referrals||{};
+  const date=v=>v?new Date(v).toLocaleDateString("ru-RU"):"—";
+  const historyRows=(pay.history||[]).slice(0,6).map(x=>{
+   const amount=x.currency==="XTR"?Number(x.amount)+" ⭐":Number(x.amount).toFixed(2)+" USDT";
+   return '<div class="res-link"><b>'+esc(amount)+' · '+esc(x.method)+'</b><span>'+date(x.created_at)+' · '+Number(x.period_days||30)+' дней · Оплачено</span></div>';
+  }).join("");
+  box.innerHTML=
+   '<div class="stat-grid">'+
+    '<div class="stat"><small>Статус Premium</small><b class="'+(p.active?"pos":"neg")+'">'+(p.lifetime?"Навсегда":p.active?"Активен":"Не активен")+'</b></div>'+
+    '<div class="stat"><small>Действует до</small><b>'+(p.lifetime?"Бессрочно":date(p.expires_at))+'</b></div>'+
+    '<div class="stat"><small>Всего оплат</small><b>'+Number(pay.count||0)+'</b></div>'+
+    '<div class="stat"><small>Приглашено</small><b>'+Number(ref.total||0)+'</b></div>'+
+    '<div class="stat"><small>Оплатили Premium</small><b>'+Number(ref.rewarded||0)+'</b></div>'+
+    '<div class="stat"><small>Бонусные дни</small><b>'+Number(ref.bonus_days||0)+'</b></div>'+
+   '</div>'+
+   '<div class="card" style="margin:12px 0"><div class="card-title">Подписка</div>'+
+    '<p style="margin:0">'+(p.lifetime?"У тебя пожизненный Premium.":p.active?"Premium активен до "+date(p.expires_at)+".":"Твой Premium не активен. Выбери тариф и оформи подписку.")+'</p>'+
+    (!p.active?'<button class="primary" type="button" data-go="premium" style="margin-top:10px">Выбрать Premium</button>':'')+
+   '</div>'+
+   '<div class="card" style="margin:12px 0"><div class="card-title">Платежи</div>'+
+    '<p class="muted" style="margin:0 0 8px">Telegram Stars: '+Number(pay.stars_total||0)+' ⭐ · USDT TRC20: '+Number(pay.usdt_total||0).toFixed(2)+' USDT</p>'+
+    (historyRows||'<p class="muted">Оплат пока нет.</p>')+
+   '</div>'+
+   '<div class="card" style="margin:12px 0"><div class="card-title">Реферальная программа</div>'+
+    '<p style="margin:0 0 8px">За первую оплату приглашённого тебе начисляется 7 бонусных дней Premium.</p>'+
+    '<div class="res-link"><b>Твоя ссылка-приглашение</b><span style="word-break:break-all">'+esc(ref.link||"")+'</span></div>'+
+    '<div class="btn-row"><button class="primary" id="arvexReferralCopy" type="button">Скопировать ссылку</button></div>'+
+    '<p class="muted" style="margin:8px 0 0">Ожидают покупки: '+Number(ref.pending||0)+' · Бонус начислен за: '+Number(ref.rewarded||0)+' приглашённых.</p>'+
+   '</div>';
+ }
+ async function loadAccountDashboard(){
+  const box=document.getElementById("arvexAccountDashboard");if(!session||!enabled()){if(box)box.textContent="Войди в аккаунт ARVEX, чтобы увидеть статистику.";return}
+  if(box)box.textContent="Обновляю кабинет…";
+  try{
+   const tok=await token();
+   const response=await fetch(cfg().url.replace(/\/$/,"")+"/functions/v1/account-dashboard",{method:"POST",headers:hdr(tok),body:"{}"});
+   const data=await response.json().catch(()=>({}));
+   if(!response.ok)throw new Error(data.error||"Не удалось загрузить кабинет.");
+   accountDashboard=data;renderAccountDashboard();
+  }catch(e){if(box)box.textContent=e.message||"Не удалось загрузить кабинет."}
+ }
  async function loadProfileData(force=false){
   if(!session||profileDataLoading||(!force&&Date.now()-profileDataLoadedAt<15000))return;
   profileDataLoading=true;
-  try{await Promise.all([loadSupport(),loadNotifications(),loadAdminTools()]);profileDataLoadedAt=Date.now()}
+  try{await Promise.all([loadSupport(),loadNotifications(),loadAdminTools(),loadAccountDashboard()]);profileDataLoadedAt=Date.now()}
   finally{profileDataLoading=false}
  }
  function userToolsHTML(){
@@ -760,7 +815,7 @@ async function insertOrder(o){
 
  document.addEventListener("submit",e=>{const form=e.target;if(!form||form.id!=="arvexSupportForm")return;e.preventDefault();submitSupportForm(form)});
 
- return {insertOrder,myEntitlement,createStarsInvoice,createStarsBotLink,createCryptoInvoice,checkCryptoPayment,setStarsAutoRenew,createSupport,enabled,accountHTML,userToolsHTML,loadProfileData,loadNotifications,deliverSystemNotifications,click,schedule,sync,isIn:()=>!!session,changePasswordPrompt,acceptRecoveryCallback,acceptEmailConfirmation,resendConfirmation,verifyEmailCode,verifyRecoveryCode,handleAuthDeepLink,checkAccountStatus,deleteOwnAccount,exitBlockedApp};
+ return {insertOrder,myEntitlement,createStarsInvoice,createStarsBotLink,createCryptoInvoice,checkCryptoPayment,setStarsAutoRenew,createSupport,enabled,accountHTML,accountDashboardHTML,userToolsHTML,loadProfileData,loadNotifications,deliverSystemNotifications,click,schedule,sync,isIn:()=>!!session,changePasswordPrompt,acceptRecoveryCallback,acceptEmailConfirmation,resendConfirmation,verifyEmailCode,verifyRecoveryCode,handleAuthDeepLink,checkAccountStatus,deleteOwnAccount,exitBlockedApp};
 })();
 
 // Netlify production redeploy trigger: email confirmation redirects to the public site.
