@@ -467,7 +467,7 @@ async function insertOrder(o){
   if(!r.ok)throw new Error((j&&j.error)||("HTTP "+r.status));
   return j||{};
  }
- async function createStarsBotLink(){
+ async function createStarsBotLink(days=30){
   if(!enabled()||!session)throw new Error("Сначала войди в аккаунт ARVEX.");
   const tok=await token();
   const r=await fetch(cfg().url.replace(/\/$/,"")+"/functions/v1/create-stars-bot-link",{
@@ -478,7 +478,7 @@ async function insertOrder(o){
   if(!j||(!j.url&&!j.lifetime))throw new Error("Не удалось подготовить переход к оплате.");
   return j;
  }
- async function createCryptoInvoice(){
+ async function createCryptoInvoice(days=30){
   if(!enabled()||!session)throw new Error("Сначала войди в аккаунт ARVEX.");
   const tok=await token();
   const r=await fetch(cfg().url.replace(/\/$/,"")+"/functions/v1/create-crypto-invoice",{
