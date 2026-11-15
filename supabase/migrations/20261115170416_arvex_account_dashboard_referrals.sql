@@ -53,7 +53,6 @@ begin
   return new;
 end;
 $$;
-revoke all on function public.arvex_handle_new_auth_user() from public, anon, authenticated;
 drop trigger if exists arvex_auth_user_referral on auth.users;
 create trigger arvex_auth_user_referral after insert on auth.users for each row execute function public.arvex_handle_new_auth_user();
 
