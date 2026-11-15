@@ -12,6 +12,7 @@ on:
       - "access.js"
       - "shop-config.js"
       - "subscribe.html"
+      - "stars.html"
       - "sw.js"
       - "cloud.js"
       - "cloud-config.js"
@@ -59,7 +60,7 @@ jobs:
           set -e
           mkdir -p _site
           for file in \
-            index.html style.css app.js access.js shop-config.js subscribe.html offer.html \
+            index.html style.css app.js access.js shop-config.js subscribe.html stars.html offer.html \
             cloud.js cloud-config.js chart.js school.js tools.js lessons.js \
             exam.js glossary.js logo.png favicon.png icon-192.png icon-512.png \
             manifest.webmanifest sw.js; do
