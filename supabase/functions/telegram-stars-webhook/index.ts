@@ -228,22 +228,34 @@ async function createBotStarsInvoice(chatId:number,telegramId:number,days:number
 }
 async function showCabinet(chatId:number,telegramId:number) {
   const userId=await linkedAccount(telegramId);
-  if(!userId){await telegram("sendMessage",{chat_id:chatId,text:"Аккаунт ARVEX ещё не привязан. Войди в приложение → Профиль → Аккаунт → «Привязать Telegram», затем нажми здесь «Мой кабинет»."});return}
-  const [subs,refs,codes,rewards]=await Promise.all([
+  if(!userId){await telegram("sendMessage",{chat_id:chatId,text:"Аккаунт ARVEX ещё не привязан. Войди в приложение → Профиль → Аккаунт → «Привязать Telegram», затем нажми здесь «Мой кабинет». "});return}
+  const [subs,refs,codes,rewards,growth]=await Promise.all([
     db(`arvex_subscriptions?user_id=eq.${encodeURIComponent(userId)}&select=is_forever,expires_at&limit=1`),
     db(`arvex_telegram_referrals?referrer_user_id=eq.${encodeURIComponent(userId)}&select=id&order=created_at.asc&limit=5000`),
     db(`arvex_referral_codes?user_id=eq.${encodeURIComponent(userId)}&select=code&limit=1`),
-    db(`arvex_telegram_referral_rewards?referrer_user_id=eq.${encodeURIComponent(userId)}&select=milestone,reward_days&order=milestone.asc&limit=1000`)
+    db(`arvex_telegram_referral_rewards?referrer_user_id=eq.${encodeURIComponent(userId)}&select=milestone,reward_days&order=milestone.asc&limit=1000`),
+    db("rpc/arvex_growth_dashboard",{method:"POST",body:JSON.stringify({p_user_id:userId})})
   ]);
   const sub=subs?.[0],active=!!sub&&(sub.is_forever===true||(sub.expires_at&&Date.parse(sub.expires_at)>Date.now()));
-  const invited=Array.isArray(refs)?refs.length:0;
+  const invited=Number(growth?.total_referrals||refs?.length||0);
   const bonusDays=Array.isArray(rewards)?rewards.reduce((n:number,x:any)=>n+Number(x.reward_days||0),0):0;
-  const progress=invited%15,remaining=progress===0?15:15-progress;
+  const rewardClaimed=!!growth?.referral_reward_claimed;
+  const progress=rewardClaimed?15:Math.min(invited,15),remaining=rewardClaimed?0:Math.max(0,15-invited);
   const code=codes?.[0]?.code||"";
   const link="https://t.me/ArvexPremiumBot?start=ref_"+encodeURIComponent(code);
   const expiry=sub?.is_forever?"Бессрочно":sub?.expires_at?new Date(sub.expires_at).toLocaleDateString("ru-RU"):"—";
-  const textBody="👤 Мой кабинет ARVEX\n\nПодписка: "+(active?"✅ Premium активен":"⚪ Premium не оформлена")+"\nДействует до: "+(active?expiry:"—")+"\n\n👥 Приглашено новых пользователей: "+invited+"\n🎯 Прогресс до бонуса: "+progress+"/15\nОсталось пригласить: "+remaining+"\n🎁 Начислено бонусных дней: "+bonusDays+"\n\nЗа каждые 15 новых пользователей, которые впервые запустят бота по твоей ссылке, начисляется 3 дня Premium.\n\nТвоя ссылка на бота:\n"+link;
-  await telegram("sendMessage",{chat_id:chatId,text:textBody,reply_markup:{inline_keyboard:[[{text:"📋 Скопировать ссылку на бота",copy_text:{text:link}}],[{text:"⬅️ В меню",callback_data:"main_menu"}]]}});
+  const board=Array.isArray(growth?.leaderboard)?growth.leaderboard:[];
+  const boardText=board.length?board.map((x:any)=>x.rank+". "+x.name+" — "+x.invited).join("\n"):"Пока нет участников. Пригласи первого друга!";
+  const textBody="👤 Мой кабинет ARVEX\n\nПодписка: "+(active?"✅ Premium активен":"⚪ Premium не оформлена")+"\nДействует до: "+(active?expiry:"—")+
+    "\n\n🏅 Уровень: "+String(growth?.tier||"Rookie")+"\n⭐ Очки активности: "+Number(growth?.points||0)+
+    "\n👥 Всего приглашено: "+invited+"\n📅 За этот месяц: "+Number(growth?.month_referrals||0)+
+    "\n🏆 Место в месячном рейтинге: "+(growth?.rank?"#"+growth.rank:"—")+
+    "\n\n🎁 Разовый бонус за 15 новых пользователей: "+(rewardClaimed?"уже начислен · 3 дня Premium":progress+"/15 · осталось "+remaining)+
+    "\n🎁 Всего бонусных дней: "+bonusDays+
+    "\n\n🏆 ТОП месяца (приглашения):\n"+boardText+
+    "\n\nПервое место по итогам месяца получает 10 дней Premium. Учитываются только новые уникальные пользователи, впервые запустившие бота по ссылке."+
+    "\n\nТвоя ссылка на бота:\n"+link;
+  await telegram("sendMessage",{chat_id:chatId,text:textBody,reply_markup:{inline_keyboard:[[{text:"📋 Скопировать ссылку на бота",copy_text:{text:link}}],[{text:"Открыть ARVEX · задания",url:"https://blessedmrasul-code.github.io/trading-app/app/"}],[{text:"⬅️ В меню",callback_data:"main_menu"}]]}});
 }
 async function handleCallback(q:any) {
   const chatId=Number(q.message?.chat?.id),telegramId=Number(q.from?.id),data=String(q.data||"");
