@@ -47,14 +47,17 @@ Deno.serve(async (req: Request) => {
     if ((await banCheck.json()).length) return json({ error: "Аккаунт заблокирован администратором Mrasulv." }, 403);
     const ownerId = Deno.env.get("ARVEX_OWNER_USER_ID") || "";
     if (ownerId && user.id === ownerId) return json({ lifetime: true, message: "Owner lifetime access is active." });
-    const stars = Number(Deno.env.get("ARVEX_STARS_PRICE") || "120");
-    if (!Number.isInteger(stars) || stars !== 120) return json({ error: "Invalid Stars price configuration" }, 500);
+    const body = await req.json().catch(() => ({}));
+    const days = Number(body?.days || 30);
+    const plans: Record<number, number> = { 30: 120, 90: 360, 180: 680, 365: 1300 };
+    const stars = plans[days];
+    if (!stars) return json({ error: "Выбери тариф на 30, 90, 180 или 365 дней." }, 400);
     const payload = `arvex_${crypto.randomUUID()}`;
     await adminRequest("telegram_payment_intents", {
       method: "POST", headers: { Prefer: "return=minimal" },
-      body: JSON.stringify({ user_id: user.id, invoice_payload: payload, stars_amount: stars, currency: "XTR", status: "pending" })
+      body: JSON.stringify({ user_id: user.id, invoice_payload: payload, stars_amount: stars, currency: "XTR", status: "pending", period_days: days })
     });
-    return json({ url: `https://t.me/ArvexPremiumBot?start=${payload}`, stars, periodDays: 30 });
+    return json({ url: `https://t.me/ArvexPremiumBot?start=${payload}`, stars, periodDays: days, recurring: days === 30 });
   } catch (error) {
     console.error("create-stars-bot-link:", error);
     return json({ error: "Could not prepare Telegram payment. Try again later." }, 500);
