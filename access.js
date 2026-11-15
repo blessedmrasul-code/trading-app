@@ -1,6 +1,10 @@
 /* ARVEX Access: заявка на доступ и серверная проверка entitlement. Локальный флаг Premium не используется. */
 const Access=(()=>{
  const shop=()=>window.ARVEX_SHOP||{};
+ const plans=()=>Array.isArray(shop().plans)&&shop().plans.length?shop().plans:[{days:30,stars:120,usdt:3},{days:90,stars:360,usdt:9},{days:180,stars:680,usdt:17},{days:365,stars:1300,usdt:32}];
+ const selectedPlan=()=>plans().find(x=>Number(x.days)===Number(document.getElementById("accPlanSelect")?.value||30))||plans()[0];
+ const planOptions=()=>plans().map(x=>'<option value="'+Number(x.days)+'">'+Number(x.days)+' дней · '+Number(x.stars)+' ⭐ · '+Number(x.usdt)+' USDT</option>').join("");
+ function updatePlanLabels(){const p=selectedPlan(),a=document.getElementById("accStarsBuy"),c=document.getElementById("accCryptoBuy");if(a)a.textContent="Оплатить через бота · "+Number(p.stars)+" ⭐";if(c)c.textContent="Оплатить USDT TRC20 · "+Number(p.usdt)+" USDT";}
  let entitlement=null,cryptoInvoice=null;
  const price=()=>{const s=shop();return s.promoPrice>0&&s.promoPrice<s.price?s.promoPrice:s.price};
  const isPremium=()=>{
@@ -32,9 +36,9 @@ const Access=(()=>{
   if(s.starsEnabled||s.cryptoEnabled){
    if(typeof Cloud==="undefined"||!Cloud.enabled())return `<div class="card"><div class="card-title">ARVEX Premium</div><p class="muted" style="margin:0 0 8px">Для автоматической оплаты войди в аккаунт ARVEX. Если нужна помощь, напиши владельцу.</p><a class="ghost" href="https://t.me/mrasulv?text=Помогите%20войти%20в%20ARVEX%20для%20оплаты%20Premium." target="_blank" rel="noopener">Помощь со входом · @mrasulv</a></div>`
    if(!Cloud.isIn())return `<div class="card"><div class="card-title">ARVEX Premium</div><p class="muted" style="margin:0 0 8px">Сначала войди в аккаунт ARVEX. После входа выбери Telegram Stars или USDT TRC20. Счёт будет привязан к твоему профилю.</p><a class="ghost" href="https://t.me/mrasulv?text=Нужна%20помощь%20с%20входом%20в%20ARVEX." target="_blank" rel="noopener">Написать @mrasulv</a></div>`
-   const days=Number(s.subscriptionDays)||30;
-   const methods=(s.starsEnabled?`<button class="primary" id="accStarsBuy">Оплатить через бота · ${Number(s.stars)||120} ⭐</button>`:"")+(s.cryptoEnabled?`<button class="ghost" id="accCryptoBuy">Оплатить USDT TRC20 · от ${Number(s.cryptoPrice)||5} USDT</button>`:"");
-   return `<div class="card"><div class="card-title">ARVEX Premium</div><p style="margin:0 0 8px">${s.starsEnabled?`<b>${Number(s.stars)||120} ⭐</b> · Telegram Stars`:""}${s.starsEnabled&&s.cryptoEnabled?"<br>":""}${s.cryptoEnabled?`<b>${Number(s.cryptoPrice)||5} USDT</b> · сеть TRON (TRC20)`:""} · ${days} дней доступа.</p><div class="btn-row">${methods}${s.starsEnabled?`<button class="ghost" id="accStarsCheck">Проверить доступ</button>`:""}</div>${contactHTML()}<p class="muted" id="accStarsMsg" style="margin:8px 0 0"></p></div>`;
+   const first=plans()[0];
+   const methods=(s.starsEnabled?'<button class="primary" id="accStarsBuy">Оплатить через бота · '+Number(first.stars)+' ⭐</button>':"")+(s.cryptoEnabled?'<button class="ghost" id="accCryptoBuy">Оплатить USDT TRC20 · '+Number(first.usdt)+' USDT</button>':"");
+   return '<div class="card"><div class="card-title">ARVEX Premium</div><p style="margin:0 0 10px">Выбери срок подписки и способ оплаты. Доступ активируется после подтверждения платежа.</p><label class="lbl" for="accPlanSelect">Срок подписки</label><select class="field" id="accPlanSelect">'+planOptions()+'</select><div class="btn-row" style="margin-top:10px">'+methods+'</div>'+contactHTML()+'<p class="muted" id="accStarsMsg" style="margin:8px 0 0"></p></div>';
   }
   if(!s.enabled&&!s.starsEnabled){const stars=Number(s.stars)||120,days=Number(s.subscriptionDays)||30,tg=String(s.telegram||"mrasulv").replace(/^@/,"");return `<div class="card"><div class="card-title">ARVEX Premium</div><p style="margin:0 0 8px"><b>${stars} ⭐ / ${days} дней</b> · оплата Telegram Stars напрямую администратору.</p><button class="primary" id="accManualStars">Купить подписку</button><p class="muted" style="margin:8px 0 0">После подтверждения оплаты доступ будет активирован вручную.</p></div>`;}
   const old=s.promoPrice>0&&s.promoPrice<s.price?` <s class="muted">${s.price} ₽</s>`:"";
@@ -96,13 +100,14 @@ const Access=(()=>{
   if(m)m.textContent="";
   try{
    if(typeof Cloud==="undefined"||!Cloud.createStarsBotLink)throw new Error("Облачный сервер оплаты не подключён.");
-   const result=await Cloud.createStarsBotLink();
+   const plan=selectedPlan();
+   const result=await Cloud.createStarsBotLink(plan.days);
    if(result.lifetime){if(paymentWindow)paymentWindow.close();await refresh();return}
    if(!result.url)throw new Error("Telegram не вернул персональную ссылку на бота.");
    await openTelegramUrl(result.url,paymentWindow);
-   if(m)m.textContent="Открылся личный чат бота ARVEX. Он пришлёт персональный счёт на 120 ⭐. После оплаты вернись сюда и нажми «Проверить доступ».";
+   if(m)m.textContent="Открылся личный чат бота ARVEX. Он пришлёт персональный счёт на "+Number(plan.stars)+" ⭐ за "+Number(plan.days)+" дней. После оплаты вернись сюда и обнови статус Premium.";
   }catch(e){if(paymentWindow)paymentWindow.close();if(m)m.textContent=e.message}
-  finally{if(b){b.disabled=false;b.textContent="Оплатить через бота · 120 ⭐"}}
+  finally{if(b){const p=selectedPlan();b.disabled=false;b.textContent="Оплатить через бота · "+Number(p.stars)+" ⭐"}}
  }
  async function buyCrypto(){
   const b=document.getElementById("accCryptoBuy"),m=document.getElementById("accStarsMsg");
@@ -110,10 +115,11 @@ const Access=(()=>{
   if(m)m.textContent="";
   try{
    if(typeof Cloud==="undefined"||!Cloud.createCryptoInvoice)throw new Error("Сервер криптооплаты не подключён.");
-   const invoice=await Cloud.createCryptoInvoice();
+   const plan=selectedPlan();
+   const invoice=await Cloud.createCryptoInvoice(plan.days);
    if(invoice.lifetime){await refresh();return}
    cryptoInvoice=invoice;
-   openSheet(`<h3 style="margin:0 0 8px">Оплата ARVEX Premium</h3>
+   openSheet(`<h3 style="margin:0 0 8px">Оплата ARVEX Premium · ${Number(plan.days)} дней</h3>
     <p class="muted" style="margin:0 0 10px">Переведи точную сумму в сети TRON (TRC20). Счёт действует 30 минут.</p>
     <div class="card"><div class="muted">Сумма к оплате</div><b style="font-size:24px">${invoice.amount} USDT</b></div>
     <div class="muted" style="margin:10px 0 4px">Сеть</div><b>TRON · TRC20</b>
@@ -121,7 +127,7 @@ const Access=(()=>{
     <div class="btn-row" style="margin-top:12px"><button class="ghost" id="accCryptoCopy">Скопировать адрес</button><button class="primary" id="accCryptoCheck">Я оплатил · проверить</button></div>
     <p class="muted" id="accCryptoMsg" role="status" style="margin:10px 0 0">Отправляй только USDT TRC20. Не отправляй USDT в сети TON или ERC20.</p>`);
   }catch(e){if(m)m.textContent=e.message}
-  finally{if(b){b.disabled=false;b.textContent="Оплатить USDT TRC20 · от "+(Number(shop().cryptoPrice)||5)+" USDT"}}
+  finally{if(b){const p=selectedPlan();b.disabled=false;b.textContent="Оплатить USDT TRC20 · "+Number(p.usdt)+" USDT"}}
  }
  async function checkCrypto(){
   const m=document.getElementById("accCryptoMsg"),b=document.getElementById("accCryptoCheck");
@@ -189,5 +195,6 @@ const Access=(()=>{
   if(t.closest("#accTgBtn")){tgOpen();return true}
   return false;
  }
+ document.addEventListener("change",e=>{if(e.target&&e.target.id==="accPlanSelect")updatePlanLabels()});
  return {cardHTML,click,refresh,isPremium,locked,price,openBotPurchase};
 })();
