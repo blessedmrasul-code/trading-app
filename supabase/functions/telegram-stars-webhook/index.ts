@@ -203,7 +203,7 @@ async function handleBotCommand(message: any) {
   await telegram("sendMessage", {
     chat_id: message.chat.id, text: body,
     reply_markup: { inline_keyboard: [[
-      { text: "Купить Premium · USDT TRC20", url: "https://blessedmrasul-code.github.io/trading-app/" }
+      { text: "Купить Premium · USDT TRC20", url: "https://blessedmrasul-code.github.io/trading-app/app/" }
     ], [
       { text: "Написать владельцу", url: "https://t.me/mrasulv" }
     ]] }
