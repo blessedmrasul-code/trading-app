@@ -180,54 +180,99 @@ async function applyRefund(message: any) {
 }
 
 
-async function handleBotCommand(message: any) {
-  const text = String(message?.text || "").trim();
-  const match = text.match(/^\/(start|help|premium|support)(?:@\w+)?(?:\s+([^\s]+))?/i);
-  if (!match || !message?.chat?.id) return;
-  const command = match[1].toLowerCase();
-  const startPayload = command === "start" ? String(match[2] || "") : "";
-
-  if (startPayload.startsWith("arvex_")) {
-    const intent = await getIntent(startPayload);
-    const days = Number(intent?.period_days || 30);
-    const planStars: Record<number, number> = { 30: 120, 90: 360, 180: 680, 365: 1300 };
-    if (!intent || intent.status !== "pending" || Number(intent.stars_amount) !== planStars[days] || intent.currency !== "XTR") {
-      await telegram("sendMessage", { chat_id: message.chat.id, text: "Ссылка на оплату недействительна или устарела. Вернись в приложение ARVEX, войди в аккаунт и создай новый счёт." });
-      return;
-    }
-    const invoicePayload: Record<string, unknown> = {
-      title: "ARVEX Premium",
-      description: "Полный доступ к ARVEX на " + days + " дней.",
-      payload: startPayload, provider_token: "", currency: "XTR",
-      prices: [{ label: "ARVEX Premium · " + days + " дней", amount: Number(intent.stars_amount) }]
-    };
-    if (days === 30) invoicePayload.subscription_period = 2592000;
-    const invoiceResponse = await fetch(`https://api.telegram.org/bot${botToken()}/createInvoiceLink`, {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(invoicePayload)
-    });
-    const invoice = await invoiceResponse.json();
-    if (!invoiceResponse.ok || !invoice.ok || typeof invoice.result !== "string") throw new Error("Telegram could not create bot invoice");
-    await telegram("sendMessage", {
-      chat_id: message.chat.id,
-      text: "Твой персональный счёт ARVEX Premium готов: " + Number(intent.stars_amount) + " ⭐ за " + days + " дней. После оплаты Premium автоматически активируется в твоём аккаунте." + (days === 30 ? " Автопродление можно отключить в настройках Telegram." : ""),
-      reply_markup: { inline_keyboard: [[{ text: "Оплатить " + Number(intent.stars_amount) + " ⭐", url: invoice.result }]] }
-    });
-    return;
-  }
-  const body = command === "support"
-    ? "Нужна помощь с ARVEX? Напиши владельцу проекта — @mrasulv."
-    : "Добро пожаловать в ARVEX Premium!\\n\\nДоступны два способа оплаты:\\n⭐ Telegram Stars — открой ARVEX, войди в аккаунт и нажми «Оплатить через бота»: бот пришлёт персональный счёт прямо сюда.\\n\\n💵 USDT TRC20 — нажми «Купить Premium · USDT TRC20», оформи персональный счёт на сайте и после подтверждения перевода Premium активируется автоматически.\\n\\nПокупка привязывается к твоему аккаунту ARVEX. Не отправляй USDT на адреса из личных сообщений — используй только адрес и сумму, показанные в личном счёте.";
-  await telegram("sendMessage", {
-    chat_id: message.chat.id, text: body,
-    reply_markup: { inline_keyboard: [[
-      { text: "Купить Premium · USDT TRC20", url: "https://blessedmrasul-code.github.io/trading-app/app/" }
-    ], [
-      { text: "Написать владельцу", url: "https://t.me/mrasulv" }
-    ]] }
-  });
+async function sendMainMenu(chatId:number, userName="") {
+  const body = "Добро пожаловать в ARVEX Premium!\n\nВыбери способ оплаты:\n⭐ Telegram Stars — оплата прямо в этом боте.\n💵 USDT TRC20 — безопасное оформление персонального счёта на сайте ARVEX.\n\nПосле подтверждения платежа Premium активируется автоматически.";
+  await telegram("sendMessage", { chat_id:chatId, text:body, reply_markup:{inline_keyboard:[
+    [{text:"⭐ Купить через Telegram Stars",callback_data:"method_stars" }],
+    [{text:"💵 Купить через USDT TRC20",callback_data:"method_usdt"}],
+    [{text:"👤 Мой кабинет",callback_data:"my_cabinet"}],
+    [{text:"🎁 Пригласить друзей",callback_data:"my_invite"}],
+    [{text:"Поддержка · @mrasulv",url:"https://t.me/mrasulv"}]
+  ]}});
 }
-
+async function linkedAccount(telegramId:number) {
+  const rows=await db(`arvex_telegram_accounts?telegram_user_id=eq.${telegramId}&select=user_id&limit=1`);
+  return Array.isArray(rows)&&rows[0]?String(rows[0].user_id):null;
+}
+async function showPlans(chatId:number,method:"stars"|"usdt") {
+  const days=[30,90,365];
+  const labels=method==="stars"?{30:"120 ⭐ · 30 дней",90:"360 ⭐ · 90 дней",365:"1300 ⭐ · 365 дней"}:{30:"3 USDT · 30 дней",90:"9 USDT · 90 дней",365:"32 USDT · 365 дней"};
+  await telegram("sendMessage",{chat_id:chatId,text:method==="stars"?"Выбери срок Premium для оплаты Telegram Stars:":"Выбери срок Premium для оплаты USDT TRC20:",reply_markup:{inline_keyboard:[
+    ...days.map(d=>[{text:labels[d as 30|90|365],callback_data:method+"_"+d}]),
+    [{text:"⬅️ Назад",callback_data:"main_menu"}]
+  ]}});
+}
+async function createBotStarsInvoice(chatId:number,telegramId:number,days:number) {
+  const userId=await linkedAccount(telegramId);
+  if(!userId){await telegram("sendMessage",{chat_id:chatId,text:"Чтобы привязать оплату к аккаунту ARVEX, сначала войди в приложение, открой Профиль → Аккаунт → «Привязать Telegram», затем вернись сюда и нажми «Мой кабинет»."});return}
+  const ban=await db(`arvex_user_bans?user_id=eq.${encodeURIComponent(userId)}&select=user_id&limit=1`);
+  if(Array.isArray(ban)&&ban.length){await telegram("sendMessage",{chat_id:chatId,text:"Этот аккаунт ARVEX ограничен. Обратись в поддержку @mrasulv."});return}
+  const plans:Record<number,number>={30:120,90:360,365:1300};const stars=plans[days];if(!stars)throw new Error("Invalid plan");
+  const payload="arvex_"+crypto.randomUUID();
+  await db("telegram_payment_intents",{method:"POST",headers:{Prefer:"return=minimal"},body:JSON.stringify({user_id:userId,invoice_payload:payload,stars_amount:stars,currency:"XTR",status:"pending",period_days:days})});
+  const invoice=await fetch(`https://api.telegram.org/bot${botToken()}/createInvoiceLink`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({title:"ARVEX Premium",description:"Доступ к ARVEX на "+days+" дней.",payload,provider_token:"",currency:"XTR",prices:[{label:"ARVEX Premium · "+days+" дней",amount:stars}],...(days===30?{subscription_period:2592000}:{})})}).then(r=>r.json());
+  if(!invoice.ok||typeof invoice.result!=="string")throw new Error("Could not create Stars invoice");
+  await telegram("sendMessage",{chat_id:chatId,text:"Персональный счёт готов: "+stars+" ⭐ за "+days+" дней. После успешной оплаты Premium активируется автоматически.",reply_markup:{inline_keyboard:[[{text:"Оплатить "+stars+" ⭐",url:invoice.result}],[{text:"⬅️ В меню",callback_data:"main_menu"}]]}});
+}
+async function showCabinet(chatId:number,telegramId:number) {
+  const userId=await linkedAccount(telegramId);
+  if(!userId){await telegram("sendMessage",{chat_id:chatId,text:"Аккаунт ARVEX ещё не привязан. Войди в приложение → Профиль → Аккаунт → «Привязать Telegram», затем нажми здесь «Мой кабинет»."});return}
+  const [subs,refs,codes]=await Promise.all([
+    db(`arvex_subscriptions?user_id=eq.${encodeURIComponent(userId)}&select=is_forever,expires_at&limit=1`),
+    db(`arvex_referrals?referrer_user_id=eq.${encodeURIComponent(userId)}&select=status&limit=1000`),
+    db(`arvex_referral_codes?user_id=eq.${encodeURIComponent(userId)}&select=code&limit=1`)
+  ]);
+  const sub=subs?.[0],active=!!sub&&(sub.is_forever===true||(sub.expires_at&&Date.parse(sub.expires_at)>Date.now()));
+  const invited=Array.isArray(refs)?refs.length:0;
+  const paid=Array.isArray(refs)?refs.filter((x:any)=>x.status==="rewarded").length:0;
+  const code=codes?.[0]?.code||"";
+  const link="https://blessedmrasul-code.github.io/trading-app/app/?ref="+encodeURIComponent(code);
+  const expiry=sub?.is_forever?"Бессрочно":sub?.expires_at?new Date(sub.expires_at).toLocaleDateString("ru-RU"):"—";
+  const textBody="👤 Мой кабинет ARVEX\n\nПодписка: "+(active?"✅ Premium активен":"⚪ Premium не оформлена")+"\nДействует до: "+(active?expiry:"—")+"\n\n👥 Приглашено пользователей: "+invited+"\n⭐ Приглашённых с оплатой: "+paid+"\n\n🎁 Реферальная ссылка:\n"+link+"\n\nЗа первую успешную оплату приглашённого начисляется 7 бонусных дней Premium.";
+  await telegram("sendMessage",{chat_id:chatId,text:textBody,reply_markup:{inline_keyboard:[[{text:"📋 Скопировать ссылку",copy_text:{text:link}}],[{text:"⬅️ В меню",callback_data:"main_menu"}]]}});
+}
+async function handleCallback(q:any) {
+  const chatId=Number(q.message?.chat?.id),telegramId=Number(q.from?.id),data=String(q.data||"");
+  await telegram("answerCallbackQuery",{callback_query_id:q.id});
+  if(data==="main_menu"){await sendMainMenu(chatId);return}
+  if(data==="method_stars"){await showPlans(chatId,"stars");return}
+  if(data==="method_usdt"){await showPlans(chatId,"usdt");return}
+  if(data==="my_cabinet"){await showCabinet(chatId,telegramId);return}
+  if(data==="my_invite"){await showCabinet(chatId,telegramId);return}
+  const plan=data.match(/^(stars|usdt)_(30|90|365)$/);
+  if(plan){
+    const method=plan[1],days=Number(plan[2]);
+    if(method==="stars"){await createBotStarsInvoice(chatId,telegramId,days);return}
+    const url="https://blessedmrasul-code.github.io/trading-app/subscribe.html?method=usdt&days="+days;
+    await telegram("sendMessage",{chat_id:chatId,text:"Оформление USDT TRC20 на "+days+" дней. Открой персональную страницу оплаты, войди в ARVEX и создай счёт. После подтверждения перевода Premium включится автоматически.",reply_markup:{inline_keyboard:[[{text:"💵 Перейти к оплате USDT",url}],[{text:"⬅️ В меню",callback_data:"main_menu"}]]}});
+  }
+}
+async function handleBotCommand(message:any) {
+  const text=String(message?.text||"").trim();
+  const match=text.match(/^\/(start|help|premium|support|cabinet)(?:@\w+)?(?:\s+([^\s]+))?/i);
+  if(!match||!message?.chat?.id)return;
+  const command=match[1].toLowerCase(),payload=command==="start"?String(match[2]||""):"";
+  if(payload.startsWith("arvex_")){
+    const intent=await getIntent(payload),days=Number(intent?.period_days||30),planStars:Record<number,number>={30:120,90:360,180:680,365:1300};
+    if(!intent||intent.status!=="pending"||Number(intent.stars_amount)!==planStars[days]||intent.currency!=="XTR"){await telegram("sendMessage",{chat_id:message.chat.id,text:"Ссылка на оплату недействительна или устарела. Создай новый счёт в ARVEX."});return}
+    const invoice=await fetch(`https://api.telegram.org/bot${botToken()}/createInvoiceLink`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({title:"ARVEX Premium",description:"Доступ к ARVEX на "+days+" дней.",payload,provider_token:"",currency:"XTR",prices:[{label:"ARVEX Premium · "+days+" дней",amount:Number(intent.stars_amount)}],...(days===30?{subscription_period:2592000}:{})})}).then(r=>r.json());
+    if(!invoice.ok)throw new Error("Could not create invoice");
+    await telegram("sendMessage",{chat_id:message.chat.id,text:"Твой персональный счёт готов: "+Number(intent.stars_amount)+" ⭐ за "+days+" дней.",reply_markup:{inline_keyboard:[[{text:"Оплатить "+Number(intent.stars_amount)+" ⭐",url:invoice.result}]]}});return;
+  }
+  if(payload.startsWith("link_")){
+    const token=payload.slice(5),digest=Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256",new TextEncoder().encode(token))),b=>b.toString(16).padStart(2,"0")).join("");
+    const rows=await db(`arvex_telegram_link_tokens?token_hash=eq.${digest}&used_at=is.null&expires_at=gt.${encodeURIComponent(new Date().toISOString())}&select=user_id&limit=1`);
+    if(!Array.isArray(rows)||!rows[0]){await telegram("sendMessage",{chat_id:message.chat.id,text:"Ссылка привязки истекла или уже использована. Создай новую ссылку в приложении ARVEX."});return}
+    const userId=String(rows[0].user_id);
+    await db("arvex_telegram_accounts?on_conflict=user_id",{method:"POST",headers:{Prefer:"resolution=merge-duplicates,return=minimal"},body:JSON.stringify({user_id:userId,telegram_user_id:message.from.id,telegram_username:message.from.username||null,linked_at:new Date().toISOString()})});
+    await db(`arvex_telegram_link_tokens?token_hash=eq.${digest}`,{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({used_at:new Date().toISOString()})});
+    await telegram("sendMessage",{chat_id:message.chat.id,text:"✅ Telegram успешно привязан к твоему аккаунту ARVEX. Теперь доступны оплата Stars и раздел «Мой кабинет»."});
+    await sendMainMenu(message.chat.id);return;
+  }
+  if(command==="support"){await telegram("sendMessage",{chat_id:message.chat.id,text:"Нужна помощь с ARVEX? Напиши в поддержку: @mrasulv."});return}
+  if(command==="cabinet"){await showCabinet(message.chat.id,message.from.id);return}
+  await sendMainMenu(message.chat.id);
+}
 Deno.serve(async (req: Request) => {
   if (req.method !== "POST") return new Response("Method not allowed", { status: 405 });
   const expected = webhookSecret();
