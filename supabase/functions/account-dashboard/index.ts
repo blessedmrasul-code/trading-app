@@ -96,12 +96,13 @@ Deno.serve(async (req: Request) => {
       return json({ ok: true, action_result: result, growth });
     }
 
-    const [subs, stars, cryptoRows, referralRewards, growth] = await Promise.all([
+    const [subs, stars, cryptoRows, referralRewards, growth, telegramAccounts] = await Promise.all([
       adminRequest("arvex_subscriptions?user_id=eq." + encodeURIComponent(userId) + "&select=is_forever,expires_at,auto_renew,starts_at&limit=1"),
       adminRequest("telegram_star_payments?user_id=eq." + encodeURIComponent(userId) + "&select=stars_amount,created_at,expires_at,refunded_at,period_days&order=created_at.desc&limit=1000"),
       adminRequest("arvex_crypto_payment_intents?user_id=eq." + encodeURIComponent(userId) + "&status=eq.paid&select=amount_usdt,created_at,confirmed_at,period_days,txid&order=created_at.desc&limit=1000"),
       adminRequest("arvex_telegram_referral_rewards?referrer_user_id=eq." + encodeURIComponent(userId) + "&select=milestone,reward_days&order=milestone.asc&limit=1000"),
-      growthFor(userId)
+      growthFor(userId),
+      adminRequest("arvex_telegram_accounts?user_id=eq." + encodeURIComponent(userId) + "&select=telegram_user_id&limit=1")
     ]);
     const referralCode = await ensureReferralCode(userId);
     const sub = subs?.[0] || null;
@@ -131,7 +132,10 @@ Deno.serve(async (req: Request) => {
         progress: referralRewardClaimed ? 15 : Math.min(referralTotal, 15),
         bonus_days: Number(growth?.referral_bonus_days || 0),
         reward_claimed: referralRewardClaimed,
-        link: "https://t.me/ArvexPremiumBot?start=ref_" + encodeURIComponent(referralCode)
+        telegram_linked: Array.isArray(telegramAccounts) && telegramAccounts.length > 0,
+        link: Array.isArray(telegramAccounts) && telegramAccounts.length > 0
+          ? "https://t.me/ArvexPremiumBot?start=ref_" + encodeURIComponent(referralCode)
+          : ""
       },
       growth
     });
