@@ -412,6 +412,8 @@ const Cloud=(()=>{
   if(t.closest("#arvexTelegramLink")){createTelegramLink();return true}
   if(t.closest("#arvexDashboardRefresh")){loadAccountDashboard();return true}
   if(t.closest("#arvexReferralCopy")){const link=accountDashboard?.referrals?.link||"";if(link&&navigator.clipboard?.writeText)navigator.clipboard.writeText(link).then(()=>showToast("Реферальная ссылка скопирована.")).catch(()=>showToast("Не удалось скопировать ссылку."));else showToast("Ссылка пока недоступна.");return true}
+  if(t.closest("#arvexDailyCheckin")){const button=t.closest("#arvexDailyCheckin"),msg=document.getElementById("arvexGrowthMsg");button.disabled=true;if(msg)msg.textContent="Начисляю ежедневные очки…";growthAction({action:"claim_checkin"}).then(data=>{if(msg)msg.textContent=data.action_result?.claimed?"Готово! Начислено 10 очков.":"Сегодня бонус уже получен."}).catch(e=>{if(msg)msg.textContent=e.message;button.disabled=false});return true}
+  if(t.closest("#arvexDailyQuizSubmit")){const selected=document.querySelector('input[name="arvexDailyQuizAnswer"]:checked'),msg=document.getElementById("arvexGrowthMsg"),button=t.closest("#arvexDailyQuizSubmit");if(!selected){if(msg)msg.textContent="Выбери вариант ответа.";return true}button.disabled=true;if(msg)msg.textContent="Проверяю ответ…";growthAction({action:"submit_quiz",answer:Number(selected.value)}).then(data=>{if(msg)msg.textContent=data.action_result?.message||"Ответ проверен."}).catch(e=>{if(msg)msg.textContent=e.message;button.disabled=false});return true}
   if(t.closest("#cloudSync")){sync();return true}
   if(t.closest("#cloudOut")){signOut().then(()=>{accountDashboard=null;if(typeof renderProfile==="function")renderProfile()});return true}
   if(t.closest("#arvexPromoApply")){const m=document.getElementById("arvexPromoMsg");m.textContent="Проверяю…";redeemPromo(document.getElementById("arvexPromoCode").value).then(()=>{m.textContent="Промокод активирован!";if(typeof renderProfile==="function")renderProfile()}).catch(e=>m.textContent=e.message);return true}
@@ -695,46 +697,57 @@ async function insertOrder(o){
  }
  let accountDashboard=null;
  function accountDashboardHTML(){
-  return ""; 
   if(!enabled())return "";
   if(!session)return '<div class="card"><div class="card-title">Мой кабинет ARVEX</div><p class="muted">Войди в аккаунт, чтобы увидеть статус Premium, платежи и реферальную статистику.</p></div>';
   return '<div class="card"><div class="card-title">Мой кабинет ARVEX <button class="ghost" id="arvexDashboardRefresh" type="button" style="float:right;padding:5px 9px">↻</button></div><div id="arvexAccountDashboard" class="muted">Загружаю данные аккаунта…</div></div>';
  }
  function renderAccountDashboard(){
-  const box=document.getElementById("arvexAccountDashboard");if(!box)return;
-  if(!accountDashboard){box.textContent="Загружаю данные аккаунта…";return}
-  const d=accountDashboard,p=d.premium||{},pay=d.payments||{},ref=d.referrals||{};
-  const date=v=>v?new Date(v).toLocaleDateString("ru-RU"):"—";
-  const historyRows=(pay.history||[]).slice(0,6).map(x=>{
-   const amount=x.currency==="XTR"?Number(x.amount)+" ⭐":Number(x.amount).toFixed(2)+" USDT";
-   return '<div class="res-link"><b>'+esc(amount)+' · '+esc(x.method)+'</b><span>'+date(x.created_at)+' · '+Number(x.period_days||30)+' дней · Оплачено</span></div>';
-  }).join("");
+  const box=document.getElementById("arvexGrowthCenter");
+  if(!box)return;
+  if(!accountDashboard){box.textContent="Загружаю центр активности…";return}
+  const d=accountDashboard,g=d.growth||{},ref=d.referrals||{},quiz=g.quiz||{};
+  const escText=v=>esc(String(v??""));
+  const tier=String(g.tier||"Rookie");
+  const next=Number(g.next_tier_at||5),total=Number(g.total_referrals||0);
+  const tierMin={Rookie:0,Bronze:5,Silver:15,Gold:30,VIP:60,Elite:100}[tier]||0;
+  const pct=tier==="Elite"?100:Math.max(0,Math.min(100,((total-tierMin)/Math.max(1,next-tierMin))*100));
+  const board=Array.isArray(g.leaderboard)?g.leaderboard:[];
+  const boardHTML=board.length?board.map(x=>'<div class="res-link"><b>#'+Number(x.rank)+' · '+escText(x.name)+'</b><span>'+Number(x.invited)+' новых пользователей</span></div>').join(""):'<p class="muted">В этом месяце пока нет участников рейтинга. Пригласи первого друга!</p>';
+  const options=Array.isArray(quiz.options)?quiz.options:[];
+  const quizHTML=g.quiz_done?'<p class="pos">✓ Викторина дня выполнена · +20 очков</p>':(quiz.question?'<p>'+escText(quiz.question)+'</p>'+options.map((o,i)=>'<label class="setting-toggle" style="margin:7px 0"><input type="radio" name="arvexDailyQuizAnswer" value="'+(i+1)+'"><span>'+escText(o)+'</span></label>').join("")+'<button class="primary" id="arvexDailyQuizSubmit" type="button">Ответить · +20 очков</button>':'<p class="muted">Викторина пока недоступна.</p>');
+  const monthlyAward=g.monthly_award?'<p class="pos">🏆 Победа в прошлом месяце: начислено '+Number(g.monthly_award.reward_days||10)+' дней Premium.</p>':'';
+  const rewardDone=!!ref.reward_claimed;
   box.innerHTML=
    '<div class="stat-grid">'+
-    '<div class="stat"><small>Статус Premium</small><b class="'+(p.active?"pos":"neg")+'">'+(p.lifetime?"Навсегда":p.active?"Активен":"Не активен")+'</b></div>'+
-    '<div class="stat"><small>Действует до</small><b>'+(p.lifetime?"Бессрочно":date(p.expires_at))+'</b></div>'+
-    '<div class="stat"><small>Всего оплат</small><b>'+Number(pay.count||0)+'</b></div>'+
-    '<div class="stat"><small>Приглашено</small><b>'+Number(ref.total||0)+'</b></div>'+
-    '<div class="stat"><small>Оплатили Premium</small><b>'+Number(ref.rewarded||0)+'</b></div>'+
-    '<div class="stat"><small>Бонусные дни</small><b>'+Number(ref.bonus_days||0)+'</b></div>'+
+    '<div class="stat"><small>Уровень</small><b>'+escText(tier)+'</b></div>'+
+    '<div class="stat"><small>Очки активности</small><b>'+Number(g.points||0)+'</b></div>'+
+    '<div class="stat"><small>Всего приглашено</small><b>'+total+'</b></div>'+
+    '<div class="stat"><small>За этот месяц</small><b>'+Number(g.month_referrals||0)+'</b></div>'+
+    '<div class="stat"><small>Место в рейтинге</small><b>'+(g.rank?'#'+Number(g.rank):'—')+'</b></div>'+
+    '<div class="stat"><small>Бонус Premium</small><b>'+Number(ref.bonus_days||0)+' дн.</b></div>'+
    '</div>'+
-   '<div class="card" style="margin:12px 0"><div class="card-title">Подписка</div>'+
-    '<p style="margin:0">'+(p.lifetime?"У тебя пожизненный Premium.":p.active?"Premium активен до "+date(p.expires_at)+".":"Твой Premium не активен. Выбери тариф и оформи подписку.")+'</p>'+
-    (!p.active?'<button class="primary" type="button" data-go="premium" style="margin-top:10px">Выбрать Premium</button>':'')+
+   '<div class="card" style="margin:12px 0"><div class="card-title">Уровень '+escText(tier)+'</div>'+
+    '<p class="muted">'+(tier==="Elite"?"Максимальный уровень достигнут.":'До следующего уровня: '+Math.max(0,next-total)+' приглашений.')+'</p>'+
+    '<div class="xpbar"><i style="width:'+pct.toFixed(0)+'%"></i></div>'+
+    '<p class="muted" style="margin-top:8px">Rookie 0 · Bronze 5 · Silver 15 · Gold 30 · VIP 60 · Elite 100 приглашённых</p>'+
    '</div>'+
-   '<div class="card" style="margin:12px 0"><div class="card-title">Платежи</div>'+
-    '<p class="muted" style="margin:0 0 8px">Telegram Stars: '+Number(pay.stars_total||0)+' ⭐ · USDT TRC20: '+Number(pay.usdt_total||0).toFixed(2)+' USDT</p>'+
-    (historyRows||'<p class="muted">Оплат пока нет.</p>')+
+   '<div class="card" style="margin:12px 0"><div class="card-title">Ежедневные задания</div>'+
+    '<p>'+(g.checkin_done?'✓ Ежедневный вход выполнен · +10 очков':'Зайди сегодня в ARVEX и забери +10 очков.')+'</p>'+
+    '<button class="'+(g.checkin_done?'ghost':'primary')+'" id="arvexDailyCheckin" type="button" '+(g.checkin_done?'disabled':'')+'>'+(g.checkin_done?'Уже выполнено':'Забрать +10 очков')+'</button>'+
+    '<div style="height:1px;background:var(--border);margin:12px 0"></div>'+
+    '<b>Викторина дня · +20 очков</b>'+quizHTML+
    '</div>'+
-   '<div class="card" style="margin:12px 0"><div class="card-title">Реферальная программа</div>'+
-    '<p style="margin:0 0 8px">За каждые 15 новых пользователей, которые впервые запустят бота по твоей ссылке, начисляется 3 дня Premium.</p>'+
-    '<div class="res-link"><b>Твоя ссылка на Telegram-бота</b><span style="word-break:break-all">'+esc(ref.link||"")+'</span></div>'+
-    '<div class="btn-row"><button class="primary" id="arvexReferralCopy" type="button">Скопировать ссылку на бота</button></div>'+
-    '<p class="muted" style="margin:8px 0 0">Прогресс: '+Number(ref.progress||0)+'/15 · Всего приглашено: '+Number(ref.total||0)+' · Бонусных дней: '+Number(ref.bonus_days||0)+'</p>'+
+   '<div class="card" style="margin:12px 0"><div class="card-title">Месячный рейтинг приглашений</div>'+
+    '<p>Каждый месяц счётчик начинается заново. Участник на первом месте по числу новых уникальных пользователей получает <b>10 дней Premium</b>.</p>'+
+    monthlyAward+boardHTML+
+   '</div>'+
+   '<div class="card" style="margin:12px 0"><div class="card-title">Твоя реферальная ссылка</div>'+
+    '<p style="word-break:break-all">'+escText(ref.link||"")+'</p>'+
+    '<button class="primary" id="arvexReferralCopy" type="button">Скопировать ссылку на Telegram-бота</button>'+
+    '<p class="muted" style="margin-top:8px">'+(rewardDone?'✓ Разовый бонус 3 дня уже начислен.':'Разовый бонус: '+Math.min(total,15)+'/15. Осталось: '+Math.max(0,15-total)+'.')+'</p>'+
    '</div>';
  }
  async function loadAccountDashboard(){
-  return;
   const box=document.getElementById("arvexAccountDashboard");if(!session||!enabled()){if(box)box.textContent="Войди в аккаунт ARVEX, чтобы увидеть статистику.";return}
   if(box)box.textContent="Обновляю кабинет…";
   try{
@@ -745,6 +758,16 @@ async function insertOrder(o){
    accountDashboard=data;renderAccountDashboard();
   }catch(e){if(box)box.textContent=e.message||"Не удалось загрузить кабинет."}
  }
+ async function growthAction(payload){
+  if(!session)throw new Error("Сначала войди в аккаунт ARVEX.");
+  const tok=await token();
+  const response=await fetch(cfg().url.replace(/\/$/,"")+"/functions/v1/account-dashboard",{method:"POST",headers:hdr(tok),body:JSON.stringify(payload)});
+  const data=await response.json().catch(()=>({}));
+  if(!response.ok)throw new Error(data.error||"Не удалось выполнить задание.");
+  accountDashboard=data;renderAccountDashboard();
+  if(typeof Access!=="undefined"&&Access.refresh)await Access.refresh();
+  return data;
+ }
  async function loadProfileData(force=false){
   if(!session||profileDataLoading||(!force&&Date.now()-profileDataLoadedAt<15000))return;
   profileDataLoading=true;
@@ -753,8 +776,12 @@ async function insertOrder(o){
  }
  function userToolsHTML(){
   if(!enabled())return "";
-  if(!session)return '<div class="card"><div class="card-title">Сервисы аккаунта</div><p class="muted">Войди в аккаунт, чтобы использовать промокоды, смотреть платежи и обращаться в поддержку.</p></div>';
-  return '<div class="card"><div class="card-title">Промокод</div><div class="btn-row"><input class="field" id="arvexPromoCode" maxlength="32" placeholder="Введи промокод"><button class="primary" id="arvexPromoApply">Активировать</button></div><p class="muted" id="arvexPromoMsg"></p></div>'+
+  const activity=session
+   ? '<div class="card"><div class="card-title">🏆 ARVEX · Центр активности <button class="ghost" id="arvexDashboardRefresh" type="button" style="float:right;padding:5px 9px">↻</button></div><div id="arvexGrowthCenter" class="muted">Загружаю задания и рейтинг…</div><p class="muted" id="arvexGrowthMsg" aria-live="polite"></p></div>'
+   : '<div class="card"><div class="card-title">🏆 ARVEX · Центр активности</div><p class="muted">Войди в аккаунт ARVEX, чтобы выполнять ежедневные задания, набирать очки и участвовать в месячном рейтинге.</p></div>';
+  if(!session)return activity+'<div class="card"><div class="card-title">Сервисы аккаунта</div><p class="muted">Войди в аккаунт, чтобы использовать промокоды, смотреть платежи и обращаться в поддержку.</p></div>';
+  return activity+
+   '<div class="card"><div class="card-title">Промокод</div><div class="btn-row"><input class="field" id="arvexPromoCode" maxlength="32" placeholder="Введи промокод"><button class="primary" id="arvexPromoApply">Активировать</button></div><p class="muted" id="arvexPromoMsg"></p></div>'+
    '<div class="card"><div class="card-title">История платежей</div><button class="ghost" id="arvexPaymentsLoad">Показать платежи</button><div id="arvexPaymentsList"></div></div>'+
    '<div class="card"><div class="card-title">Поддержка ARVEX</div><p class="muted">Опиши вопрос — обращение сохранится в аккаунте и появится в панели администратора. Если срочно, <a href="https://t.me/mrasulv" target="_blank" rel="noopener" style="color:var(--purple2)">@mrasulv</a>.</p><form id="arvexSupportForm" novalidate><label class="lbl" for="arvexSupportSubject">Тема обращения</label><input class="field" id="arvexSupportSubject" name="subject" maxlength="120" required placeholder="Например: проблема с подпиской"><label class="lbl" for="arvexSupportMessage">Сообщение</label><textarea class="field" id="arvexSupportMessage" name="message" minlength="10" maxlength="4000" rows="5" required placeholder="Опиши проблему подробно (минимум 10 символов)" style="margin-top:4px"></textarea><button class="primary" type="submit" id="arvexSupportSend" style="margin-top:8px">Отправить обращение</button><p class="muted" id="arvexSupportMsg" aria-live="polite" role="status"></p></form><div id="arvexSupportList"></div></div>'+
    '<div class="card hidden" id="arvexAdminTools"><div class="card-title">Управление аккаунтами</div><input class="field" id="arvexAdminUserQuery" maxlength="120" placeholder="Email или ID пользователя"><div class="btn-row"><button class="primary" type="button" id="arvexAdminUserSearch">Найти пользователя</button><button class="ghost" type="button" id="arvexAdminBanRefresh">Обновить блокировки</button></div><div id="arvexAdminUsersList"></div><div class="card-title" style="margin-top:14px">Активные блокировки</div><div id="arvexAdminBanList"></div><div class="card-title" style="margin-top:14px">История блокировок</div><div id="arvexAdminBanHistory"></div><div style="height:1px;background:var(--border);margin:16px 0"></div><div class="card-title">Управление промокодами</div><input class="field" id="arvexAdminCode" maxlength="32" placeholder="Код, например START30"><div class="btn-row"><select class="field" id="arvexAdminDays"><option value="7">7 дней</option><option value="30" selected>30 дней</option><option value="90">90 дней</option><option value="365">365 дней</option></select><input class="field" id="arvexAdminLimit" type="number" min="1" max="10000" value="1" placeholder="Лимит"></div><button class="primary" id="arvexAdminPromoCreate">Создать промокод</button><p id="arvexAdminPromoMsg" class="muted"></p><div id="arvexAdminPromoList"></div><button class="ghost" id="arvexAdminPromoRefresh">Обновить список</button><div style="height:1px;background:var(--border);margin:16px 0"></div><div class="card-title">Обращения пользователей</div><button class="ghost" type="button" id="arvexAdminSupportRefresh">Обновить обращения</button><div id="arvexAdminSupportList"></div></div>'+
