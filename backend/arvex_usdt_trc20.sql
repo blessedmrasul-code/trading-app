@@ -30,14 +30,17 @@ set search_path = pg_catalog, public
 as $$
 declare
   v_intent public.arvex_crypto_payment_intents%rowtype;
+  v_payment_time timestamptz := coalesce(p_confirmed_at, now());
 begin
   if p_txid is null or length(p_txid) <> 64 then raise exception 'Invalid transaction id'; end if;
   select * into v_intent from public.arvex_crypto_payment_intents where id = p_intent_id for update;
   if not found then return false; end if;
   if v_intent.status = 'paid' then return v_intent.txid = p_txid; end if;
-  if v_intent.status <> 'pending' or v_intent.expires_at < now() then return false; end if;
+  if v_intent.status not in ('pending','expired')
+     or v_payment_time < v_intent.created_at - interval '2 minutes'
+     or v_payment_time > v_intent.expires_at + interval '10 minutes' then return false; end if;
   update public.arvex_crypto_payment_intents
-     set status = 'paid', txid = p_txid, confirmed_at = coalesce(p_confirmed_at, now())
+     set status = 'paid', txid = p_txid, confirmed_at = v_payment_time
    where id = p_intent_id;
   insert into public.arvex_subscriptions
     (user_id, starts_at, expires_at, is_forever, auto_renew, updated_at, updated_by)
