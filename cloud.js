@@ -749,7 +749,7 @@ async function insertOrder(o){
    '</div>';
  }
  async function loadAccountDashboard(){
-  const box=document.getElementById("arvexAccountDashboard");if(!session||!enabled()){if(box)box.textContent="Войди в аккаунт ARVEX, чтобы увидеть статистику.";return}
+  const box=document.getElementById("arvexGrowthCenter");if(!session||!enabled()){if(box)box.textContent="Войди в аккаунт ARVEX, чтобы увидеть задания и рейтинг.";return}
   if(box)box.textContent="Обновляю кабинет…";
   try{
    const tok=await token();
@@ -765,7 +765,7 @@ async function insertOrder(o){
   const response=await fetch(cfg().url.replace(/\/$/,"")+"/functions/v1/account-dashboard",{method:"POST",headers:hdr(tok),body:JSON.stringify(payload)});
   const data=await response.json().catch(()=>({}));
   if(!response.ok)throw new Error(data.error||"Не удалось выполнить задание.");
-  accountDashboard=data;renderAccountDashboard();
+  accountDashboard={...(accountDashboard||{}),growth:data.growth||accountDashboard?.growth,action_result:data.action_result};renderAccountDashboard();
   if(typeof Access!=="undefined"&&Access.refresh)await Access.refresh();
   return data;
  }
