@@ -30,7 +30,7 @@ const Access=(()=>{
   if(isPremium()){
    const lifetime=String(entitlement.plan||"").toLowerCase()==="lifetime";
    const until=lifetime?"Пожизненный доступ активирован. Спасибо, что поддерживаешь проект!":`Подписка активна до ${new Date(entitlement.expires_at).toLocaleDateString("ru-RU")}.`;
-   const renew=lifetime?"":`<p class="muted" style="margin:6px 0 0">${entitlement.auto_renew===false?"Автопродление отключено.":"Автопродление включено через Telegram Stars."}</p><button class="ghost" id="accStarsToggle" style="margin-top:10px">${entitlement.auto_renew===false?"Включить автопродление":"Отключить автопродление"}</button>`;
+   const renew=lifetime?"":`<p class="muted" style="margin:6px 0 0">${entitlement.auto_renew===true?"Автопродление включено через Telegram Stars.":"Автопродление отключено."}</p>${entitlement.auto_renew===true?`<button class="ghost" id="accStarsToggle" style="margin-top:10px">Отключить автопродление</button>`:""}`;
    return `<div class="card"><div class="card-title">Доступ <span class="badge">Premium</span></div><p style="margin:0">${until}</p>${renew}<p class="muted" id="accStarsMsg" style="margin:8px 0 0"></p></div>`;
   }
   if(s.starsEnabled||s.cryptoEnabled){
