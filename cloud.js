@@ -357,7 +357,7 @@ const Cloud=(()=>{
  if(recoveryMode&&typeof window!=="undefined")setTimeout(()=>changePasswordPrompt(),700);
  async function createTelegramLink(){
   const msg=document.getElementById("arvexTelegramLinkMsg");if(msg)msg.textContent="Создаю ссылку…";
-  try{const tok=await token();const r=await fetch(cfg().url.replace(/\\/$/,"")+"/functions/v1/telegram-account-link",{method:"POST",headers:hdr(tok),body:"{}"});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||"Не удалось создать ссылку");if(msg)msg.innerHTML='<a href="'+esc(j.url)+'" target="_blank" rel="noopener">Открыть бота и привязать аккаунт</a> · Ссылка действует 10 минут.'}catch(e){if(msg)msg.textContent=e.message||"Ошибка"}
+  try{const tok=await token();const r=await fetch(cfg().url.replace(/\/$/,"")+"/functions/v1/telegram-account-link",{method:"POST",headers:hdr(tok),body:"{}"});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||"Не удалось создать ссылку");if(msg)msg.innerHTML='<a href="'+esc(j.url)+'" target="_blank" rel="noopener">Открыть бота и привязать аккаунт</a> · Ссылка действует 10 минут.'}catch(e){if(msg)msg.textContent=e.message||"Ошибка"}
  }
  function accountHTML(){
   if(!enabled())return `<p class="muted" style="margin:0">Сейчас профиль хранится на этом устройстве.</p><div class="soon">🔒 Облачные аккаунты подключаются владельцем проекта (см. README → «Облако»).</div>`;
