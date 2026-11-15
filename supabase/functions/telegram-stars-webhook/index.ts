@@ -194,15 +194,15 @@ async function handleBotCommand(message: any) {
   }
   const body = command === "support"
     ? "Нужна помощь с ARVEX? Напиши владельцу проекта — @mrasulv."
-    : "Добро пожаловать в ARVEX Premium!\n\nЧтобы бот выставил персональный счёт на 120 ⭐, открой приложение ARVEX, войди в свой аккаунт и нажми «Оплатить через бота». Бот пришлёт счёт прямо сюда, а после оплаты Premium активируется автоматически.\n\nЕсли нужна помощь — @mrasulv.";
+    : "Добро пожаловать в ARVEX Premium!\\n\\nДоступны два способа оплаты:\\n⭐ Telegram Stars — открой ARVEX, войди в аккаунт и нажми «Оплатить через бота»: бот пришлёт персональный счёт прямо сюда.\\n\\n💵 USDT TRC20 — нажми «Купить Premium · USDT TRC20», оформи персональный счёт на сайте и после подтверждения перевода Premium активируется автоматически.\\n\\nПокупка привязывается к твоему аккаунту ARVEX. Не отправляй USDT на адреса из личных сообщений — используй только адрес и сумму, показанные в личном счёте.";
   await telegram("sendMessage", {
     chat_id: message.chat.id, text: body,
     reply_markup: { inline_keyboard: [[
-      { text: "Открыть ARVEX", url: "https://blessedmrasul-code.github.io/trading-app/" },
+      { text: "Купить Premium · USDT TRC20", url: "https://blessedmrasul-code.github.io/trading-app/" }
+    ], [
       { text: "Написать владельцу", url: "https://t.me/mrasulv" }
     ]] }
   });
-}
 
 Deno.serve(async (req: Request) => {
   if (req.method !== "POST") return new Response("Method not allowed", { status: 405 });
