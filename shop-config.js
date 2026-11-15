@@ -10,7 +10,7 @@ window.ARVEX_SHOP=window.ARVEX_SHOP||{
   cryptoNetwork:"TRON",
   stars:120,
   subscriptionDays:30,
-  plans:[{days:30,stars:120,usdt:3},{days:90,stars:360,usdt:9},{days:180,stars:680,usdt:17},{days:365,stars:1300,usdt:32}],
+  plans:[{days:30,stars:120,usdt:3},{days:90,stars:360,usdt:9},{days:365,stars:1300,usdt:32}],
   price:990,
   promoPrice:490,
   telegram:"mrasulv",
