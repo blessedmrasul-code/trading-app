@@ -208,6 +208,7 @@ async function handleBotCommand(message: any) {
       { text: "Написать владельцу", url: "https://t.me/mrasulv" }
     ]] }
   });
+}
 
 Deno.serve(async (req: Request) => {
   if (req.method !== "POST") return new Response("Method not allowed", { status: 405 });
