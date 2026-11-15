@@ -1,7 +1,7 @@
 /* ARVEX Access: заявка на доступ и серверная проверка entitlement. Локальный флаг Premium не используется. */
 const Access=(()=>{
  const shop=()=>window.ARVEX_SHOP||{};
- let entitlement=null;
+ let entitlement=null,cryptoInvoice=null;
  const price=()=>{const s=shop();return s.promoPrice>0&&s.promoPrice<s.price?s.promoPrice:s.price};
  const isPremium=()=>{
   if(!entitlement)return false;
@@ -11,7 +11,7 @@ const Access=(()=>{
   const expiry=Date.parse(entitlement.expires_at);
   return Number.isFinite(expiry)&&expiry>Date.now();
  };
- const locked=f=>!!((shop().enabled||shop().starsEnabled)&&(shop().lockedFeatures||[]).includes(f)&&!isPremium());
+ const locked=f=>!!((shop().enabled||shop().starsEnabled||shop().cryptoEnabled)&&(shop().lockedFeatures||[]).includes(f)&&!isPremium());
  function syncFooterCTA(){
   const link=document.getElementById("subscribeFooterLink"),status=document.getElementById("footerPremiumStatus");
   const active=isPremium();
@@ -29,10 +29,12 @@ const Access=(()=>{
    const renew=lifetime?"":`<p class="muted" style="margin:6px 0 0">${entitlement.auto_renew===false?"Автопродление отключено.":"Автопродление включено через Telegram Stars."}</p><button class="ghost" id="accStarsToggle" style="margin-top:10px">${entitlement.auto_renew===false?"Включить автопродление":"Отключить автопродление"}</button>`;
    return `<div class="card"><div class="card-title">Доступ <span class="badge">Premium</span></div><p style="margin:0">${until}</p>${renew}<p class="muted" id="accStarsMsg" style="margin:8px 0 0"></p></div>`;
   }
-  if(s.starsEnabled){
+  if(s.starsEnabled||s.cryptoEnabled){
    if(typeof Cloud==="undefined"||!Cloud.enabled())return `<div class="card"><div class="card-title">ARVEX Premium</div><p class="muted" style="margin:0 0 8px">Для автоматической оплаты войди в аккаунт ARVEX. Если нужна помощь, напиши владельцу.</p><a class="ghost" href="https://t.me/mrasulv?text=Помогите%20войти%20в%20ARVEX%20для%20оплаты%20Premium." target="_blank" rel="noopener">Помощь со входом · @mrasulv</a></div>`
    if(!Cloud.isIn())return `<div class="card"><div class="card-title">ARVEX Premium</div><p class="muted" style="margin:0 0 8px">Сначала войди в аккаунт ARVEX. После входа нажми «Оплатить через бота» — бот пришлёт персональный счёт, привязанный к твоему профилю.</p><a class="ghost" href="https://t.me/mrasulv?text=Нужна%20помощь%20с%20входом%20в%20ARVEX." target="_blank" rel="noopener">Написать @mrasulv</a></div>`
-   return `<div class="card"><div class="card-title">ARVEX Premium</div><p style="margin:0 0 8px"><b>${Number(s.stars)||120} ⭐ / 30 дней</b> · автоматическая оплата в Telegram-боте. Управляй автопродлением здесь или в Telegram.</p><div class="btn-row"><button class="primary" id="accStarsBuy">Оплатить через бота · 120 ⭐</button><button class="ghost" id="accStarsCheck">Проверить доступ</button></div>${contactHTML()}<p class="muted" id="accStarsMsg" style="margin:8px 0 0"></p></div>`;
+   const days=Number(s.subscriptionDays)||30;
+   const methods=(s.starsEnabled?`<button class="primary" id="accStarsBuy">Оплатить через бота · ${Number(s.stars)||120} ⭐</button>`:"")+(s.cryptoEnabled?`<button class="ghost" id="accCryptoBuy">Оплатить USDT TRC20 · ${Number(s.cryptoPrice)||5} USDT</button>`:"");
+   return `<div class="card"><div class="card-title">ARVEX Premium</div><p style="margin:0 0 8px">${s.starsEnabled?`<b>${Number(s.stars)||120} ⭐</b> · Telegram Stars`:""}${s.starsEnabled&&s.cryptoEnabled?"<br>":""}${s.cryptoEnabled?`<b>${Number(s.cryptoPrice)||5} USDT</b> · сеть TRON (TRC20)`:""} · ${days} дней доступа.</p><div class="btn-row">${methods}${s.starsEnabled?`<button class="ghost" id="accStarsCheck">Проверить доступ</button>`:""}</div>${contactHTML()}<p class="muted" id="accStarsMsg" style="margin:8px 0 0"></p></div>`;
   }
   if(!s.enabled&&!s.starsEnabled){const stars=Number(s.stars)||120,days=Number(s.subscriptionDays)||30,tg=String(s.telegram||"mrasulv").replace(/^@/,"");return `<div class="card"><div class="card-title">ARVEX Premium</div><p style="margin:0 0 8px"><b>${stars} ⭐ / ${days} дней</b> · оплата Telegram Stars напрямую администратору.</p><button class="primary" id="accManualStars">Купить подписку</button><p class="muted" style="margin:8px 0 0">После подтверждения оплаты доступ будет активирован вручную.</p></div>`;}
   const old=s.promoPrice>0&&s.promoPrice<s.price?` <s class="muted">${s.price} ₽</s>`:"";
@@ -102,6 +104,36 @@ const Access=(()=>{
   }catch(e){if(paymentWindow)paymentWindow.close();if(m)m.textContent=e.message}
   finally{if(b){b.disabled=false;b.textContent="Оплатить через бота · 120 ⭐"}}
  }
+ async function buyCrypto(){
+  const b=document.getElementById("accCryptoBuy"),m=document.getElementById("accStarsMsg");
+  if(b){b.disabled=true;b.textContent="Создаю криптосчёт…"}
+  if(m)m.textContent="";
+  try{
+   if(typeof Cloud==="undefined"||!Cloud.createCryptoInvoice)throw new Error("Сервер криптооплаты не подключён.");
+   const invoice=await Cloud.createCryptoInvoice();
+   if(invoice.lifetime){await refresh();return}
+   cryptoInvoice=invoice;
+   openSheet(`<h3 style="margin:0 0 8px">Оплата ARVEX Premium</h3>
+    <p class="muted" style="margin:0 0 10px">Переведи точную сумму в сети TRON (TRC20). Счёт действует 30 минут.</p>
+    <div class="card"><div class="muted">Сумма к оплате</div><b style="font-size:24px">${invoice.amount} USDT</b></div>
+    <div class="muted" style="margin:10px 0 4px">Сеть</div><b>TRON · TRC20</b>
+    <div class="muted" style="margin:10px 0 4px">Адрес получателя</div><div style="word-break:break-all;font-weight:700">${invoice.wallet}</div>
+    <div class="btn-row" style="margin-top:12px"><button class="ghost" id="accCryptoCopy">Скопировать адрес</button><button class="primary" id="accCryptoCheck">Я оплатил · проверить</button></div>
+    <p class="muted" id="accCryptoMsg" role="status" style="margin:10px 0 0">Отправляй только USDT TRC20. Не отправляй USDT в сети TON или ERC20.</p>`);
+  }catch(e){if(m)m.textContent=e.message}
+  finally{if(b){b.disabled=false;b.textContent="Оплатить USDT TRC20 · "+(Number(shop().cryptoPrice)||5)+" USDT"}}
+ }
+ async function checkCrypto(){
+  const m=document.getElementById("accCryptoMsg"),b=document.getElementById("accCryptoCheck");
+  if(!cryptoInvoice?.id){if(m)m.textContent="Сначала создай счёт.";return}
+  if(b){b.disabled=true;b.textContent="Проверяю сеть…"}
+  try{
+   const result=await Cloud.checkCryptoPayment(cryptoInvoice.id);
+   if(result.paid){if(m)m.textContent="Оплата подтверждена. Premium активирован.";await refresh()}
+   else if(m)m.textContent=result.message||"Платёж пока не найден.";
+  }catch(e){if(m)m.textContent=e.message}
+  finally{if(b){b.disabled=false;b.textContent="Я оплатил · проверить"}}
+ }
  async function openBotPurchase(){
   const popup=isNativeApp()?null:window.open("about:blank","_blank");
   try{
@@ -145,6 +177,9 @@ const Access=(()=>{
  function click(t){
   if(t.closest("#accManualStars")){const s=shop(),tg=String(s.telegram||"mrasulv").replace(/^@/,""),stars=Number(s.stars)||120,days=Number(s.subscriptionDays)||30;const msg=`Здравствуйте! Хочу оформить ARVEX Premium на ${days} дней за ${stars} Telegram Stars. Подскажите, как оплатить. Мой email аккаунта ARVEX: `;window.open(`https://t.me/${encodeURIComponent(tg)}?text=${encodeURIComponent(msg)}`,"_blank","noopener");return true}
   if(t.closest("#accStarsToggle")){toggleStarsRenew();return true}
+  if(t.closest("#accCryptoBuy")){buyCrypto();return true}
+  if(t.closest("#accCryptoCheck")){checkCrypto();return true}
+  if(t.closest("#accCryptoCopy")){const address=cryptoInvoice?.wallet||shop().cryptoWallet||"";if(address&&navigator.clipboard?.writeText)navigator.clipboard.writeText(address).then(()=>{const m=document.getElementById("accCryptoMsg");if(m)m.textContent="Адрес скопирован. Проверь сеть TRC20 перед отправкой."}).catch(()=>{const m=document.getElementById("accCryptoMsg");if(m)m.textContent="Не удалось скопировать. Скопируй адрес вручную."});return true}
   if(t.closest("#accStarsBuy")){buyStars();return true}
   if(t.closest("#proUpgrade")||t.closest("[data-premium-purchase]")){openBotPurchase();return true}
   if(t.closest("#accStarsCheck")){refresh();const m=document.getElementById("accStarsMsg");if(m)m.textContent="Проверка завершена. Если платёж только что прошёл, подожди несколько секунд и проверь ещё раз.";return true}
