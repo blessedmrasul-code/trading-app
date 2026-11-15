@@ -64,11 +64,12 @@ Deno.serve(async (req: Request) => {
     if (!bans.ok) return json({ error: "Не удалось проверить ограничения аккаунта." }, 503);
     if ((await bans.json()).length) return json({ error: "Аккаунт заблокирован администратором." }, 403);
 
-    const [subs, stars, cryptoRows, referralRows] = await Promise.all([
+    const [subs, stars, cryptoRows, referralRows, referralRewardRows] = await Promise.all([
       adminRequest("arvex_subscriptions?user_id=eq." + encodeURIComponent(userId) + "&select=is_forever,expires_at,auto_renew,starts_at&limit=1"),
       adminRequest("telegram_star_payments?user_id=eq." + encodeURIComponent(userId) + "&select=stars_amount,created_at,expires_at,refunded_at,period_days&order=created_at.desc&limit=1000"),
       adminRequest("arvex_crypto_payment_intents?user_id=eq." + encodeURIComponent(userId) + "&status=eq.paid&select=amount_usdt,created_at,confirmed_at,period_days,txid&order=created_at.desc&limit=1000"),
-      adminRequest("arvex_referrals?referrer_user_id=eq." + encodeURIComponent(userId) + "&select=id,status,reward_days,created_at&order=created_at.desc&limit=1000")
+      adminRequest("arvex_telegram_referrals?referrer_user_id=eq." + encodeURIComponent(userId) + "&select=id,created_at&order=created_at.desc&limit=5000"),
+      adminRequest("arvex_telegram_referral_rewards?referrer_user_id=eq." + encodeURIComponent(userId) + "&select=milestone,reward_days&order=milestone.asc&limit=1000")
     ]);
     const referralCode = await ensureReferralCode(userId);
     const sub = subs?.[0] || null;
@@ -102,10 +103,11 @@ Deno.serve(async (req: Request) => {
       },
       referrals: {
         code: referralCode, total: referrals.length,
-        rewarded: referrals.filter((x: any)=>x.status==="rewarded").length,
-        pending: referrals.filter((x: any)=>x.status==="pending").length,
-        bonus_days: referrals.filter((x: any)=>x.status==="rewarded").reduce((n: number,x: any)=>n+Number(x.reward_days||7),0),
-        link: "https://blessedmrasul-code.github.io/trading-app/app/?ref=" + encodeURIComponent(referralCode)
+        rewarded: (referralRewardRows || []).length,
+        pending: referrals.length % 15 === 0 ? 15 : 15 - (referrals.length % 15),
+        progress: referrals.length % 15,
+        bonus_days: (referralRewardRows || []).reduce((n: number,x: any)=>n+Number(x.reward_days||0),0),
+        link: "https://t.me/ArvexPremiumBot?start=ref_" + encodeURIComponent(referralCode)
       }
     });
   } catch (error) {
