@@ -91,10 +91,11 @@ Deno.serve(async (req: Request) => {
 
     if (!botToken) return json({ error: "Telegram bot is not configured yet" }, 503);
 
-    const stars = Number(Deno.env.get("ARVEX_STARS_PRICE") || "120");
-    if (!Number.isInteger(stars) || stars < 1 || stars > 10000) {
-      return json({ error: "Invalid Stars price configuration" }, 500);
-    }
+    const body = await req.json().catch(() => ({}));
+    const days = Number(body?.days || 30);
+    const plans: Record<number, number> = { 30: 120, 90: 360, 180: 680, 365: 1300 };
+    const stars = plans[days];
+    if (!stars) return json({ error: "Choose a 30, 90, 180 or 365 day plan." }, 400);
 
     const payload = `arvex_${crypto.randomUUID()}`;
     await adminRequest("telegram_payment_intents", {
@@ -102,7 +103,7 @@ Deno.serve(async (req: Request) => {
       headers: { Prefer: "return=minimal" },
       body: JSON.stringify({
         user_id: user.id, invoice_payload: payload,
-        stars_amount: stars, currency: "XTR", status: "pending",
+        stars_amount: stars, currency: "XTR", status: "pending", period_days: days,
       }),
     });
 
@@ -111,12 +112,12 @@ Deno.serve(async (req: Request) => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         title: "ARVEX Premium",
-        description: "Полный доступ к ARVEX на 30 дней. Автопродление через Telegram Stars.",
+        description: "Полный доступ к ARVEX на " + days + " дней.",
         payload,
         provider_token: "",
         currency: "XTR",
-        prices: [{ label: "ARVEX Premium · 30 дней", amount: stars }],
-        subscription_period: 2592000,
+        prices: [{ label: "ARVEX Premium · " + days + " дней", amount: stars }],
+        ...(days === 30 ? { subscription_period: 2592000 } : {}),
       }),
     });
     const invoice = await telegramResponse.json();
@@ -127,7 +128,7 @@ Deno.serve(async (req: Request) => {
       return json({ error: "Telegram could not create the invoice" }, 502);
     }
 
-    return json({ url: invoice.result, stars, periodDays: 30, recurring: true });
+    return json({ url: invoice.result, stars, periodDays: days, recurring: days === 30 });
   } catch (error) {
     console.error("create-stars-invoice:", error);
     return json({ error: "Could not create payment link. Try again later." }, 500);
