@@ -4,6 +4,10 @@
 window.ARVEX_SHOP=window.ARVEX_SHOP||{
   enabled:false,
   starsEnabled:true,
+  cryptoEnabled:true,
+  cryptoPrice:5,
+  cryptoWallet:"TH6guxXKMXgXYdgincWowjTGLjLdPuijtK",
+  cryptoNetwork:"TRON",
   stars:120,
   subscriptionDays:30,
   price:990,
