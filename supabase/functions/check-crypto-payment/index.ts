@@ -44,7 +44,7 @@ Deno.serve(async (req: Request) => {
     const intent = rows?.[0];
     if (!intent) return json({ error: "Счёт не найден." }, 404);
     if (intent.status === "paid") return json({ paid: true, message: "Платёж уже подтверждён." });
-    if (intent.status !== "pending" || Date.parse(intent.expires_at) < Date.now()) return json({ paid: false, expired: true, message: "Срок действия счёта истёк. Создай новый." });
+    if (!["pending", "expired"].includes(intent.status)) return json({ paid: false, expired: true, message: "Этот счёт больше не активен. Создай новый." });
     const tronKey = Deno.env.get("TRONGRID_API_KEY") || "";
     if (!tronKey) return json({ error: "Проверка платежа ещё не настроена: отсутствует ключ TronGrid." }, 503);
     const url = "https://api.trongrid.io/v1/accounts/" + encodeURIComponent(intent.recipient_address) +
@@ -60,9 +60,9 @@ Deno.serve(async (req: Request) => {
       String(tx?.token_info?.address || "").toLowerCase() === USDT_CONTRACT.toLowerCase() &&
       String(tx?.value || "") === String(intent.amount_atomic) &&
       Number(tx?.block_timestamp || 0) >= Date.parse(intent.created_at) - 120000 &&
-      Number(tx?.block_timestamp || 0) <= Date.now() + 60000
+      Number(tx?.block_timestamp || 0) <= Date.parse(intent.expires_at) + 600000
     );
-    if (!transfer?.transaction_id) return json({ paid: false, message: "Поступление пока не найдено. Если уже отправил USDT, подожди подтверждения сети и проверь ещё раз." });
+    if (!transfer?.transaction_id) return json({ paid: false, expired: intent.status === "expired" || Date.parse(intent.expires_at) < Date.now(), message: intent.status === "expired" || Date.parse(intent.expires_at) < Date.now() ? "Срок счёта истёк. Если перевод был отправлен вовремя, напиши в поддержку и приложи TXID." : "Поступление пока не найдено. Если уже отправил USDT, подожди подтверждения сети и проверь ещё раз." });
     const result = await adminRequest("rpc/arvex_apply_crypto_payment", {
       method: "POST",
       body: JSON.stringify({
