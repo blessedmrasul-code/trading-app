@@ -1,4 +1,4 @@
-name: Render 2D TikTok — Two Futures
+name: Render silent 2D TikTok video
 on:
   push:
     branches: [main]
@@ -8,31 +8,28 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
-  actions: read
 jobs:
   render:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 30
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
       - name: Install FFmpeg and fonts
         run: |
           sudo apt-get update
           sudo apt-get install -y ffmpeg fonts-dejavu-core
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - name: Install voice engine
-        run: python -m pip install --upgrade pip edge-tts pillow numpy
-      - name: Render animated MP4
+      - name: Install renderer
+        run: python -m pip install --upgrade pillow
+      - name: Render silent MP4
         working-directory: video-projects/two-futures
         run: python render.py
-      - name: Upload MP4
+      - name: Upload MP4 artifact
         uses: actions/upload-artifact@v4
         with:
-          name: two-futures-tiktok-mp4
+          name: two-futures-silent-mp4
           path: video-projects/two-futures/two-futures.mp4
           if-no-files-found: error
           retention-days: 30
