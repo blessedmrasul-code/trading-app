@@ -412,8 +412,8 @@ const Cloud=(()=>{
   if(t.closest("#arvexTelegramLink")){createTelegramLink();return true}
   if(t.closest("#arvexDashboardRefresh")){loadAccountDashboard();return true}
   if(t.closest("#arvexReferralCopy")){const link=accountDashboard?.referrals?.link||"";if(link&&navigator.clipboard?.writeText)navigator.clipboard.writeText(link).then(()=>showToast("Реферальная ссылка скопирована.")).catch(()=>showToast("Не удалось скопировать ссылку."));else showToast("Ссылка пока недоступна.");return true}
-  if(t.closest("#arvexDailyCheckin")){const button=t.closest("#arvexDailyCheckin"),msg=document.getElementById("arvexGrowthMsg");button.disabled=true;if(msg)msg.textContent="Начисляю ежедневные очки…";growthAction({action:"claim_checkin"}).then(data=>{if(msg)msg.textContent=data.action_result?.claimed?"Готово! Начислено 10 очков.":"Сегодня бонус уже получен."}).catch(e=>{if(msg)msg.textContent=e.message;button.disabled=false});return true}
-  if(t.closest("#arvexDailyQuizSubmit")){const selected=document.querySelector('input[name="arvexDailyQuizAnswer"]:checked'),msg=document.getElementById("arvexGrowthMsg"),button=t.closest("#arvexDailyQuizSubmit");if(!selected){if(msg)msg.textContent="Выбери вариант ответа.";return true}button.disabled=true;if(msg)msg.textContent="Проверяю ответ…";growthAction({action:"submit_quiz",answer:Number(selected.value)}).then(data=>{if(msg)msg.textContent=data.action_result?.message||"Ответ проверен."}).catch(e=>{if(msg)msg.textContent=e.message;button.disabled=false});return true}
+  if(t.closest("#arvexDailyCheckin")){const button=t.closest("#arvexDailyCheckin"),msg=document.getElementById("arvexGrowthMsg");button.disabled=true;if(msg)msg.textContent="Начисляю ежедневные очки…";growthAction({action:"claim_checkin"}).then(data=>{const r=data.action_result||{};if(msg)msg.textContent=r.claimed?"Готово! +"+Number(r.reward_points||0)+" очков. Баланс: "+Number(r.points||0)+".": "Сегодня бонус уже получен. Баланс: "+Number(r.points||0)+"."}).catch(e=>{if(msg)msg.textContent=e.message;button.disabled=false});return true}
+  if(t.closest("#arvexDailyQuizSubmit")){const selected=document.querySelector('input[name="arvexDailyQuizAnswer"]:checked'),msg=document.getElementById("arvexGrowthMsg"),button=t.closest("#arvexDailyQuizSubmit");if(!selected){if(msg)msg.textContent="Выбери вариант ответа.";return true}button.disabled=true;if(msg)msg.textContent="Проверяю ответ…";growthAction({action:"submit_quiz",answer:Number(selected.value)}).then(data=>{const r=data.action_result||{};if(msg)msg.textContent=(r.message||"Ответ проверен.")+" Баланс: "+Number(r.points||0)+" очков."}).catch(e=>{if(msg)msg.textContent=e.message;button.disabled=false});return true}
   if(t.closest("#cloudSync")){sync();return true}
   if(t.closest("#cloudOut")){signOut().then(()=>{accountDashboard=null;if(typeof renderProfile==="function")renderProfile()});return true}
   if(t.closest("#arvexPromoApply")){const m=document.getElementById("arvexPromoMsg");m.textContent="Проверяю…";redeemPromo(document.getElementById("arvexPromoCode").value).then(()=>{m.textContent="Промокод активирован!";if(typeof renderProfile==="function")renderProfile()}).catch(e=>m.textContent=e.message);return true}
@@ -765,8 +765,14 @@ async function insertOrder(o){
   const response=await fetch(cfg().url.replace(/\/$/,"")+"/functions/v1/account-dashboard",{method:"POST",headers:hdr(tok),body:JSON.stringify(payload)});
   const data=await response.json().catch(()=>({}));
   if(!response.ok)throw new Error(data.error||"Не удалось выполнить задание.");
-  accountDashboard={...(accountDashboard||{}),growth:data.growth||accountDashboard?.growth,action_result:data.action_result};renderAccountDashboard();
+  const previousGrowth=accountDashboard?.growth||{};
+  const nextGrowth={...previousGrowth,...(data.growth||{})};
+  // Use the authoritative balance returned by the claim RPC immediately; then reload the dashboard.
+  if(data.action_result&&Number.isFinite(Number(data.action_result.points)))nextGrowth.points=Number(data.action_result.points);
+  accountDashboard={...(accountDashboard||{}),growth:nextGrowth,action_result:data.action_result};
+  renderAccountDashboard();
   if(typeof Access!=="undefined"&&Access.refresh)await Access.refresh();
+  await loadAccountDashboard();
   return data;
  }
  async function loadProfileData(force=false){
