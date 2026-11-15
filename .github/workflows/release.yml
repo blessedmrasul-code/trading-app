@@ -114,6 +114,7 @@ jobs:
           deno check supabase/functions/telegram-stars-webhook/index.ts
           deno check supabase/functions/admin-user-ban/index.ts
           deno check supabase/functions/delete-own-account/index.ts
+          deno check supabase/functions/account-dashboard/index.ts
 
       - name: Check application JavaScript syntax and smoke tests
         working-directory: .
