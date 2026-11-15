@@ -708,13 +708,14 @@ async function insertOrder(o){
   const d=accountDashboard,g=d.growth||{},ref=d.referrals||{},quiz=g.quiz||{};
   const escText=v=>esc(String(v??""));
   const tier=String(g.tier||"Rookie");
+  const checkinReward=Number(g.checkin_reward||10),quizReward=Number(g.quiz_reward||20);
   const next=Number(g.next_tier_at||5),total=Number(g.total_referrals||0);
   const tierMin={Rookie:0,Bronze:5,Silver:15,Gold:30,VIP:60,Elite:100}[tier]||0;
   const pct=tier==="Elite"?100:Math.max(0,Math.min(100,((total-tierMin)/Math.max(1,next-tierMin))*100));
   const board=Array.isArray(g.leaderboard)?g.leaderboard:[];
   const boardHTML=board.length?board.map(x=>'<div class="res-link"><b>#'+Number(x.rank)+' · '+escText(x.name)+'</b><span>'+Number(x.invited)+' новых пользователей</span></div>').join(""):'<p class="muted">В этом месяце пока нет участников рейтинга. Пригласи первого друга!</p>';
   const options=Array.isArray(quiz.options)?quiz.options:[];
-  const quizHTML=g.quiz_done?'<p class="pos">✓ Викторина дня выполнена · +20 очков</p>':(quiz.question?'<p>'+escText(quiz.question)+'</p>'+options.map((o,i)=>'<label class="setting-toggle" style="margin:7px 0"><input type="radio" name="arvexDailyQuizAnswer" value="'+(i+1)+'"><span>'+escText(o)+'</span></label>').join("")+'<button class="primary" id="arvexDailyQuizSubmit" type="button">Ответить · +20 очков</button>':'<p class="muted">Викторина пока недоступна.</p>');
+  const quizHTML=g.quiz_done?'<p class="pos">✓ Викторина дня выполнена · +'+quizReward+' очков</p>':(quiz.question?'<p>'+escText(quiz.question)+'</p>'+options.map((o,i)=>'<label class="setting-toggle" style="margin:7px 0"><input type="radio" name="arvexDailyQuizAnswer" value="'+(i+1)+'"><span>'+escText(o)+'</span></label>').join("")+'<button class="primary" id="arvexDailyQuizSubmit" type="button">Ответить · +'+quizReward+' очков</button>':'<p class="muted">Викторина пока недоступна.</p>');
   const monthlyAward=g.monthly_award?'<p class="pos">🏆 Победа в прошлом месяце: начислено '+Number(g.monthly_award.reward_days||10)+' дней Premium.</p>':'';
   const rewardDone=!!ref.reward_claimed;
   box.innerHTML=
@@ -729,11 +730,11 @@ async function insertOrder(o){
    '<div class="card" style="margin:12px 0"><div class="card-title">Уровень '+escText(tier)+'</div>'+
     '<p class="muted">'+(tier==="Elite"?"Максимальный уровень достигнут.":'До следующего уровня: '+Math.max(0,next-total)+' приглашений.')+'</p>'+
     '<div class="xpbar"><i style="width:'+pct.toFixed(0)+'%"></i></div>'+
-    '<p class="muted" style="margin-top:8px">Rookie 0 · Bronze 5 · Silver 15 · Gold 30 · VIP 60 · Elite 100 приглашённых</p>'+
+    '<p class="muted" style="margin-top:8px">Rookie 0 · Bronze 5 · Silver 15 · Gold 30 · VIP 60 · Elite 100 приглашённых. Чем выше уровень, тем больше ежедневные награды: вход +10–20, викторина +20–30 очков.</p>'+
    '</div>'+
    '<div class="card" style="margin:12px 0"><div class="card-title">Ежедневные задания</div>'+
-    '<p>'+(g.checkin_done?'✓ Ежедневный вход выполнен · +10 очков':'Зайди сегодня в ARVEX и забери +10 очков.')+'</p>'+
-    '<button class="'+(g.checkin_done?'ghost':'primary')+'" id="arvexDailyCheckin" type="button" '+(g.checkin_done?'disabled':'')+'>'+(g.checkin_done?'Уже выполнено':'Забрать +10 очков')+'</button>'+
+    '<p>'+(g.checkin_done?'✓ Ежедневный вход выполнен · +'+checkinReward+' очков':'Зайди сегодня в ARVEX и забери +'+checkinReward+' очков.')+'</p>'+
+    '<button class="'+(g.checkin_done?'ghost':'primary')+'" id="arvexDailyCheckin" type="button" '+(g.checkin_done?'disabled':'')+'>'+(g.checkin_done?'Уже выполнено':'Забрать +'+checkinReward+' очков')+'</button>'+
     '<div style="height:1px;background:var(--border);margin:12px 0"></div>'+
     '<b>Викторина дня · +20 очков</b>'+quizHTML+
    '</div>'+
