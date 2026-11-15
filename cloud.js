@@ -743,8 +743,8 @@ async function insertOrder(o){
     monthlyAward+boardHTML+
    '</div>'+
    '<div class="card" style="margin:12px 0"><div class="card-title">Твоя реферальная ссылка</div>'+
-    '<p style="word-break:break-all">'+escText(ref.link||"")+'</p>'+
-    '<button class="primary" id="arvexReferralCopy" type="button">Скопировать ссылку на Telegram-бота</button>'+
+    (ref.telegram_linked?'<p style="word-break:break-all">'+escText(ref.link||"")+'</p>':'<p class="muted">Сначала привяжи Telegram в разделе «Аккаунт». После привязки появится личная ссылка, а новые приглашения начнут учитываться.</p>')+
+    '<button class="primary" id="arvexReferralCopy" type="button" '+(ref.telegram_linked?'':'disabled')+'>Скопировать ссылку на Telegram-бота</button>'+
     '<p class="muted" style="margin-top:8px">'+(rewardDone?'✓ Разовый бонус 3 дня уже начислен.':'Разовый бонус: '+Math.min(total,15)+'/15. Осталось: '+Math.max(0,15-total)+'.')+'</p>'+
    '</div>';
  }
