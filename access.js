@@ -178,7 +178,7 @@ const Access=(()=>{
    entitlement=row||null;
   }catch(e){entitlement=null}
   syncFooterCTA();
-  if(typeof activeScreen!=="undefined"&&activeScreen==="profile")renderProfile();
+  if(typeof activeScreen!=="undefined"&&activeScreen==="profile"){renderProfile();if(Cloud.loadProfileData)await Cloud.loadProfileData(true)}
  }
  function click(t){
   if(t.closest("#accManualStars")){const s=shop(),tg=String(s.telegram||"mrasulv").replace(/^@/,""),stars=Number(s.stars)||120,days=Number(s.subscriptionDays)||30;const msg=`Здравствуйте! Хочу оформить ARVEX Premium на ${days} дней за ${stars} Telegram Stars. Подскажите, как оплатить. Мой email аккаунта ARVEX: `;window.open(`https://t.me/${encodeURIComponent(tg)}?text=${encodeURIComponent(msg)}`,"_blank","noopener");return true}
