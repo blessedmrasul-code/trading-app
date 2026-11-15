@@ -135,7 +135,7 @@ const Access=(()=>{
   if(b){b.disabled=true;b.textContent="Проверяю сеть…"}
   try{
    const result=await Cloud.checkCryptoPayment(cryptoInvoice.id);
-   if(result.paid){if(m)m.textContent="Оплата подтверждена. Premium активирован.";await refresh()}
+   if(result.paid){if(m)m.textContent="Оплата подтверждена. Premium активирован.";if(entitlement?.auto_renew===true&&Cloud.setStarsAutoRenew){try{await Cloud.setStarsAutoRenew(false)}catch(e){console.warn("Could not cancel previous Stars renewal after crypto payment:",e)}}await refresh()}
    else if(m)m.textContent=result.message||"Платёж пока не найден.";
   }catch(e){if(m)m.textContent=e.message}
   finally{if(b){b.disabled=false;b.textContent="Я оплатил · проверить"}}
