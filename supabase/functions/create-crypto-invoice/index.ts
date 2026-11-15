@@ -56,12 +56,12 @@ Deno.serve(async (req: Request) => {
     await adminRequest("arvex_crypto_payment_intents?status=eq.pending&expires_at=lt." + encodeURIComponent(new Date().toISOString()), {
       method: "PATCH", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ status: "expired" })
     });
-    const baseCents = Math.round(base * 100);
+    const baseAtomic = Math.round(base * 1000000);
     for (let attempt = 0; attempt < 25; attempt++) {
       const random = new Uint16Array(1); crypto.getRandomValues(random);
-      const cents = baseCents + 1 + (random[0] % 99);
-      const amountAtomic = cents * 10000;
-      const amount = (cents / 100).toFixed(2);
+      // Add a unique fraction of a cent so invoices remain distinguishable without a material surcharge.
+      const amountAtomic = baseAtomic + 1 + (random[0] % 9999);
+      const amount = (amountAtomic / 1000000).toFixed(6);
       const rows = await adminRequest("arvex_crypto_payment_intents", {
         method: "POST",
         headers: { Prefer: "return=representation" },
