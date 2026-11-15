@@ -471,7 +471,7 @@ async function insertOrder(o){
   if(!enabled()||!session)throw new Error("Сначала войди в аккаунт ARVEX.");
   const tok=await token();
   const r=await fetch(cfg().url.replace(/\/$/,"")+"/functions/v1/create-stars-bot-link",{
-   method:"POST",headers:hdr(tok),body:"{}"
+   method:"POST",headers:hdr(tok),body:JSON.stringify({days:Number(days)||30})
   });
   let j=null;try{j=await r.json()}catch(e){}
   if(!r.ok)throw new Error((j&&j.error)||("HTTP "+r.status));
@@ -482,7 +482,7 @@ async function insertOrder(o){
   if(!enabled()||!session)throw new Error("Сначала войди в аккаунт ARVEX.");
   const tok=await token();
   const r=await fetch(cfg().url.replace(/\/$/,"")+"/functions/v1/create-crypto-invoice",{
-   method:"POST",headers:hdr(tok),body:"{}"
+   method:"POST",headers:hdr(tok),body:JSON.stringify({days:Number(days)||30})
   });
   let j=null;try{j=await r.json()}catch(e){}
   if(!r.ok)throw new Error((j&&j.error)||("HTTP "+r.status));
