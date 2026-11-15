@@ -36,9 +36,10 @@ const Access=(()=>{
   if(s.starsEnabled||s.cryptoEnabled){
    if(typeof Cloud==="undefined"||!Cloud.enabled())return `<div class="card"><div class="card-title">ARVEX Premium</div><p class="muted" style="margin:0 0 8px">Для автоматической оплаты войди в аккаунт ARVEX. Если нужна помощь, напиши владельцу.</p><a class="ghost" href="https://t.me/mrasulv?text=Помогите%20войти%20в%20ARVEX%20для%20оплаты%20Premium." target="_blank" rel="noopener">Помощь со входом · @mrasulv</a></div>`
    if(!Cloud.isIn())return `<div class="card"><div class="card-title">ARVEX Premium</div><p class="muted" style="margin:0 0 8px">Сначала войди в аккаунт ARVEX. После входа выбери Telegram Stars или USDT TRC20. Счёт будет привязан к твоему профилю.</p><a class="ghost" href="https://t.me/mrasulv?text=Нужна%20помощь%20с%20входом%20в%20ARVEX." target="_blank" rel="noopener">Написать @mrasulv</a></div>`
-   const first=plans()[0];
-   const methods=(s.starsEnabled?'<button class="primary" id="accStarsBuy">Оплатить через бота · '+Number(first.stars)+' ⭐</button>':"")+(s.cryptoEnabled?'<button class="ghost" id="accCryptoBuy">Оплатить USDT TRC20 · '+Number(first.usdt)+' USDT</button>':"");
-   return '<div class="card"><div class="card-title">ARVEX Premium</div><p style="margin:0 0 10px">Выбери срок подписки и способ оплаты. Доступ активируется после подтверждения платежа.</p><label class="lbl" for="accPlanSelect">Срок подписки</label><select class="field" id="accPlanSelect">'+planOptions()+'</select><div class="btn-row" style="margin-top:10px">'+methods+'</div>'+contactHTML()+'<p class="muted" id="accStarsMsg" style="margin:8px 0 0"></p></div>';
+   const starsPage='https://blessedmrasul-code.github.io/trading-app/stars.html';
+   const cryptoPage='https://blessedmrasul-code.github.io/trading-app/subscribe.html';
+   const methods=(s.starsEnabled?'<button class="primary" id="accStarsPage">⭐ Telegram Stars · отдельная оплата</button>':"")+(s.cryptoEnabled?'<button class="ghost" id="accCryptoPage">💵 USDT TRC20 · отдельная оплата</button>':"");
+   return '<div class="card"><div class="card-title">ARVEX Premium</div><p style="margin:0 0 10px">Выбери отдельное окно нужного способа оплаты. Тариф и оплата оформляются независимо друг от друга.</p><div class="btn-row" style="margin-top:10px">'+methods+'</div>'+contactHTML()+'<p class="muted" id="accStarsMsg" style="margin:8px 0 0"></p></div>';
   }
   if(!s.enabled&&!s.starsEnabled){const stars=Number(s.stars)||120,days=Number(s.subscriptionDays)||30,tg=String(s.telegram||"mrasulv").replace(/^@/,"");return `<div class="card"><div class="card-title">ARVEX Premium</div><p style="margin:0 0 8px"><b>${stars} ⭐ / ${days} дней</b> · оплата Telegram Stars напрямую администратору.</p><button class="primary" id="accManualStars">Купить подписку</button><p class="muted" style="margin:8px 0 0">После подтверждения оплаты доступ будет активирован вручную.</p></div>`;}
   const old=s.promoPrice>0&&s.promoPrice<s.price?` <s class="muted">${s.price} ₽</s>`:"";
@@ -92,6 +93,12 @@ const Access=(()=>{
   }
   if(popup){popup.location.href=url;return;}
   window.location.href=url;
+ }
+ function openCheckoutPage(url){
+  const browser=window.ARVEX_CAP_BROWSER;
+  if(isNativeApp()&&browser&&typeof browser.open==="function"){browser.open({url}).catch(()=>{if(typeof showToast==="function")showToast("Не удалось открыть страницу оплаты.")});return}
+  const w=window.open(url,"_blank","noopener");
+  if(!w)window.location.href=url;
  }
  async function buyStars(){
   const b=document.getElementById("accStarsBuy"),m=document.getElementById("accStarsMsg");
@@ -183,6 +190,8 @@ const Access=(()=>{
  function click(t){
   if(t.closest("#accManualStars")){const s=shop(),tg=String(s.telegram||"mrasulv").replace(/^@/,""),stars=Number(s.stars)||120,days=Number(s.subscriptionDays)||30;const msg=`Здравствуйте! Хочу оформить ARVEX Premium на ${days} дней за ${stars} Telegram Stars. Подскажите, как оплатить. Мой email аккаунта ARVEX: `;window.open(`https://t.me/${encodeURIComponent(tg)}?text=${encodeURIComponent(msg)}`,"_blank","noopener");return true}
   if(t.closest("#accStarsToggle")){toggleStarsRenew();return true}
+  if(t.closest("#accStarsPage")){openCheckoutPage("https://blessedmrasul-code.github.io/trading-app/stars.html");return true}
+  if(t.closest("#accCryptoPage")){openCheckoutPage("https://blessedmrasul-code.github.io/trading-app/subscribe.html");return true}
   if(t.closest("#accCryptoBuy")){buyCrypto();return true}
   if(t.closest("#accCryptoCheck")){checkCrypto();return true}
   if(t.closest("#accCryptoCopy")){const address=cryptoInvoice?.wallet||shop().cryptoWallet||"";if(address&&navigator.clipboard?.writeText)navigator.clipboard.writeText(address).then(()=>{const m=document.getElementById("accCryptoMsg");if(m)m.textContent="Адрес скопирован. Проверь сеть TRC20 перед отправкой."}).catch(()=>{const m=document.getElementById("accCryptoMsg");if(m)m.textContent="Не удалось скопировать. Скопируй адрес вручную."});return true}
