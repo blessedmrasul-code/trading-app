@@ -355,9 +355,13 @@ const Cloud=(()=>{
  function rerender(){renderTop();renderTicker();renderHead();renderPositions();renderPortfolio();if(typeof renderSchool==="function")renderSchool();if(activeScreen==="profile")renderProfile()}
  function schedule(){if(!enabled()||!session)return;clearTimeout(timer);timer=setTimeout(sync,4000)}
  if(recoveryMode&&typeof window!=="undefined")setTimeout(()=>changePasswordPrompt(),700);
+ async function createTelegramLink(){
+  const msg=document.getElementById("arvexTelegramLinkMsg");if(msg)msg.textContent="Создаю ссылку…";
+  try{const tok=await token();const r=await fetch(cfg().url.replace(/\\/$/,"")+"/functions/v1/telegram-account-link",{method:"POST",headers:hdr(tok),body:"{}"});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||"Не удалось создать ссылку");if(msg)msg.innerHTML='<a href="'+esc(j.url)+'" target="_blank" rel="noopener">Открыть бота и привязать аккаунт</a> · Ссылка действует 10 минут.'}catch(e){if(msg)msg.textContent=e.message||"Ошибка"}
+ }
  function accountHTML(){
   if(!enabled())return `<p class="muted" style="margin:0">Сейчас профиль хранится на этом устройстве.</p><div class="soon">🔒 Облачные аккаунты подключаются владельцем проекта (см. README → «Облако»).</div>`;
-  if(session)return `<p style="margin:0 0 8px">Вход выполнен: <b>${esc(session.email)}</b></p><p class="muted" style="margin:0 0 10px">${esc(status||"Прогресс синхронизируется автоматически.")}</p><div class="btn-row"><button class="ghost" id="cloudSync">↻ Синхронизировать</button><button class="danger" id="cloudOut">Выйти</button><button class="ghost" id="arvexDeleteAccount">Удалить аккаунт</button></div>`;
+  if(session)return `<p style="margin:0 0 8px">Вход выполнен: <b>${esc(session.email)}</b></p><p class="muted" style="margin:0 0 10px">${esc(status||"Прогресс синхронизируется автоматически.")}</p><div class="btn-row"><button class="ghost" id="arvexTelegramLink">Привязать Telegram</button><button class="ghost" id="cloudSync">↻ Синхронизировать</button><button class="danger" id="cloudOut">Выйти</button><button class="ghost" id="arvexDeleteAccount">Удалить аккаунт</button></div><p class="muted" id="arvexTelegramLinkMsg"></p>`;
   return `<p class="muted" style="margin:0 0 10px">Войди, чтобы сохранить прогресс в облаке и открыть его на другом устройстве.</p><input class="field" id="cEmail" type="email" placeholder="Email" autocomplete="email"><input class="field" id="cPass" type="password" placeholder="Пароль (от 8 символов)" autocomplete="current-password" style="margin-top:8px"><div class="btn-row" style="margin-top:10px"><button class="primary" id="cloudIn">Войти</button><button class="ghost" id="cloudUp">Регистрация</button><button class="ghost" id="cloudForgot">Забыли пароль?</button></div><div id="cloudVerifyBox" hidden style="margin-top:12px;padding:12px;border:1px solid var(--border);border-radius:12px"><b>Подтверждение email</b><p class="muted" style="margin:5px 0 9px">Введи 6-значный код из письма. Если письмо не пришло, отправь его повторно.</p><input class="field" id="cloudEmailCode" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" placeholder="123456"><div class="btn-row" style="margin-top:8px"><button class="primary" id="cloudVerifyCode">Подтвердить код</button><button class="ghost" id="cloudResend">Отправить письмо ещё раз</button></div></div><div id="cloudRecoveryBox" hidden style="margin-top:12px;padding:12px;border:1px solid var(--border);border-radius:12px"><b>Восстановление пароля</b><p class="muted" style="margin:5px 0 9px">Введи 8-значный код из письма для сброса пароля.</p><input class="field" id="cloudRecoveryCode" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="8" pattern="[0-9]{8}" placeholder="12345678"><button class="primary" id="cloudVerifyRecovery" style="margin-top:8px">Проверить код и задать пароль</button></div><p class="muted" id="cloudMsg" style="margin:8px 0 0"></p>`;
  }
  async function form(kind){
@@ -407,6 +411,7 @@ const Cloud=(()=>{
   if(t.closest("#cloudVerifyCode")){const email=(document.getElementById("cEmail")?.value||"").trim(),code=document.getElementById("cloudEmailCode")?.value||"",m=document.getElementById("cloudMsg"),button=t.closest("#cloudVerifyCode");button.disabled=true;if(m)m.textContent="Проверяю код…";verifyEmailCode(email,code).then(()=>{if(m)m.textContent="Email подтверждён. Вход выполнен."}).catch(e=>{if(m)m.textContent=e.message}).finally(()=>{button.disabled=false});return true}
   if(t.closest("#cloudVerifyRecovery")){const email=(document.getElementById("cEmail")?.value||"").trim(),code=document.getElementById("cloudRecoveryCode")?.value||"",m=document.getElementById("cloudMsg"),button=t.closest("#cloudVerifyRecovery");button.disabled=true;if(m)m.textContent="Проверяю код восстановления…";verifyRecoveryCode(email,code).then(()=>{if(m)m.textContent="Код подтверждён. Задай новый пароль."}).catch(e=>{if(m)m.textContent=e.message}).finally(()=>{button.disabled=false});return true}
   if(t.closest("#arvexPasswordSave")){const p=document.getElementById("arvexNewPassword")?.value||"",p2=document.getElementById("arvexNewPassword2")?.value||"",m=document.getElementById("arvexPasswordMsg");if(p.length<8){m.textContent="Минимум 8 символов.";return true}if(p!==p2){m.textContent="Пароли не совпадают.";return true}m.textContent="Сохраняю…";updatePassword(p).then(()=>{m.textContent="Пароль изменён.";setTimeout(()=>{if(typeof closeSheet==="function")closeSheet()},900)}).catch(e=>m.textContent=e.message);return true}
+  if(t.closest("#arvexTelegramLink")){createTelegramLink();return true}
   if(t.closest("#arvexDashboardRefresh")){loadAccountDashboard();return true}
   if(t.closest("#arvexReferralCopy")){const link=accountDashboard?.referrals?.link||"";if(link&&navigator.clipboard?.writeText)navigator.clipboard.writeText(link).then(()=>showToast("Реферальная ссылка скопирована.")).catch(()=>showToast("Не удалось скопировать ссылку."));else showToast("Ссылка пока недоступна.");return true}
   if(t.closest("#cloudSync")){sync();return true}
@@ -692,6 +697,7 @@ async function insertOrder(o){
  }
  let accountDashboard=null;
  function accountDashboardHTML(){
+  return ""; 
   if(!enabled())return "";
   if(!session)return '<div class="card"><div class="card-title">Мой кабинет ARVEX</div><p class="muted">Войди в аккаунт, чтобы увидеть статус Premium, платежи и реферальную статистику.</p></div>';
   return '<div class="card"><div class="card-title">Мой кабинет ARVEX <button class="ghost" id="arvexDashboardRefresh" type="button" style="float:right;padding:5px 9px">↻</button></div><div id="arvexAccountDashboard" class="muted">Загружаю данные аккаунта…</div></div>';
@@ -730,6 +736,7 @@ async function insertOrder(o){
    '</div>';
  }
  async function loadAccountDashboard(){
+  return;
   const box=document.getElementById("arvexAccountDashboard");if(!session||!enabled()){if(box)box.textContent="Войди в аккаунт ARVEX, чтобы увидеть статистику.";return}
   if(box)box.textContent="Обновляю кабинет…";
   try{
