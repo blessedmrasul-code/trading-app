@@ -229,19 +229,21 @@ async function createBotStarsInvoice(chatId:number,telegramId:number,days:number
 async function showCabinet(chatId:number,telegramId:number) {
   const userId=await linkedAccount(telegramId);
   if(!userId){await telegram("sendMessage",{chat_id:chatId,text:"Аккаунт ARVEX ещё не привязан. Войди в приложение → Профиль → Аккаунт → «Привязать Telegram», затем нажми здесь «Мой кабинет»."});return}
-  const [subs,refs,codes]=await Promise.all([
+  const [subs,refs,codes,rewards]=await Promise.all([
     db(`arvex_subscriptions?user_id=eq.${encodeURIComponent(userId)}&select=is_forever,expires_at&limit=1`),
-    db(`arvex_referrals?referrer_user_id=eq.${encodeURIComponent(userId)}&select=status&limit=1000`),
-    db(`arvex_referral_codes?user_id=eq.${encodeURIComponent(userId)}&select=code&limit=1`)
+    db(`arvex_telegram_referrals?referrer_user_id=eq.${encodeURIComponent(userId)}&select=id&order=created_at.asc&limit=5000`),
+    db(`arvex_referral_codes?user_id=eq.${encodeURIComponent(userId)}&select=code&limit=1`),
+    db(`arvex_telegram_referral_rewards?referrer_user_id=eq.${encodeURIComponent(userId)}&select=milestone,reward_days&order=milestone.asc&limit=1000`)
   ]);
   const sub=subs?.[0],active=!!sub&&(sub.is_forever===true||(sub.expires_at&&Date.parse(sub.expires_at)>Date.now()));
   const invited=Array.isArray(refs)?refs.length:0;
-  const paid=Array.isArray(refs)?refs.filter((x:any)=>x.status==="rewarded").length:0;
+  const bonusDays=Array.isArray(rewards)?rewards.reduce((n:number,x:any)=>n+Number(x.reward_days||0),0):0;
+  const progress=invited%15,remaining=progress===0?15:15-progress;
   const code=codes?.[0]?.code||"";
-  const link="https://blessedmrasul-code.github.io/trading-app/app/?ref="+encodeURIComponent(code);
+  const link="https://t.me/ArvexPremiumBot?start=ref_"+encodeURIComponent(code);
   const expiry=sub?.is_forever?"Бессрочно":sub?.expires_at?new Date(sub.expires_at).toLocaleDateString("ru-RU"):"—";
-  const textBody="👤 Мой кабинет ARVEX\n\nПодписка: "+(active?"✅ Premium активен":"⚪ Premium не оформлена")+"\nДействует до: "+(active?expiry:"—")+"\n\n👥 Приглашено пользователей: "+invited+"\n⭐ Приглашённых с оплатой: "+paid+"\n\n🎁 Реферальная ссылка:\n"+link+"\n\nЗа первую успешную оплату приглашённого начисляется 7 бонусных дней Premium.";
-  await telegram("sendMessage",{chat_id:chatId,text:textBody,reply_markup:{inline_keyboard:[[{text:"📋 Скопировать ссылку",copy_text:{text:link}}],[{text:"⬅️ В меню",callback_data:"main_menu"}]]}});
+  const textBody="👤 Мой кабинет ARVEX\n\nПодписка: "+(active?"✅ Premium активен":"⚪ Premium не оформлена")+"\nДействует до: "+(active?expiry:"—")+"\n\n👥 Приглашено новых пользователей: "+invited+"\n🎯 Прогресс до бонуса: "+progress+"/15\nОсталось пригласить: "+remaining+"\n🎁 Начислено бонусных дней: "+bonusDays+"\n\nЗа каждые 15 новых пользователей, которые впервые запустят бота по твоей ссылке, начисляется 3 дня Premium.\n\nТвоя ссылка на бота:\n"+link;
+  await telegram("sendMessage",{chat_id:chatId,text:textBody,reply_markup:{inline_keyboard:[[{text:"📋 Скопировать ссылку на бота",copy_text:{text:link}}],[{text:"⬅️ В меню",callback_data:"main_menu"}]]}});
 }
 async function handleCallback(q:any) {
   const chatId=Number(q.message?.chat?.id),telegramId=Number(q.from?.id),data=String(q.data||"");
@@ -279,6 +281,18 @@ async function handleBotCommand(message:any) {
     await db("arvex_telegram_accounts?on_conflict=user_id",{method:"POST",headers:{Prefer:"resolution=merge-duplicates,return=minimal"},body:JSON.stringify({user_id:userId,telegram_user_id:message.from.id,telegram_username:message.from.username||null,linked_at:new Date().toISOString()})});
     await db(`arvex_telegram_link_tokens?token_hash=eq.${digest}`,{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({used_at:new Date().toISOString()})});
     await telegram("sendMessage",{chat_id:message.chat.id,text:"✅ Telegram успешно привязан к твоему аккаунту ARVEX. Теперь доступны оплата Stars и раздел «Мой кабинет»."});
+    await sendMainMenu(message.chat.id);return;
+  }
+  if(command==="start"){
+    const referralCode=payload.startsWith("ref_")?payload.slice(4).toUpperCase():"";
+    const result=await db("rpc/arvex_register_telegram_start",{method:"POST",body:JSON.stringify({
+      p_telegram_user_id:Number(message.from?.id),
+      p_telegram_username:message.from?.username||null,
+      p_referral_code:referralCode||null
+    })});
+    if(referralCode&&result?.referred){
+      await telegram("sendMessage",{chat_id:message.chat.id,text:"🎉 Ты присоединился к ARVEX по приглашению! Добро пожаловать."});
+    }
     await sendMainMenu(message.chat.id);return;
   }
   if(command==="support"){await telegram("sendMessage",{chat_id:message.chat.id,text:"Нужна помощь с ARVEX? Напиши в поддержку: @mrasulv."});return}
