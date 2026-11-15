@@ -48,8 +48,11 @@ Deno.serve(async (req: Request) => {
     if (ownerId && user.id === ownerId) return json({ lifetime: true, message: "Пожизненный Premium уже активен." });
     const apiKey = Deno.env.get("TRONGRID_API_KEY") || "";
     if (!apiKey) return json({ error: "Криптооплата ещё настраивается: не добавлен серверный ключ TronGrid." }, 503);
-    const base = Number(Deno.env.get("ARVEX_USDT_PRICE") || "5");
-    if (!Number.isFinite(base) || base < 1 || base > 1000) return json({ error: "Неверная цена USDT." }, 500);
+    const body = await req.json().catch(() => ({}));
+    const days = Number(body?.days || 30);
+    const plans: Record<number, number> = { 30: 3, 90: 9, 180: 17, 365: 32 };
+    const base = plans[days];
+    if (!base) return json({ error: "Выбери тариф на 30, 90, 180 или 365 дней." }, 400);
     await adminRequest("arvex_crypto_payment_intents?status=eq.pending&expires_at=lt." + encodeURIComponent(new Date().toISOString()), {
       method: "PATCH", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ status: "expired" })
     });
@@ -63,7 +66,7 @@ Deno.serve(async (req: Request) => {
         method: "POST",
         headers: { Prefer: "return=representation" },
         body: JSON.stringify({
-          user_id: user.id, network: "TRON", token_symbol: "USDT",
+          user_id: user.id, network: "TRON", token_symbol: "USDT", period_days: days,
           token_contract: USDT_CONTRACT, recipient_address: RECEIVER,
           amount_atomic: amountAtomic, amount_usdt: amount,
           status: "pending", expires_at: new Date(Date.now() + 30 * 60 * 1000).toISOString()
@@ -74,7 +77,7 @@ Deno.serve(async (req: Request) => {
       });
       if (!rows?.[0]?.id) continue;
       return json({
-        id: rows[0].id, network: "TRON (TRC20)", token: "USDT",
+        id: rows[0].id, network: "TRON (TRC20)", token: "USDT", periodDays: days,
         amount: amount, wallet: RECEIVER, expiresAt: rows[0].expires_at,
         explorerUrl: "https://tronscan.org/#/address/" + RECEIVER
       });
