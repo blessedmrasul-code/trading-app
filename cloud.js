@@ -66,11 +66,9 @@ const Cloud=(()=>{
   return session.access;
  }
  async function signUp(email,pw){
-  let referralCode="";
-  try{referralCode=String(new URLSearchParams(location.search).get("ref")||"").trim().toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,16)}catch(e){}
-  const data=referralCode?{arvex_referral_code:referralCode}:{};
+  // Реферальные приглашения обрабатываются только через Telegram-бота.
   // Подтверждение регистрации выполняется шестизначным кодом внутри ARVEX.
-  const j=await req("/auth/v1/signup",{method:"POST",headers:hdr(),body:JSON.stringify({email,password:pw,data})});
+  const j=await req("/auth/v1/signup",{method:"POST",headers:hdr(),body:JSON.stringify({email,password:pw})});
   if(adopt(j))return {ok:true};
   if(j&&j.user&&Array.isArray(j.user.identities)&&j.user.identities.length===0)return {ok:false,exists:true};
   return {ok:false,confirm:true}; // подтверждение остаётся обязательным
@@ -729,10 +727,10 @@ async function insertOrder(o){
     (historyRows||'<p class="muted">Оплат пока нет.</p>')+
    '</div>'+
    '<div class="card" style="margin:12px 0"><div class="card-title">Реферальная программа</div>'+
-    '<p style="margin:0 0 8px">За первую оплату приглашённого тебе начисляется 7 бонусных дней Premium.</p>'+
-    '<div class="res-link"><b>Твоя ссылка-приглашение</b><span style="word-break:break-all">'+esc(ref.link||"")+'</span></div>'+
-    '<div class="btn-row"><button class="primary" id="arvexReferralCopy" type="button">Скопировать ссылку</button></div>'+
-    '<p class="muted" style="margin:8px 0 0">Ожидают покупки: '+Number(ref.pending||0)+' · Бонус начислен за: '+Number(ref.rewarded||0)+' приглашённых.</p>'+
+    '<p style="margin:0 0 8px">За каждые 15 новых пользователей, которые впервые запустят бота по твоей ссылке, начисляется 3 дня Premium.</p>'+
+    '<div class="res-link"><b>Твоя ссылка на Telegram-бота</b><span style="word-break:break-all">'+esc(ref.link||"")+'</span></div>'+
+    '<div class="btn-row"><button class="primary" id="arvexReferralCopy" type="button">Скопировать ссылку на бота</button></div>'+
+    '<p class="muted" style="margin:8px 0 0">Прогресс: '+Number(ref.progress||0)+'/15 · Всего приглашено: '+Number(ref.total||0)+' · Бонусных дней: '+Number(ref.bonus_days||0)+'</p>'+
    '</div>';
  }
  async function loadAccountDashboard(){
