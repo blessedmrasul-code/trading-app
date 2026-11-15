@@ -40,7 +40,7 @@ Deno.serve(async (req: Request) => {
     const body = await req.json().catch(() => ({}));
     const id = String(body?.id || "");
     if (!/^[0-9a-f-]{36}$/i.test(id)) return json({ error: "Некорректный счёт." }, 400);
-    const rows = await adminRequest("arvex_crypto_payment_intents?id=eq." + encodeURIComponent(id) + "&user_id=eq." + encodeURIComponent(user.id) + "&select=id,user_id,token_contract,recipient_address,amount_atomic,created_at,expires_at,status,txid");
+    const rows = await adminRequest("arvex_crypto_payment_intents?id=eq." + encodeURIComponent(id) + "&user_id=eq." + encodeURIComponent(user.id) + "&select=id,user_id,token_contract,recipient_address,amount_atomic,created_at,expires_at,status,txid,period_days");
     const intent = rows?.[0];
     if (!intent) return json({ error: "Счёт не найден." }, 404);
     if (intent.status === "paid") return json({ paid: true, message: "Платёж уже подтверждён." });
@@ -72,7 +72,7 @@ Deno.serve(async (req: Request) => {
       })
     });
     if (result !== true) return json({ paid: false, message: "Транзакция уже обработана или счёт устарел. Напиши в поддержку, если средства отправлены." }, 409);
-    return json({ paid: true, txid: transfer.transaction_id, message: "Оплата подтверждена. Premium активирован на 30 дней." });
+    return json({ paid: true, txid: transfer.transaction_id, message: "Оплата подтверждена. Premium активирован на " + Number(intent.period_days || 30) + " дней." });
   } catch (error) {
     console.error("check-crypto-payment:", error);
     return json({ error: "Не удалось проверить платёж. Попробуй позже." }, 500);
