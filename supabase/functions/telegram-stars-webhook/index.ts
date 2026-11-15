@@ -281,7 +281,9 @@ Deno.serve(async (req: Request) => {
 
   try {
     const update = await req.json();
-    if (update.message?.text) {
+    if (update.callback_query) {
+      await handleCallback(update.callback_query);
+    } else if (update.message?.text) {
       await handleBotCommand(update.message);
     } else if (update.pre_checkout_query) {
       await answerPreCheckout(update.pre_checkout_query);
