@@ -33,7 +33,7 @@ const Access=(()=>{
    if(typeof Cloud==="undefined"||!Cloud.enabled())return `<div class="card"><div class="card-title">ARVEX Premium</div><p class="muted" style="margin:0 0 8px">Для автоматической оплаты войди в аккаунт ARVEX. Если нужна помощь, напиши владельцу.</p><a class="ghost" href="https://t.me/mrasulv?text=Помогите%20войти%20в%20ARVEX%20для%20оплаты%20Premium." target="_blank" rel="noopener">Помощь со входом · @mrasulv</a></div>`
    if(!Cloud.isIn())return `<div class="card"><div class="card-title">ARVEX Premium</div><p class="muted" style="margin:0 0 8px">Сначала войди в аккаунт ARVEX. После входа выбери Telegram Stars или USDT TRC20. Счёт будет привязан к твоему профилю.</p><a class="ghost" href="https://t.me/mrasulv?text=Нужна%20помощь%20с%20входом%20в%20ARVEX." target="_blank" rel="noopener">Написать @mrasulv</a></div>`
    const days=Number(s.subscriptionDays)||30;
-   const methods=(s.starsEnabled?`<button class="primary" id="accStarsBuy">Оплатить через бота · ${Number(s.stars)||120} ⭐</button>`:"")+(s.cryptoEnabled?`<button class="ghost" id="accCryptoBuy">Оплатить USDT TRC20 · ${Number(s.cryptoPrice)||5} USDT</button>`:"");
+   const methods=(s.starsEnabled?`<button class="primary" id="accStarsBuy">Оплатить через бота · ${Number(s.stars)||120} ⭐</button>`:"")+(s.cryptoEnabled?`<button class="ghost" id="accCryptoBuy">Оплатить USDT TRC20 · от ${Number(s.cryptoPrice)||5} USDT</button>`:"");
    return `<div class="card"><div class="card-title">ARVEX Premium</div><p style="margin:0 0 8px">${s.starsEnabled?`<b>${Number(s.stars)||120} ⭐</b> · Telegram Stars`:""}${s.starsEnabled&&s.cryptoEnabled?"<br>":""}${s.cryptoEnabled?`<b>${Number(s.cryptoPrice)||5} USDT</b> · сеть TRON (TRC20)`:""} · ${days} дней доступа.</p><div class="btn-row">${methods}${s.starsEnabled?`<button class="ghost" id="accStarsCheck">Проверить доступ</button>`:""}</div>${contactHTML()}<p class="muted" id="accStarsMsg" style="margin:8px 0 0"></p></div>`;
   }
   if(!s.enabled&&!s.starsEnabled){const stars=Number(s.stars)||120,days=Number(s.subscriptionDays)||30,tg=String(s.telegram||"mrasulv").replace(/^@/,"");return `<div class="card"><div class="card-title">ARVEX Premium</div><p style="margin:0 0 8px"><b>${stars} ⭐ / ${days} дней</b> · оплата Telegram Stars напрямую администратору.</p><button class="primary" id="accManualStars">Купить подписку</button><p class="muted" style="margin:8px 0 0">После подтверждения оплаты доступ будет активирован вручную.</p></div>`;}
@@ -121,7 +121,7 @@ const Access=(()=>{
     <div class="btn-row" style="margin-top:12px"><button class="ghost" id="accCryptoCopy">Скопировать адрес</button><button class="primary" id="accCryptoCheck">Я оплатил · проверить</button></div>
     <p class="muted" id="accCryptoMsg" role="status" style="margin:10px 0 0">Отправляй только USDT TRC20. Не отправляй USDT в сети TON или ERC20.</p>`);
   }catch(e){if(m)m.textContent=e.message}
-  finally{if(b){b.disabled=false;b.textContent="Оплатить USDT TRC20 · "+(Number(shop().cryptoPrice)||5)+" USDT"}}
+  finally{if(b){b.disabled=false;b.textContent="Оплатить USDT TRC20 · от "+(Number(shop().cryptoPrice)||5)+" USDT"}}
  }
  async function checkCrypto(){
   const m=document.getElementById("accCryptoMsg"),b=document.getElementById("accCryptoCheck");
