@@ -99,3 +99,13 @@ The repository's `cloud-config.js` is already connected to the ARVEX Supabase pr
 ### Подписанный Android-релиз
 
 Для релизной сборки сначала один раз запустите **Setup ARVEX signing key**. Он создаст keystore и сохранит данные подписи в GitHub Actions Secrets. Затем запустите **Release (signed APK + AAB)**. APK предназначен для установки на Android, AAB — для Google Play. При каждом обновлении увеличивайте version code и используйте тот же keystore.
+
+
+## USDT TRC20 checkout
+
+- Telegram Stars remain enabled as the first payment method; USDT TRC20 is shown alongside it.
+- USDT invoices are for 30 days of Premium. The configured base price is 5 USDT; each invoice adds a unique 0.01–0.99 USDT suffix so concurrent payments to the same wallet can be matched safely. The exact amount is shown in the checkout sheet.
+- The receiving wallet is configured in the `create-crypto-invoice` Edge Function. The token contract is Tether's official TRON USDT contract.
+- Payment verification reads confirmed TRC-20 transfers from TronGrid and only activates Premium after the server verifies the recipient, USDT contract, exact invoice amount, timestamp, and unique transaction ID.
+- Add `TRONGRID_API_KEY` as a Supabase Edge Function secret before enabling live crypto payments. Do not put this key, a wallet private key, or a seed phrase in the repository or browser code.
+- A crypto invoice expires after 30 minutes. If a transfer was broadcast before expiry but confirmation arrives shortly after, the server allows a 10-minute confirmation grace period.
