@@ -30,13 +30,15 @@ def gradient():
         c=tuple(int(top[i]*(1-a)+bottom[i]*a) for i in range(3))
         for x in range(W): px[x,y]=c
     return im
-BG_IMAGE=gradient()
-
 def glow(im, cx, cy, radius, color, alpha=35):
     layer=Image.new("RGBA",(W,H),(0,0,0,0)); d=ImageDraw.Draw(layer)
     d.ellipse((q(cx-radius),q(cy-radius),q(cx+radius),q(cy+radius)),fill=(*color,alpha))
     layer=layer.filter(ImageFilter.GaussianBlur(q(radius*.45)))
     im.paste(Image.alpha_composite(im.convert("RGBA"),layer).convert("RGB"))
+
+BG_IMAGE=gradient()
+glow(BG_IMAGE,560,280,260,(20,102,100),23)
+glow(BG_IMAGE,120,750,230,(93,54,73),15)
 
 def character(d, cx, cy, scale, jacket, skin, phase, confident=False):
     # Smooth, clean vector character; no pixel-art styling.
@@ -116,9 +118,7 @@ CAPTIONS=[
 def frame(t):
     im=BG_IMAGE.copy()
     d=ImageDraw.Draw(im)
-    # subtle premium ambient lighting
-    glow(im,560,280,260,(20,102,100),23)
-    glow(im,120,750,230,(93,54,73),15)
+    # Ambient lighting is pre-rendered once for consistent, fast frames.
     d=ImageDraw.Draw(im)
     # fine vertical composition lines
     d.line((q(36),q(90),q(36),q(1000)),fill=(27,44,61),width=q(1))
