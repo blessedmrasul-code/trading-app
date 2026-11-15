@@ -301,7 +301,7 @@ function renderProfile(){
    <label class="setting-toggle"><input type="checkbox" id="arvexVibrationToggle"><span>Вибрация</span></label>
    <p class="muted" id="arvexSettingsMsg">Выбери язык и настрой уведомления приложения.</p>
   </div>
-  <div class="card"><div class="card-title">Аккаунт</div>${typeof Cloud!=="undefined"?Cloud.accountHTML():""}</div>${typeof Access!=="undefined"?Access.cardHTML():""}${typeof Cloud!=="undefined"?Cloud.userToolsHTML():""}`;
+  <div class="card"><div class="card-title">Аккаунт</div>${typeof Cloud!=="undefined"?Cloud.accountHTML():""}</div>${typeof Cloud!=="undefined"&&Cloud.accountDashboardHTML?Cloud.accountDashboardHTML():""}${typeof Access!=="undefined"?Access.cardHTML():""}${typeof Cloud!=="undefined"?Cloud.userToolsHTML():""}`;
  applyAvatar($("profAvatar"),p.avatar,p.name,p.photo);
  const langSelect=$("arvexLanguage");if(langSelect)langSelect.value=localStorage.getItem("arvex_language")||"ru";
  const notif=$("arvexNotificationsToggle"),sound=$("arvexSoundToggle"),vibration=$("arvexVibrationToggle");
