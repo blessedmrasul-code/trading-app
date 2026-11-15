@@ -99,6 +99,24 @@ async function applySuccessfulPayment(message: any) {
       p_paid_at: paidAt,
     }),
   });
+
+  // A longer one-time plan must not leave an older 30-day Telegram renewal running.
+  if (intent?.user_id && !(days === 30 && payment.is_recurring)) {
+    try {
+      const recurring = await db(
+        `telegram_star_payments?user_id=eq.${encodeURIComponent(intent.user_id)}&is_first_recurring=eq.true&refunded_at=is.null&select=telegram_user_id,telegram_payment_charge_id&order=created_at.asc&limit=1`,
+      );
+      if (Array.isArray(recurring) && recurring[0]?.telegram_user_id && recurring[0]?.telegram_payment_charge_id) {
+        await telegram("editUserStarSubscription", {
+          user_id: recurring[0].telegram_user_id,
+          telegram_payment_charge_id: recurring[0].telegram_payment_charge_id,
+          is_canceled: true,
+        });
+      }
+    } catch (error) {
+      console.error("Could not cancel previous Stars renewal after one-time plan:", error);
+    }
+  }
 }
 
 async function applyRefund(message: any) {
