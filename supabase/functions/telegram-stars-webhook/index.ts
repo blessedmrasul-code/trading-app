@@ -27,6 +27,18 @@ async function db(path: string, init: RequestInit = {}) {
   return body;
 }
 
+let webhookConfigured = false;
+async function ensureWebhook() {
+  if (webhookConfigured) return;
+  const base = dbUrl().endsWith("/") ? dbUrl().slice(0, -1) : dbUrl();
+  await telegram("setWebhook", {
+    url: base + "/functions/v1/telegram-stars-webhook",
+    secret_token: webhookSecret(),
+    allowed_updates: ["message", "callback_query", "pre_checkout_query"],
+  });
+  webhookConfigured = true;
+}
+
 async function telegram(method: string, body: Record<string, unknown>) {
   const response = await fetch(`https://api.telegram.org/bot${botToken()}/${method}`, {
     method: "POST",
@@ -280,6 +292,7 @@ Deno.serve(async (req: Request) => {
   if (!expected || received !== expected) return new Response("Unauthorized", { status: 401 });
 
   try {
+    await ensureWebhook();
     const update = await req.json();
     if (update.callback_query) {
       await handleCallback(update.callback_query);
