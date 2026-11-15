@@ -736,7 +736,7 @@ async function insertOrder(o){
     '<p>'+(g.checkin_done?'✓ Ежедневный вход выполнен · +'+checkinReward+' очков':'Зайди сегодня в ARVEX и забери +'+checkinReward+' очков.')+'</p>'+
     '<button class="'+(g.checkin_done?'ghost':'primary')+'" id="arvexDailyCheckin" type="button" '+(g.checkin_done?'disabled':'')+'>'+(g.checkin_done?'Уже выполнено':'Забрать +'+checkinReward+' очков')+'</button>'+
     '<div style="height:1px;background:var(--border);margin:12px 0"></div>'+
-    '<b>Викторина дня · +20 очков</b>'+quizHTML+
+    '<b>Викторина дня · +'+quizReward+' очков</b>'+quizHTML+
    '</div>'+
    '<div class="card" style="margin:12px 0"><div class="card-title">Месячный рейтинг приглашений</div>'+
     '<p>Каждый месяц счётчик начинается заново. Участник на первом месте по числу новых уникальных пользователей получает <b>10 дней Premium</b>.</p>'+
