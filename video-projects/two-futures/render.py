@@ -27,7 +27,10 @@ def glow(im,cx,cy,r,color,alpha):
     lay=lay.filter(ImageFilter.GaussianBlur(q(r*.42)))
     return Image.alpha_composite(im.convert("RGBA"),lay).convert("RGB")
 
+BG_CACHE={}
+
 def make_bg(kind,t):
+    if kind in BG_CACHE: return BG_CACHE[kind].copy()
     palettes={
       "poor":((29,25,31),(9,12,20),(175,91,73)),
       "rich":((18,34,48),(5,13,24),(49,170,142)),
@@ -64,6 +67,7 @@ def make_bg(kind,t):
             line(d,[(x,120),(x,1020)],(24,40,55),1)
         for y in range(220,1050,100):
             line(d,[(20,y),(700,y)],(24,40,55),1)
+    BG_CACHE[kind]=im.copy()
     return im
 
 def person(d,cx,cy,scale,coat,skin,mood="neutral",pose=0):
@@ -191,7 +195,7 @@ def draw_scene(t):
     elif mode.startswith("money"):
         n=int(mode[-1])
         person(d,170,500,.8,(35,119,104),(204,158,128),"happy",t)
-        laptop(d,470,675,n+1)
+        laptop(d,470,675,n)
         cash_card(d,360,940,("$10 000","$50 000","$100 000","$1 000 000")[n],"ИЛЛЮСТРАЦИЯ ФИНАНСОВОЙ ЦЕЛИ",GOLD if n==3 else MINT)
         # soft ascending bars, not a fabricated live trading chart
         for j,h in enumerate((70,115,165,220)):
