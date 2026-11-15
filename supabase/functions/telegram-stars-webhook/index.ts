@@ -40,7 +40,7 @@ async function telegram(method: string, body: Record<string, unknown>) {
 
 async function getIntent(payload: string) {
   const rows = await db(
-    `telegram_payment_intents?invoice_payload=eq.${encodeURIComponent(payload)}&select=id,user_id,stars_amount,currency,status&limit=1`,
+    `telegram_payment_intents?invoice_payload=eq.${encodeURIComponent(payload)}&select=id,user_id,stars_amount,currency,status,period_days&limit=1`,
   );
   return Array.isArray(rows) ? rows[0] : null;
 }
@@ -76,10 +76,12 @@ async function applySuccessfulPayment(message: any) {
   }
 
   const paidAt = new Date((Number(message.date) || Math.floor(Date.now() / 1000)) * 1000).toISOString();
+  const intent = await getIntent(String(payment.invoice_payload || ""));
+  const days = Number(intent?.period_days || 30);
   const telegramExpiry = Number(payment.subscription_expiration_date || 0);
-  const expiresAt = telegramExpiry > 0
+  const expiresAt = telegramExpiry > 0 && days === 30
     ? new Date(telegramExpiry * 1000).toISOString()
-    : new Date(new Date(paidAt).getTime() + 30 * 24 * 60 * 60 * 1000).toISOString();
+    : new Date(new Date(paidAt).getTime() + days * 24 * 60 * 60 * 1000).toISOString();
 
   // Locks the invoice row, validates status/amount, inserts the unique charge,
   // marks the intent paid and grants Premium in one database transaction.
@@ -169,26 +171,29 @@ async function handleBotCommand(message: any) {
 
   if (startPayload.startsWith("arvex_")) {
     const intent = await getIntent(startPayload);
-    if (!intent || intent.status !== "pending" || Number(intent.stars_amount) !== 120 || intent.currency !== "XTR") {
+    const days = Number(intent?.period_days || 30);
+    const planStars: Record<number, number> = { 30: 120, 90: 360, 180: 680, 365: 1300 };
+    if (!intent || intent.status !== "pending" || Number(intent.stars_amount) !== planStars[days] || intent.currency !== "XTR") {
       await telegram("sendMessage", { chat_id: message.chat.id, text: "Ссылка на оплату недействительна или устарела. Вернись в приложение ARVEX, войди в аккаунт и создай новый счёт." });
       return;
     }
+    const invoicePayload: Record<string, unknown> = {
+      title: "ARVEX Premium",
+      description: "Полный доступ к ARVEX на " + days + " дней.",
+      payload: startPayload, provider_token: "", currency: "XTR",
+      prices: [{ label: "ARVEX Premium · " + days + " дней", amount: Number(intent.stars_amount) }]
+    };
+    if (days === 30) invoicePayload.subscription_period = 2592000;
     const invoiceResponse = await fetch(`https://api.telegram.org/bot${botToken()}/createInvoiceLink`, {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        title: "ARVEX Premium",
-        description: "Полный доступ к ARVEX на 30 дней. Автопродление через Telegram Stars.",
-        payload: startPayload, provider_token: "", currency: "XTR",
-        prices: [{ label: "ARVEX Premium · 30 дней", amount: Number(intent.stars_amount) }],
-        subscription_period: 2592000
-      })
+      body: JSON.stringify(invoicePayload)
     });
     const invoice = await invoiceResponse.json();
     if (!invoiceResponse.ok || !invoice.ok || typeof invoice.result !== "string") throw new Error("Telegram could not create bot invoice");
     await telegram("sendMessage", {
       chat_id: message.chat.id,
-      text: "Твой персональный счёт ARVEX Premium готов: 120 ⭐ за 30 дней. После оплаты Premium автоматически активируется в аккаунте, из которого ты начал оформление.",
-      reply_markup: { inline_keyboard: [[{ text: "Оплатить 120 ⭐", url: invoice.result }]] }
+      text: "Твой персональный счёт ARVEX Premium готов: " + Number(intent.stars_amount) + " ⭐ за " + days + " дней. После оплаты Premium автоматически активируется в твоём аккаунте." + (days === 30 ? " Автопродление можно отключить в настройках Telegram." : ""),
+      reply_markup: { inline_keyboard: [[{ text: "Оплатить " + Number(intent.stars_amount) + " ⭐", url: invoice.result }]] }
     });
     return;
   }
