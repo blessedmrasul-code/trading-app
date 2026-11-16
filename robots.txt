@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /backend/
+Disallow: /mobile/
+Disallow: /app/
+Sitemap: https://blessedmrasul-code.github.io/trading-app/sitemap.xml
