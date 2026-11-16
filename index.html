@@ -32,7 +32,7 @@
     .cta{display:flex;justify-content:center;align-items:center;gap:10px;width:100%;padding:16px 18px;border-radius:14px;background:linear-gradient(100deg,#9271f4,#6c8bf5);color:white;font-weight:800;box-shadow:0 10px 32px #8065e944;transition:transform .2s,filter .2s}.cta:hover{transform:translateY(-2px);filter:brightness(1.08)}.cta svg{width:19px;height:19px;fill:currentColor}
     .hint{margin:14px 0 0;text-align:center;color:#9ba5b9;font-size:12px}.steps{padding:55px 0 70px}.steps h2{text-align:center;font-size:25px;letter-spacing:-.03em;margin:0 0 25px}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:13px}.step{padding:21px;border:1px solid var(--line);border-radius:17px;background:#111522aa}.num{width:31px;height:31px;border-radius:10px;display:grid;place-items:center;background:#a78bfa20;color:#c9b8ff;font-weight:800;font-size:13px}.step h3{font-size:15px;margin:14px 0 6px}.step p{font-size:13px;color:var(--muted);margin:0}
     .notice{max-width:700px;margin:0 auto 58px;padding:17px 19px;border:1px solid #ffffff17;border-radius:15px;color:#aeb8cc;font-size:13px;background:#ffffff06}.notice b{color:#e7eaff}.contact{text-align:center;padding:0 0 45px}.contact p{color:var(--muted);font-size:13px}.contact a{color:#c7b8ff;font-weight:750}.foot{border-top:1px solid #ffffff12;padding:22px 0 30px;color:#778198;font-size:11px;text-align:center}.foot a{color:#aeb8cc;text-decoration:underline;text-underline-offset:3px}
-    @media(max-width:650px){.hero{padding:55px 0 30px}.offer{padding:24px 20px;margin-top:28px}.grid{grid-template-columns:1fr}.step{display:flex;gap:14px;align-items:flex-start;padding:17px}.step h3{margin:0 0 4px}.num{flex:0 0 31px}.steps{padding:42px 0 48px}.lead{font-size:15px}.price strong{font-size:49px}}
+    @media(max-width:650px){#reviews>div>div{grid-template-columns:1fr!important}.hero{padding:55px 0 30px}.offer{padding:24px 20px;margin-top:28px}.grid{grid-template-columns:1fr}.step{display:flex;gap:14px;align-items:flex-start;padding:17px}.step h3{margin:0 0 4px}.num{flex:0 0 31px}.steps{padding:42px 0 48px}.lead{font-size:15px}.price strong{font-size:49px}}
   </style>
 </head>
 <body id="top">
@@ -110,10 +110,19 @@
         <details class="step"><summary><b>Как связаться с поддержкой?</b></summary><p>Напиши <a href="https://t.me/mrasulv" target="_blank" rel="noopener">@mrasulv</a>. Ориентир по времени ответа — до 2 часов.</p></details>
       </div>
     </section>
-    <section class="wrap" id="reviews" style="padding:10px 0 45px;text-align:center">
-      <h2 style="font-size:27px">Отзывы пользователей</h2>
-      <p style="max-width:650px;margin:0 auto;color:#aeb8cc">Мы публикуем только отзывы, которые действительно оставили пользователи. Пока раздел собирает первые подтверждённые отклики — поделиться впечатлением можно напрямую.</p>
-      <a class="cta" style="max-width:300px;margin:18px auto 0" href="https://t.me/mrasulv?text=Здравствуйте!%20Хочу%20оставить%20отзыв%20об%20ARVEX." target="_blank" rel="noopener">Оставить настоящий отзыв</a>
+    <section class="wrap" id="reviews" style="padding:16px 0 58px">
+      <div style="max-width:760px;margin:0 auto;padding:30px 24px;border:1px solid #8b75dc55;border-radius:22px;background:radial-gradient(ellipse at 50% 0%,#8b5cf622,transparent 65%),linear-gradient(145deg,#151a2b,#0e1320);text-align:center;box-shadow:0 18px 55px #0005">
+        <div aria-hidden="true" style="font-size:25px;letter-spacing:7px;color:#c6b3ff">✦ ✦ ✦ ✦ ✦</div>
+        <h2 style="font-size:28px;margin:12px 0 9px">Отзывы сообщества ARVEX</h2>
+        <p style="max-width:590px;margin:0 auto;color:#aeb8cc">Нам важно мнение каждого, кто тестирует платформу. Мы не размещаем придуманные истории и оценки — здесь будут появляться реальные отзывы пользователей с их согласия.</p>
+        <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:23px 0">
+          <div style="padding:15px 10px;border:1px solid #ffffff16;border-radius:14px;background:#ffffff06"><b style="display:block;color:#e5dcff;font-size:14px">Демо-практика</b><span style="font-size:12px;color:#98a4ba">Ваш опыт работы с симулятором</span></div>
+          <div style="padding:15px 10px;border:1px solid #ffffff16;border-radius:14px;background:#ffffff06"><b style="display:block;color:#e5dcff;font-size:14px">Обучение</b><span style="font-size:12px;color:#98a4ba">Ваше мнение об уроках</span></div>
+          <div style="padding:15px 10px;border:1px solid #ffffff16;border-radius:14px;background:#ffffff06"><b style="display:block;color:#e5dcff;font-size:14px">Поддержка</b><span style="font-size:12px;color:#98a4ba">Ваш опыт общения с командой</span></div>
+        </div>
+        <a class="cta" style="max-width:320px;margin:0 auto" href="https://t.me/mrasulv?text=Здравствуйте!%20Хочу%20оставить%20отзыв%20об%20ARVEX." target="_blank" rel="noopener">✍️ Поделиться впечатлением</a>
+        <p style="font-size:11px;color:#77849b;margin:12px 0 0">Публикуем только с разрешения автора. Отзывы не являются обещанием доходности.</p>
+      </div>
     </section>
     <section class="wrap" style="padding:8px 0 48px;text-align:center">
       <h2 style="font-size:25px">Нужна помощь с ARVEX?</h2>
