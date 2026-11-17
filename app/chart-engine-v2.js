@@ -42,7 +42,6 @@ class CandleChartV2 {
         textColor: "#8890a6",
         fontFamily: 'system-ui, -apple-system, "Segoe UI", sans-serif',
         fontSize: 11,
-        attributionLogo: false
       },
       grid: {
         vertLines: { color: "rgba(255,255,255,0.035)" },
