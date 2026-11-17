@@ -38,7 +38,7 @@ const Access=(()=>{
    if(!Cloud.isIn())return `<div class="card"><div class="card-title">ARVEX Premium</div><p class="muted" style="margin:0 0 8px">Сначала войди в аккаунт ARVEX. После входа выбери Telegram Stars или USDT TRC20. Счёт будет привязан к твоему профилю.</p><a class="ghost" href="https://t.me/mrasulv?text=Нужна%20помощь%20с%20входом%20в%20ARVEX." target="_blank" rel="noopener">Написать @mrasulv</a></div>`
    const starsPage='https://blessedmrasul-code.github.io/trading-app/stars.html';
    const cryptoPage='https://blessedmrasul-code.github.io/trading-app/subscribe.html';
-   const methods=(s.starsEnabled?'<button class="primary" id="accStarsPage">⭐ Telegram Stars · отдельная оплата</button>':"")+(s.cryptoEnabled?'<button class="ghost" id="accCryptoPage">💵 USDT TRC20 · отдельная оплата</button>':"");
+   const methods=(s.starsEnabled?'<button class="primary" id="accStarsPage">⭐ Telegram Stars · отдельная оплата</button>':"")+(s.cryptoEnabled?'<button class="ghost" id="accCryptoPage">💵 USDT TRC20 · отдельная оплата</button><button class="ghost" id="accCryptoPayPage">₿ Crypto Bot · несколько валют</button>':"");
    return '<div class="card"><div class="card-title">ARVEX Premium</div><p style="margin:0 0 10px">Выбери отдельное окно нужного способа оплаты. Тариф и оплата оформляются независимо друг от друга.</p><div class="btn-row" style="margin-top:10px">'+methods+'</div>'+contactHTML()+'<p class="muted" id="accStarsMsg" style="margin:8px 0 0"></p></div>';
   }
   if(!s.enabled&&!s.starsEnabled){const stars=Number(s.stars)||120,days=Number(s.subscriptionDays)||30,tg=String(s.telegram||"mrasulv").replace(/^@/,"");return `<div class="card"><div class="card-title">ARVEX Premium</div><p style="margin:0 0 8px"><b>${stars} ⭐ / ${days} дней</b> · оплата Telegram Stars напрямую администратору.</p><button class="primary" id="accManualStars">Купить подписку</button><p class="muted" style="margin:8px 0 0">После подтверждения оплаты доступ будет активирован вручную.</p></div>`;}
@@ -192,6 +192,7 @@ const Access=(()=>{
   if(t.closest("#accStarsToggle")){toggleStarsRenew();return true}
   if(t.closest("#accStarsPage")){openCheckoutPage("https://blessedmrasul-code.github.io/trading-app/stars.html");return true}
   if(t.closest("#accCryptoPage")){openCheckoutPage("https://blessedmrasul-code.github.io/trading-app/subscribe.html");return true}
+  if(t.closest("#accCryptoPayPage")){openCheckoutPage("https://blessedmrasul-code.github.io/trading-app/crypto-pay.html");return true}
   if(t.closest("#accCryptoBuy")){buyCrypto();return true}
   if(t.closest("#accCryptoCheck")){checkCrypto();return true}
   if(t.closest("#accCryptoCopy")){const address=cryptoInvoice?.wallet||shop().cryptoWallet||"";if(address&&navigator.clipboard?.writeText)navigator.clipboard.writeText(address).then(()=>{const m=document.getElementById("accCryptoMsg");if(m)m.textContent="Адрес скопирован. Проверь сеть TRC20 перед отправкой."}).catch(()=>{const m=document.getElementById("accCryptoMsg");if(m)m.textContent="Не удалось скопировать. Скопируй адрес вручную."});return true}
