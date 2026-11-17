@@ -12,7 +12,8 @@
     "@capacitor/core": "8.0.0",
     "@capacitor/app": "8.0.0",
     "@capacitor/browser": "8.0.0",
-    "@capacitor/local-notifications": "8.0.0"
+    "@capacitor/local-notifications": "8.0.0",
+    "lightweight-charts": "5.0.8"
   },
   "devDependencies": {
     "@capacitor/cli": "8.0.0",

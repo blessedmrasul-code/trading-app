@@ -510,7 +510,7 @@ function bind(){
 function init(){
  try{loadState()}catch(e){}
  applyLanguage(localStorage.getItem("arvex_language")||"ru");
- chart=new CandleChart($("chartCanvas"),{onCross:c=>updateOhlc(c)});
+ const ChartEngine=window.ARVEXChartEngine?.CandleChartV2||CandleChart;chart=new ChartEngine($("chartCanvas"),{onCross:c=>updateOhlc(c)});
  bind();
  renderTop();renderTicker();renderHead();renderPositions();renderPortfolio();updateOrderPreview();
  loadCandles();fetchPrices();

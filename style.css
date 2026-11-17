@@ -243,3 +243,8 @@ html{overflow-x:hidden;max-width:100%}
 .pro-journal-entry{padding:13px;border:1px solid var(--border);border-radius:13px}.pro-journal-entry p{font-size:13px;white-space:normal;overflow-wrap:anywhere;margin:10px 0;color:#cbd0df}
 .pro-journal-entry .ghost{font-size:12px}
 @media(max-width:430px){.nav button{font-size:10px}.nav svg{width:21px;height:21px}.pro-grid{gap:8px}.pro-teaser{padding:10px}.pro-result-grid{gap:9px}}
+
+
+/* ARVEX Chart Engine 2.0 */
+.chart-wrap.chart-engine-v2{touch-action:none}
+.chart-v2-host{position:absolute;inset:0;width:100%;height:100%;overflow:hidden;touch-action:none}

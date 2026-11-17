@@ -30,4 +30,13 @@ esbuild.buildSync({
   format: 'iife',
   outfile: path.join(out, 'capacitor-app-bridge.bundle.js')
 });
-console.log('www готов: app/index.html + ' + FILES.join(', ') + ' + auth callback bridge');
+esbuild.buildSync({
+  entryPoints: [path.join(root, 'app', 'chart-engine-v2.js')],
+  bundle: true,
+  platform: 'browser',
+  format: 'iife',
+  target: ['es2020'],
+  nodePaths: [path.join(__dirname, 'node_modules')],
+  outfile: path.join(out, 'chart-engine-v2.bundle.js')
+});
+console.log('www готов: ARVEX app + auth bridge + Chart Engine 2.0');

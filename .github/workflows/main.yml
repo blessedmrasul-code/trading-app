@@ -4,9 +4,10 @@ name: Build APK
 # Проверочный запуск после настройки NETLIFY_AUTH_TOKEN (повторный запуск)
 on:
   push:
-    branches: [main]
+    branches: [main, arvex-2-0-audit]
     paths:
       - "mobile/**"
+      - "app/**"
       - "scripts/**"
       - ".github/workflows/main.yml"
       - "index.html"
