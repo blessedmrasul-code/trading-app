@@ -141,14 +141,6 @@ class CandleChartV2 {
     }).filter(Boolean);
   }
 
-  _ema(period) {
-    const k = 2 / (period + 1);
-    let value = null;
-    return this.data.map((c, i) => {
-      value = value == null ? c.c : c.c * k + value * (1 - k);
-      return i >= period - 1 ? { time: Math.floor(c.t / 1000), value } : null;
-    }).filter(Boolean);
-  }
 
   _syncIndicators() {
     this.maSeries.applyOptions({ visible: this._ma });
