@@ -36,6 +36,7 @@ esbuild.buildSync({
   platform: 'browser',
   format: 'iife',
   target: ['es2020'],
+  nodePaths: [path.join(__dirname, 'node_modules')],
   outfile: path.join(out, 'chart-engine-v2.bundle.js')
 });
 console.log('www готов: ARVEX app + auth bridge + Chart Engine 2.0');
