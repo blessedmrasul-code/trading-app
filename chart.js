@@ -2,7 +2,7 @@
 class CandleChart{
  constructor(canvas,opts={}){
   this.c=canvas;this.ctx=canvas.getContext("2d");
-  this.data=[];this.visible=80;this.offset=0;
+  this.data=[];this.visible=80;this.offset=0;this.type="candle";
   this.ma=true;this.ema=false;this.vol=true;
   this.lines=[];this.cross=null;this.tfMs=900000;
   this.onCross=opts.onCross||null;
@@ -16,6 +16,7 @@ class CandleChart{
   this.draw();
  }
  setLines(lines){this.lines=lines||[];this.draw()}
+ setType(type){this.type=["candle","line","ha"].includes(type)?type:"candle";this.draw()}
  resize(){
   const p=this.c.parentElement;if(!p)return;
   const r=p.getBoundingClientRect(),dpr=window.devicePixelRatio||1;
@@ -77,7 +78,9 @@ class CandleChart{
  _paint(){
   const ctx=this.ctx,w=this.w,h=this.h,col=this.col;
   ctx.clearRect(0,0,w,h);
-  const d=this.data;
+  const raw=this.data;
+  let d=raw;
+  if(this.type==="ha"&&raw.length){let prev=null;d=raw.map(c=>{const close=(c.o+c.h+c.l+c.c)/4,open=prev?(prev.o+prev.c)/2:(c.o+c.c)/2;const out={...c,o:open,c:close,h:Math.max(c.h,open,close),l:Math.min(c.l,open,close)};prev=out;return out;});}
   if(!d.length){ctx.fillStyle=col.text;ctx.font="13px system-ui";ctx.textAlign="center";ctx.fillText("Загрузка графика…",w/2,h/2);return}
   const g=this._geom(),{start,end}=this._slice(),n=end-start,sl=d.slice(start,end);
   const volH=this.vol?g.ph*0.16:0,priceH=g.ph-volH-(this.vol?6:0);
@@ -101,8 +104,11 @@ class CandleChart{
    const vy=g.y0+g.ph;
    for(let i=start;i<end;i++){const c=d[i],bh=c.v/vmax*volH;ctx.fillStyle=(c.c>=c.o?col.up:col.down)+"55";ctx.fillRect(X(i)-g.cw*0.35,vy-bh,Math.max(1,g.cw*0.7),bh)}
   }
-  // свечи
-  for(let i=start;i<end;i++){
+  // Свечной, линейный и Heikin Ashi режимы
+  if(this.type==="line"){
+   ctx.strokeStyle=col.accent;ctx.lineWidth=2;ctx.beginPath();
+   for(let i=start;i<end;i++){const x=X(i),y=Y(d[i].c);if(i===start)ctx.moveTo(x,y);else ctx.lineTo(x,y);}ctx.stroke();
+  }else for(let i=start;i<end;i++){
    const c=d[i],x=X(i),up=c.c>=c.o,color=up?col.up:col.down;
    ctx.strokeStyle=color;ctx.fillStyle=color;ctx.lineWidth=1;
    ctx.beginPath();ctx.moveTo(x,Y(c.h));ctx.lineTo(x,Y(c.l));ctx.stroke();
