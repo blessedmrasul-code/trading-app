@@ -220,6 +220,9 @@ function tradeStats(){
 }
 
 /* ===== Отрисовка торговли ===== */
+const CHART_NOTES_KEY="arvex_120_chart_notes";
+function loadChartNote(){try{const notes=JSON.parse(localStorage.getItem(CHART_NOTES_KEY)||"{}");$("chartNote").value=notes[currentAsset]||"";$("chartNoteStatus").textContent=notes[currentAsset]?"Заметка загружена.":"Нет сохранённой заметки для этого актива."}catch(e){}}
+function saveChartNote(){try{const notes=JSON.parse(localStorage.getItem(CHART_NOTES_KEY)||"{}");notes[currentAsset]=$("chartNote").value;localStorage.setItem(CHART_NOTES_KEY,JSON.stringify(notes));$("chartNoteStatus").textContent="Сохранено для "+ASSETS[currentAsset].pair+" · "+new Date().toLocaleString("ru-RU");showToast("Заметка сохранена.");}catch(e){showToast("Не удалось сохранить заметку.");}}
 function renderTicker(){
  const q=($("marketSearch")?.value||"").trim().toLowerCase();
  $("tickerRow").innerHTML=Object.keys(ASSETS).filter(a=>!q||a.toLowerCase().includes(q)||ASSETS[a].sym.toLowerCase().includes(q)||ASSETS[a].name.toLowerCase().includes(q)||ASSETS[a].pair.toLowerCase().includes(q)).map(a=>{const c=changes[a]??DEMO_CHANGE[a];
@@ -479,7 +482,7 @@ function bind(){
   if(t.closest("#avPhotoDel")){pendingPhoto="";renderAvatarPicker();return}
   const go_=t.closest("[data-go]");if(go_){go(go_.dataset.go);return}
   const cl=t.closest("[data-close]");if(cl){closePosition(Number(cl.dataset.close));return}
-  const as=t.closest("[data-asset]");if(as){currentAsset=as.dataset.asset;saveState();renderTicker();renderHead();updateOrderPreview();candles=[];chart.setData([]);loadCandles();return}
+  const as=t.closest("[data-asset]");if(as){currentAsset=as.dataset.asset;saveState();renderTicker();renderHead();updateOrderPreview();candles=[];chart.setData([]);loadCandles();if($("chartNote"))loadChartNote();return}
   if(t.closest("#chartLearningToggle")){const panel=$("chartLearningPanel");if(panel){panel.hidden=!panel.hidden; t.closest("#chartLearningToggle").textContent=panel.hidden?"✦ Обучение по графику":"✦ Скрыть обучение";}return}
   const tfb=t.closest("[data-tf]");if(tfb){tf=tfb.dataset.tf;document.querySelectorAll("#tfSeg button").forEach(b=>b.classList.toggle("on",b===tfb));loadCandles();return}
   const ind=t.closest("[data-ind]");if(ind){const k=ind.dataset.ind;chart[k]=!chart[k];ind.classList.toggle("on",chart[k]);if(k==="fractals")setChartLines();chart.draw();return}
@@ -509,6 +512,8 @@ function bind(){
  $("amount").addEventListener("input",updateOrderPreview);
  if($("marketSearch"))$("marketSearch").addEventListener("input",renderTicker);
  if($("marketSearchClear"))$("marketSearchClear").onclick=()=>{$("marketSearch").value="";renderTicker();};
+ if($("chartNoteSave"))$("chartNoteSave").onclick=saveChartNote;
+ if($("chartNoteClear"))$("chartNoteClear").onclick=()=>{$("chartNote").value="";saveChartNote();};
  $("fsBtn").onclick=()=>setFullscreen(true);$("fsClose").onclick=()=>setFullscreen(false);
  $("zoomIn").onclick=()=>chart.zoom(0.8);$("zoomOut").onclick=()=>chart.zoom(1.25);
  $("createProfile").onclick=submitProfile;$("cancelProfile").onclick=()=>$("welcomeModal").classList.add("hidden");
@@ -524,6 +529,7 @@ function init(){
  const ChartEngine=window.ARVEXChartEngine?.CandleChartV2||CandleChart;chart=new ChartEngine($("chartCanvas"),{onCross:c=>updateOhlc(c)});
  bind();
  renderTop();renderTicker();renderHead();renderPositions();renderPortfolio();updateOrderPreview();
+ if($("chartNote"))loadChartNote();
  loadCandles();fetchPrices();
  if(typeof Cloud!=="undefined"){
   if(Cloud.acceptEmailConfirmation){
