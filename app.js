@@ -492,6 +492,7 @@ function bind(){
   const cl=t.closest("[data-close]");if(cl){closePosition(Number(cl.dataset.close));return}
   const as=t.closest("[data-asset]");if(as){currentAsset=as.dataset.asset;saveState();renderTicker();renderHead();updateOrderPreview();candles=[];chart.setData([]);replayStop();replayActive=false;if($("chartReplayPanel"))$("chartReplayPanel").hidden=true;loadCandles();if($("chartNote"))loadChartNote();return}
   if(t.closest("#chartLearningToggle")){const panel=$("chartLearningPanel");if(panel){panel.hidden=!panel.hidden; t.closest("#chartLearningToggle").textContent=panel.hidden?"✦ Обучение по графику":"✦ Скрыть обучение";}return}
+  const chartType=t.closest("[data-chart-type]");if(chartType){chart.setType(chartType.dataset.chartType);document.querySelectorAll("[data-chart-type]").forEach(b=>b.classList.toggle("on",b===chartType));return}
   const tfb=t.closest("[data-tf]");if(tfb){tf=tfb.dataset.tf;replayActive=false;if($("chartReplayPanel"))$("chartReplayPanel").hidden=true;document.querySelectorAll("#tfSeg button").forEach(b=>b.classList.toggle("on",b===tfb));loadCandles();return}
   const ind=t.closest("[data-ind]");if(ind){const k=ind.dataset.ind;chart[k]=!chart[k];ind.classList.toggle("on",chart[k]);if(k==="fractals")setChartLines();chart.draw();return}
   const lv=t.closest("[data-lev]");if(lv){$("leverage").value=lv.dataset.lev;$("levLabel").textContent=lv.dataset.lev+"x";document.querySelectorAll("#levChips button").forEach(b=>b.classList.toggle("on",b===lv));updateOrderPreview();return}
