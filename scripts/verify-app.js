@@ -34,7 +34,7 @@ for (const lesson of LESSONS) {
   }
 }
 
-for (const id of ["novice", "advanced", "expert"]) {
+for (const id of Object.keys(EXAMS)) {
   const config = EXAMS[id];
   assert.ok(config, `Missing ${id} exam`);
   const uniquePool = new Set(config.pool().map((q) => q.q));
@@ -49,6 +49,13 @@ for (const id of ["novice", "advanced", "expert"]) {
     }
   }
 }
+
+assert.ok(EXAMS.technical && EXAMS.risk, "Free technical-analysis and risk-management exams must exist");
+assert.ok(EXAMS.portfolio?.premium && EXAMS.strategy?.premium, "Advanced Premium exams must be marked as Premium");
+
+const chartEngine = read("app/chart-engine-v2.js");
+assert.ok(chartEngine.includes("setType(type)") && chartEngine.includes("get bb()") && chartEngine.includes("_bollinger("), "Chart v2 must implement chart type switching and Bollinger Bands");
+assert.ok(chartEngine.includes("type === \"ha\"") && chartEngine.includes("type === \"line\""), "Chart v2 must render Heikin Ashi and line modes");
 
 const css = read("style.css");
 assert.ok(css.includes("textarea.field{display:block;color:var(--text)"), "Textarea must explicitly use readable foreground color");
