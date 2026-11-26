@@ -38,5 +38,6 @@ This branch is for the substantial 1.2.0 update. Keep main untouched until valid
 - [x] Add Replay play/pause, one-candle step, speed selector, reset controls (requires runtime validation).
 - [x] Add market favorites locally with market category filter.
 - [x] Add candle, line and Heikin Ashi chart display modes (pending runtime regression validation).
+- [x] Add Bollinger Bands (20, 2σ) overlay.
 - [ ] Add further indicator set and chart drawing tools.
 - [ ] Improve analytics, UI redesign and run full regression checks before release.
