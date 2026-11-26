@@ -255,3 +255,5 @@ html{overflow-x:hidden;max-width:100%}
 .chart-journal{margin:12px 0}.chart-journal textarea{width:100%;resize:vertical;min-height:84px;padding:12px;border-radius:13px;border:1px solid var(--border);background:var(--panel2)}.chart-journal .row2{display:flex;gap:8px;margin-top:8px}.chart-journal .row2 button{flex:1;padding:10px;border:1px solid var(--border);border-radius:12px}
 
 .market-category-row{display:flex;gap:6px;overflow:auto;margin:8px 0}.market-cat{padding:8px 13px;border:1px solid var(--border);border-radius:999px;background:var(--panel);white-space:nowrap;color:var(--muted);font-size:13px}.market-cat.on{background:rgba(124,92,255,.18);border-color:rgba(124,92,255,.4);color:var(--text)}
+
+.chart-replay{padding:14px!important;margin:10px 0}.chart-replay input[type=range]{width:100%;accent-color:var(--purple);margin:10px 0}.chart-replay .row2{display:flex;align-items:center;justify-content:space-between;gap:8px}.chart-replay p{font-size:12px;margin:10px 0 0}
