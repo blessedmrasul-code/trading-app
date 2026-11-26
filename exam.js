@@ -66,7 +66,15 @@ const EXAMS={
  advanced:{id:"advanced",title:"Экзамен трейдера",desc:"Расчёты позиции, риск, структура рынка и торговая система.",count:15,time:1200,pass:75,xp:120,
   pool:()=>EXTRA_ADVANCED.concat(LESSONS.filter(l=>[5,6,7,9,11,15,16,17,18,20,21].includes(l.id)).flatMap(l=>l.quiz))},
  expert:{id:"expert",title:"Экзамен эксперта",desc:"Сложные кейсы: математика риска, издержки, корреляция и проверка стратегии.",count:18,time:1800,pass:80,xp:200,
-  pool:()=>EXTRA_EXPERT.concat(EXTRA_ADVANCED,LESSONS.filter(l=>[5,6,7,9,11,13,14,15,16,17,18,19,20,21].includes(l.id)).flatMap(l=>l.quiz))}
+  pool:()=>EXTRA_EXPERT.concat(EXTRA_ADVANCED,LESSONS.filter(l=>[5,6,7,9,11,13,14,15,16,17,18,19,20,21].includes(l.id)).flatMap(l=>l.quiz))},
+ technical:{id:"technical",title:"Технический аналитик",desc:"Тренды, уровни, свечные модели, индикаторы и подтверждение сигналов.",count:12,time:900,pass:75,xp:140,
+  pool:()=>EXTRA_ADVANCED.concat(LESSONS.filter(l=>[3,5,7,9,10,11,13,16,17,20,21].includes(l.id)).flatMap(l=>l.quiz))},
+ risk:{id:"risk",title:"Риск-менеджер",desc:"Размер позиции, стопы, просадка, плечо и лимиты потерь.",count:12,time:900,pass:80,xp:150,
+  pool:()=>EXTRA_EXPERT.concat(EXTRA_ADVANCED,LESSONS.filter(l=>[4,6,8,12,14,15,18,19,20,21].includes(l.id)).flatMap(l=>l.quiz))},
+ portfolio:{id:"portfolio",title:"Портфельный управляющий PRO",desc:"Premium · корреляция, совокупная экспозиция и стресс-сценарии.",count:15,time:1200,pass:80,xp:220,premium:true,
+  pool:()=>EXTRA_EXPERT.concat(EXTRA_ADVANCED,LESSONS.filter(l=>[5,6,9,11,14,15,16,18,19,20,21].includes(l.id)).flatMap(l=>l.quiz))},
+ strategy:{id:"strategy",title:"Архитектор торговых систем PRO",desc:"Premium · тестирование гипотез, ожидание, издержки и переоптимизация.",count:18,time:1500,pass:80,xp:260,premium:true,
+  pool:()=>EXTRA_EXPERT.concat(EXTRA_ADVANCED,LESSONS.filter(l=>[5,7,9,11,13,14,15,16,17,18,19,20,21].includes(l.id)).flatMap(l=>l.quiz))}
 };
 function shuffle(a){const r=a.slice();for(let i=r.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[r[i],r[j]]=[r[j],r[i]]}return r}
 // Собирает случайный экзамен: уникальные вопросы, перемешанные варианты ответов.
