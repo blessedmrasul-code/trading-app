@@ -23,3 +23,16 @@ This branch is for the substantial 1.2.0 update. Keep main untouched until valid
 3. Analytics/journal/tool improvements.
 4. Dashboard and profile/onboarding.
 5. Regression checks, release notes and deployment review.
+
+
+## Work-in-progress implementation (branch only)
+- [x] Add five Free lessons (IDs 22–26) and Premium masterclass module.
+- [x] Expand crypto market catalog to 20 symbols.
+- [x] Add market search/filter by symbol, name and pair.
+- [x] Add inline chart reading mini-guide.
+- [x] Add initial Fractal toggle/level overlay implementation (needs chart-engine validation).
+- [x] Add local per-asset chart journal notes.
+- [ ] Validate market API response for the expanded symbol list and fallback behavior.
+- [ ] Validate Fractal overlay in chart engine; refine drawing if unsupported.
+- [ ] Add Replay mode, chart styles, further indicator set and chart drawing tools.
+- [ ] Improve analytics, UI redesign and run full regression checks before release.
