@@ -35,5 +35,7 @@ This branch is for the substantial 1.2.0 update. Keep main untouched until valid
 - [ ] Validate market API response for the expanded symbol list and fallback behavior.
 - [ ] Validate Fractal overlay in chart engine; refine drawing if unsupported.
 - [x] Add initial historical candle Replay slicing slider and reset/full-history control (requires validation).
-- [ ] Add replay step/play controls, chart styles, further indicator set and chart drawing tools.
+- [x] Add Replay play/pause, one-candle step, speed selector, reset controls (requires runtime validation).
+- [x] Add market favorites locally with market category filter.
+- [ ] Add chart styles, further indicator set and chart drawing tools.
 - [ ] Improve analytics, UI redesign and run full regression checks before release.
