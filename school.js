@@ -100,13 +100,16 @@ function examHTML(){
  if(ex.screen==="run")return examRun();
  if(ex.screen==="result")return examResult();
  return `<p class="muted" style="margin:0 2px 12px">Как настоящий экзамен: каждый раз новые случайные вопросы, перемешанные ответы и таймер. Подсказки видны только после завершения.</p>`+
-  Object.values(EXAMS).map(c=>{const p=progress.exams[c.id];
-   return `<div class="card exam-card"><h3>${c.title} ${p?.passed?'<span class="tag long">СДАН</span>':""}</h3><p>${c.desc}</p>
+  Object.values(EXAMS).map(c=>{const p=progress.exams[c.id],locked=!!c.premium&&(typeof Access==="undefined"||!Access.isPremium());
+   return `<div class="card exam-card"><h3>${c.premium?"✦ ":""}${c.title} ${p?.passed?'<span class="tag long">СДАН</span>':""}</h3><p>${c.desc}</p>
    <div class="meta"><span>${c.count} вопросов</span><span>${Math.round(c.time/60)} мин</span><span>Зачёт от ${c.pass}%</span><span>+${c.xp} XP</span>${p?`<span>Лучший: ${p.best}%</span><span>Попыток: ${p.attempts}</span>`:""}</div>
-   <button class="primary" style="margin-top:0" data-act="start" data-exam="${c.id}">${p?"Пройти снова":"Начать экзамен"}</button></div>`}).join("");
+   ${locked?'<p class="muted">Экзамен доступен подписчикам ARVEX Premium.</p><a class="primary" href="https://t.me/ArvexPremiumBot" data-premium-purchase style="display:block;text-align:center;text-decoration:none">Открыть Premium</a>':`<button class="primary" style="margin-top:0" data-act="start" data-exam="${c.id}">${p?"Пройти снова":"Начать экзамен"}</button>`}</div>`}).join("");
 }
 function startExam(id){
- ex={screen:"run",id,qs:buildExam(id),idx:0,deadline:Date.now()+EXAMS[id].time*1000,result:null};
+ const cfg=EXAMS[id];
+ if(!cfg)return;
+ if(cfg.premium&&(typeof Access==="undefined"||!Access.isPremium())){showToast("Этот экзамен доступен в Premium.");return}
+ ex={screen:"run",id,qs:buildExam(id),idx:0,deadline:Date.now()+cfg.time*1000,result:null};
  clearInterval(exTimer);exTimer=setInterval(tickExam,500);renderSchool();window.scrollTo(0,0);
 }
 function tickExam(){
