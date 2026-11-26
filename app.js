@@ -478,6 +478,7 @@ function bind(){
   const go_=t.closest("[data-go]");if(go_){go(go_.dataset.go);return}
   const cl=t.closest("[data-close]");if(cl){closePosition(Number(cl.dataset.close));return}
   const as=t.closest("[data-asset]");if(as){currentAsset=as.dataset.asset;saveState();renderTicker();renderHead();updateOrderPreview();candles=[];chart.setData([]);loadCandles();return}
+  if(t.closest("#chartLearningToggle")){const panel=$("chartLearningPanel");if(panel){panel.hidden=!panel.hidden; t.closest("#chartLearningToggle").textContent=panel.hidden?"✦ Обучение по графику":"✦ Скрыть обучение";}return}
   const tfb=t.closest("[data-tf]");if(tfb){tf=tfb.dataset.tf;document.querySelectorAll("#tfSeg button").forEach(b=>b.classList.toggle("on",b===tfb));loadCandles();return}
   const ind=t.closest("[data-ind]");if(ind){const k=ind.dataset.ind;chart[k]=!chart[k];ind.classList.toggle("on",chart[k]);chart.draw();return}
   const lv=t.closest("[data-lev]");if(lv){$("leverage").value=lv.dataset.lev;$("levLabel").textContent=lv.dataset.lev+"x";document.querySelectorAll("#levChips button").forEach(b=>b.classList.toggle("on",b===lv));updateOrderPreview();return}
