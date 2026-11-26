@@ -221,8 +221,9 @@ function tradeStats(){
 
 /* ===== Отрисовка торговли ===== */
 function renderTicker(){
- $("tickerRow").innerHTML=Object.keys(ASSETS).map(a=>{const c=changes[a]??DEMO_CHANGE[a];
-  return `<button class="tick ${a===currentAsset?"on":""}" data-asset="${a}"><b>${ASSETS[a].sym}</b><span>${money(marketPrice(a))}</span><small class="${c>=0?"pos":"neg"}">${c>=0?"+":""}${c.toFixed(2)}%</small></button>`}).join("");
+ const q=($("marketSearch")?.value||"").trim().toLowerCase();
+ $("tickerRow").innerHTML=Object.keys(ASSETS).filter(a=>!q||a.toLowerCase().includes(q)||ASSETS[a].sym.toLowerCase().includes(q)||ASSETS[a].name.toLowerCase().includes(q)||ASSETS[a].pair.toLowerCase().includes(q)).map(a=>{const c=changes[a]??DEMO_CHANGE[a];
+  return `<button class="tick ${a===currentAsset?"on":""}" data-asset="${a}"><b>${ASSETS[a].sym}</b><span>${money(marketPrice(a))}</span><small class="${c>=0?"pos":"neg"}">${c>=0?"+":""}${c.toFixed(2)}%</small></button>`}).join("")||'<div class="empty">Активы не найдены.</div>';
 }
 function renderHead(){
  const a=ASSETS[currentAsset],c=changes[currentAsset]??DEMO_CHANGE[currentAsset];
@@ -506,6 +507,8 @@ function bind(){
  });
  $("buyBtn").onclick=()=>openTrade("LONG");$("sellBtn").onclick=()=>openTrade("SHORT");
  $("amount").addEventListener("input",updateOrderPreview);
+ if($("marketSearch"))$("marketSearch").addEventListener("input",renderTicker);
+ if($("marketSearchClear"))$("marketSearchClear").onclick=()=>{$("marketSearch").value="";renderTicker();};
  $("fsBtn").onclick=()=>setFullscreen(true);$("fsClose").onclick=()=>setFullscreen(false);
  $("zoomIn").onclick=()=>chart.zoom(0.8);$("zoomOut").onclick=()=>chart.zoom(1.25);
  $("createProfile").onclick=submitProfile;$("cancelProfile").onclick=()=>$("welcomeModal").classList.add("hidden");
