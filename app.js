@@ -2,12 +2,18 @@
    Учебный симулятор: все средства виртуальные. By Mrasulv */
 const $=id=>document.getElementById(id);
 const ASSETS={
- BTCUSDT:{sym:"BTC",name:"Bitcoin",pair:"BTC / USDT",fb:74900},
- ETHUSDT:{sym:"ETH",name:"Ethereum",pair:"ETH / USDT",fb:3200},
- SOLUSDT:{sym:"SOL",name:"Solana",pair:"SOL / USDT",fb:165},
- BNBUSDT:{sym:"BNB",name:"BNB",pair:"BNB / USDT",fb:620}
+ BTCUSDT:{sym:"BTC",name:"Bitcoin",pair:"BTC / USDT",fb:74900},ETHUSDT:{sym:"ETH",name:"Ethereum",pair:"ETH / USDT",fb:3200},
+ SOLUSDT:{sym:"SOL",name:"Solana",pair:"SOL / USDT",fb:165},BNBUSDT:{sym:"BNB",name:"BNB",pair:"BNB / USDT",fb:620},
+ XRPUSDT:{sym:"XRP",name:"XRP",pair:"XRP / USDT",fb:2.2},ADAUSDT:{sym:"ADA",name:"Cardano",pair:"ADA / USDT",fb:0.72},
+ DOGEUSDT:{sym:"DOGE",name:"Dogecoin",pair:"DOGE / USDT",fb:0.18},TONUSDT:{sym:"TON",name:"Toncoin",pair:"TON / USDT",fb:5.2},
+ TRXUSDT:{sym:"TRX",name:"TRON",pair:"TRX / USDT",fb:0.15},AVAXUSDT:{sym:"AVAX",name:"Avalanche",pair:"AVAX / USDT",fb:38},
+ LINKUSDT:{sym:"LINK",name:"Chainlink",pair:"LINK / USDT",fb:18},DOTUSDT:{sym:"DOT",name:"Polkadot",pair:"DOT / USDT",fb:8},
+ LTCUSDT:{sym:"LTC",name:"Litecoin",pair:"LTC / USDT",fb:95},BCHUSDT:{sym:"BCH",name:"Bitcoin Cash",pair:"BCH / USDT",fb:420},
+ NEARUSDT:{sym:"NEAR",name:"NEAR",pair:"NEAR / USDT",fb:6},APTUSDT:{sym:"APT",name:"Aptos",pair:"APT / USDT",fb:12},
+ SUIUSDT:{sym:"SUI",name:"Sui",pair:"SUI / USDT",fb:2.1},ETCUSDT:{sym:"ETC",name:"Ethereum Classic",pair:"ETC / USDT",fb:28},
+ UNIUSDT:{sym:"UNI",name:"Uniswap",pair:"UNI / USDT",fb:10},ATOMUSDT:{sym:"ATOM",name:"Cosmos",pair:"ATOM / USDT",fb:12}
 };
-const DEMO_CHANGE={BTCUSDT:1.24,ETHUSDT:-0.62,SOLUSDT:2.8,BNBUSDT:0.35};
+const DEMO_CHANGE={BTCUSDT:1.24,ETHUSDT:-0.62,SOLUSDT:2.8,BNBUSDT:0.35,XRPUSDT:1.1,ADAUSDT:-.8,DOGEUSDT:2.2,TONUSDT:1.6,TRXUSDT:.4,AVAXUSDT:-1.3,LINKUSDT:.9,DOTUSDT:-.6,LTCUSDT:.3,BCHUSDT:1.5,NEARUSDT:-1.1,APTUSDT:.7,SUIUSDT:2,ETCUSDT:-.4,UNIUSDT:1.2,ATOMUSDT:-.2};
 const TF={"1m":60000,"5m":300000,"15m":900000,"1h":3600000,"4h":14400000,"1d":86400000};
 const API="https://api.binance.com/api/v3";
 const STORAGE_KEY="arvex_v3_state";
@@ -108,6 +114,12 @@ function synthCandles(asset,tfKey){
  const k=marketPrice(asset)/arr[n-1].c;
  return arr.map(x=>({...x,o:x.o*k,h:x.h*k,l:x.l*k,c:x.c*k}));
 }
+let replayAllCandles=[],replayActive=false,replayTimer=null;
+function applyReplay(count){
+ if(!replayAllCandles.length||!chart)return;const n=Math.max(10,Math.min(replayAllCandles.length,Number(count)||replayAllCandles.length));
+ candles=replayAllCandles.slice(0,n);chart.setData(candles,TF[tf]);updateOhlc();setChartLines();
+ if($("replayCount"))$("replayCount").textContent=n+" / "+replayAllCandles.length+" свечей";
+}
 async function loadCandles(){
  if(!chart)return;
  const asset=currentAsset,myTf=tf,req=++candleReq;let arr;
@@ -118,9 +130,10 @@ async function loadCandles(){
   klLive=true;
  }catch(e){klLive=false;arr=synthCandles(asset,myTf)}
  if(req!==candleReq)return;
- candles=arr;
+ replayAllCandles=arr;
  if(klLive&&!live)prices[asset]=arr[arr.length-1].c;
- chart.setData(candles,TF[myTf]);updateOhlc();setChartLines();renderHead();
+ candles=arr;chart.setData(candles,TF[myTf]);updateOhlc();setChartLines();renderHead();
+ if(replayActive&&$("replayRange")){const rg=$("replayRange");rg.max=arr.length;rg.min=10;rg.value=arr.length;applyReplay(rg.value);}
 }
 function updateOhlc(c){
  const k=c||candles[candles.length-1];if(!k){$("ohlcLine").innerHTML="";return}
@@ -134,6 +147,7 @@ function setChartLines(){
   if(v.liq)L.push({price:v.liq,color:"#ff5470",label:"LIQ"});
   if(p.tp)L.push({price:p.tp,color:"#2ee59d",label:"TP"});
   if(p.sl)L.push({price:p.sl,color:"#ff9f43",label:"SL"});});
+ if(chart.fractals&&candles.length>5){let highs=[],lows=[];for(let i=2;i<candles.length-2;i++){const q=candles[i];if(q.h>candles[i-1].h&&q.h>candles[i-2].h&&q.h>candles[i+1].h&&q.h>candles[i+2].h)highs.push(q.h);if(q.l<candles[i-1].l&&q.l<candles[i-2].l&&q.l<candles[i+1].l&&q.l<candles[i+2].l)lows.push(q.l)}highs.slice(-4).forEach(p=>L.push({price:p,color:"#ff9f43",label:"FR high"}));lows.slice(-4).forEach(p=>L.push({price:p,color:"#68e0d0",label:"FR low"}));}
  chart.setLines(L);
 }
 
@@ -213,9 +227,14 @@ function tradeStats(){
 }
 
 /* ===== Отрисовка торговли ===== */
+const CHART_NOTES_KEY="arvex_120_chart_notes";
+function loadChartNote(){try{const notes=JSON.parse(localStorage.getItem(CHART_NOTES_KEY)||"{}");$("chartNote").value=notes[currentAsset]||"";$("chartNoteStatus").textContent=notes[currentAsset]?"Заметка загружена.":"Нет сохранённой заметки для этого актива."}catch(e){}}
+function saveChartNote(){try{const notes=JSON.parse(localStorage.getItem(CHART_NOTES_KEY)||"{}");notes[currentAsset]=$("chartNote").value;localStorage.setItem(CHART_NOTES_KEY,JSON.stringify(notes));$("chartNoteStatus").textContent="Сохранено для "+ASSETS[currentAsset].pair+" · "+new Date().toLocaleString("ru-RU");showToast("Заметка сохранена.");}catch(e){showToast("Не удалось сохранить заметку.");}}
 function renderTicker(){
- $("tickerRow").innerHTML=Object.keys(ASSETS).map(a=>{const c=changes[a]??DEMO_CHANGE[a];
-  return `<button class="tick ${a===currentAsset?"on":""}" data-asset="${a}"><b>${ASSETS[a].sym}</b><span>${money(marketPrice(a))}</span><small class="${c>=0?"pos":"neg"}">${c>=0?"+":""}${c.toFixed(2)}%</small></button>`}).join("");
+ const q=($("marketSearch")?.value||"").trim().toLowerCase(),cat=window.arvexMarketCat||"all",fav=JSON.parse(localStorage.getItem("arvex_favorites")||"[]");
+ const majors=["BTCUSDT","ETHUSDT","BNBUSDT","SOLUSDT","XRPUSDT","ADAUSDT"];
+ $("tickerRow").innerHTML=Object.keys(ASSETS).filter(a=>(cat==="all"||(cat==="majors"?majors.includes(a):cat==="alt"?!majors.includes(a):fav.includes(a)))&&(!q||a.toLowerCase().includes(q)||ASSETS[a].sym.toLowerCase().includes(q)||ASSETS[a].name.toLowerCase().includes(q)||ASSETS[a].pair.toLowerCase().includes(q))).map(a=>{const c=changes[a]??DEMO_CHANGE[a];
+  return `<button class="tick ${a===currentAsset?"on":""}" data-asset="${a}"><b>${fav.includes(a)?"★":"☆"} ${ASSETS[a].sym}</b><span>${money(marketPrice(a))}</span><small class="${c>=0?"pos":"neg"}">${c>=0?"+":""}${c.toFixed(2)}%</small></button>`}).join("")||'<div class="empty">Активы не найдены.</div>';
 }
 function renderHead(){
  const a=ASSETS[currentAsset],c=changes[currentAsset]??DEMO_CHANGE[currentAsset];
@@ -471,9 +490,11 @@ function bind(){
   if(t.closest("#avPhotoDel")){pendingPhoto="";renderAvatarPicker();return}
   const go_=t.closest("[data-go]");if(go_){go(go_.dataset.go);return}
   const cl=t.closest("[data-close]");if(cl){closePosition(Number(cl.dataset.close));return}
-  const as=t.closest("[data-asset]");if(as){currentAsset=as.dataset.asset;saveState();renderTicker();renderHead();updateOrderPreview();candles=[];chart.setData([]);loadCandles();return}
-  const tfb=t.closest("[data-tf]");if(tfb){tf=tfb.dataset.tf;document.querySelectorAll("#tfSeg button").forEach(b=>b.classList.toggle("on",b===tfb));loadCandles();return}
-  const ind=t.closest("[data-ind]");if(ind){const k=ind.dataset.ind;chart[k]=!chart[k];ind.classList.toggle("on",chart[k]);chart.draw();return}
+  const as=t.closest("[data-asset]");if(as){currentAsset=as.dataset.asset;saveState();renderTicker();renderHead();updateOrderPreview();candles=[];chart.setData([]);replayStop();replayActive=false;if($("chartReplayPanel"))$("chartReplayPanel").hidden=true;loadCandles();if($("chartNote"))loadChartNote();return}
+  if(t.closest("#chartLearningToggle")){const panel=$("chartLearningPanel");if(panel){panel.hidden=!panel.hidden; t.closest("#chartLearningToggle").textContent=panel.hidden?"✦ Обучение по графику":"✦ Скрыть обучение";}return}
+  const chartType=t.closest("[data-chart-type]");if(chartType){chart.setType(chartType.dataset.chartType);document.querySelectorAll("[data-chart-type]").forEach(b=>b.classList.toggle("on",b===chartType));return}
+  const tfb=t.closest("[data-tf]");if(tfb){tf=tfb.dataset.tf;replayActive=false;if($("chartReplayPanel"))$("chartReplayPanel").hidden=true;document.querySelectorAll("#tfSeg button").forEach(b=>b.classList.toggle("on",b===tfb));loadCandles();return}
+  const ind=t.closest("[data-ind]");if(ind){const k=ind.dataset.ind;chart[k]=!chart[k];ind.classList.toggle("on",chart[k]);if(k==="fractals")setChartLines();chart.draw();return}
   const lv=t.closest("[data-lev]");if(lv){$("leverage").value=lv.dataset.lev;$("levLabel").textContent=lv.dataset.lev+"x";document.querySelectorAll("#levChips button").forEach(b=>b.classList.toggle("on",b===lv));updateOrderPreview();return}
   const pc=t.closest("[data-pct]");if(pc){$("amount").value=Math.floor(balance*Number(pc.dataset.pct))/100;updateOrderPreview();return}
   const op=t.closest("[data-open]");if(op){confirmTrade(op.dataset.open);return}
@@ -498,6 +519,21 @@ function bind(){
  });
  $("buyBtn").onclick=()=>openTrade("LONG");$("sellBtn").onclick=()=>openTrade("SHORT");
  $("amount").addEventListener("input",updateOrderPreview);
+ if($("marketSearch"))$("marketSearch").addEventListener("input",renderTicker);
+ document.querySelectorAll("[data-market-cat]").forEach(b=>b.onclick=()=>{window.arvexMarketCat=b.dataset.marketCat;document.querySelectorAll("[data-market-cat]").forEach(x=>x.classList.toggle("on",x===b));renderTicker();});
+ $("tickerRow").addEventListener("contextmenu",e=>{const b=e.target.closest("[data-asset]");if(!b)return;e.preventDefault();const list=JSON.parse(localStorage.getItem("arvex_favorites")||"[]"),a=b.dataset.asset;localStorage.setItem("arvex_favorites",JSON.stringify(list.includes(a)?list.filter(x=>x!==a):list.concat(a)));renderTicker();});
+ if($("marketSearchClear"))$("marketSearchClear").onclick=()=>{$("marketSearch").value="";renderTicker();};
+ if($("chartNoteSave"))$("chartNoteSave").onclick=saveChartNote;
+ if($("replayToggle"))$("replayToggle").onclick=()=>{replayStop();replayActive=!replayActive;$("chartReplayPanel").hidden=!replayActive;$("replayToggle").textContent=replayActive?"◀ Скрыть Replay":"◀ Историческая практика (Replay)";if(replayActive){const r=$("replayRange");r.max=replayAllCandles.length;r.value=replayAllCandles.length;applyReplay(r.value);}};
+ if($("replayRange"))$("replayRange").addEventListener("input",e=>applyReplay(e.target.value));
+ function replayStop(){if(replayTimer){clearInterval(replayTimer);replayTimer=null;}if($("replayPlay"))$("replayPlay").textContent="▶ Старт";}
+ function replayAdvance(){const r=$("replayRange");if(!r)return;const next=Math.min(Number(r.value)+1,replayAllCandles.length);r.value=next;applyReplay(next);if(next>=replayAllCandles.length)replayStop();}
+ if($("replayPlay"))$("replayPlay").onclick=()=>{if(replayTimer){replayStop();return;}if(Number($("replayRange").value)>=replayAllCandles.length)$("replayRange").value=10;applyReplay($("replayRange").value);$("replayPlay").textContent="Ⅱ Пауза";replayTimer=setInterval(replayAdvance,Number($("replaySpeed")?.value||650));};
+ if($("replayStep"))$("replayStep").onclick=()=>{replayStop();replayAdvance();};
+ if($("replaySpeed"))$("replaySpeed").onchange=()=>{if(replayTimer){replayStop();$("replayPlay").click();}};
+
+ if($("replayReset"))$("replayReset").onclick=()=>{replayStop();if($("replayRange"))$("replayRange").value=replayAllCandles.length;applyReplay(replayAllCandles.length);};
+ if($("chartNoteClear"))$("chartNoteClear").onclick=()=>{$("chartNote").value="";saveChartNote();};
  $("fsBtn").onclick=()=>setFullscreen(true);$("fsClose").onclick=()=>setFullscreen(false);
  $("zoomIn").onclick=()=>chart.zoom(0.8);$("zoomOut").onclick=()=>chart.zoom(1.25);
  $("createProfile").onclick=submitProfile;$("cancelProfile").onclick=()=>$("welcomeModal").classList.add("hidden");
@@ -513,6 +549,7 @@ function init(){
  const ChartEngine=window.ARVEXChartEngine?.CandleChartV2||CandleChart;chart=new ChartEngine($("chartCanvas"),{onCross:c=>updateOhlc(c)});
  bind();
  renderTop();renderTicker();renderHead();renderPositions();renderPortfolio();updateOrderPreview();
+ if($("chartNote"))loadChartNote();
  loadCandles();fetchPrices();
  if(typeof Cloud!=="undefined"){
   if(Cloud.acceptEmailConfirmation){

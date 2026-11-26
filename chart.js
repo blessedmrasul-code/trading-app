@@ -2,8 +2,8 @@
 class CandleChart{
  constructor(canvas,opts={}){
   this.c=canvas;this.ctx=canvas.getContext("2d");
-  this.data=[];this.visible=80;this.offset=0;
-  this.ma=true;this.ema=false;this.vol=true;
+  this.data=[];this.visible=80;this.offset=0;this.type="candle";
+  this.ma=true;this.ema=false;this.bb=false;this.vol=true;
   this.lines=[];this.cross=null;this.tfMs=900000;
   this.onCross=opts.onCross||null;
   this.col={up:"#2ee59d",down:"#ff5470",grid:"rgba(255,255,255,.06)",text:"#8890a6",ma:"#f5c451",ema:"#4f8cff",accent:"#7c5cff"};
@@ -16,6 +16,7 @@ class CandleChart{
   this.draw();
  }
  setLines(lines){this.lines=lines||[];this.draw()}
+ setType(type){this.type=["candle","line","ha"].includes(type)?type:"candle";this.draw()}
  resize(){
   const p=this.c.parentElement;if(!p)return;
   const r=p.getBoundingClientRect(),dpr=window.devicePixelRatio||1;
@@ -70,6 +71,7 @@ class CandleChart{
  }
  _sma(n){const o=[],d=this.data;let s=0;for(let i=0;i<d.length;i++){s+=d[i].c;if(i>=n)s-=d[i-n].c;o.push(i>=n-1?s/n:null)}return o}
  _ema(n){const o=[],d=this.data,k=2/(n+1);let e=null;for(let i=0;i<d.length;i++){e=e==null?d[i].c:d[i].c*k+e*(1-k);o.push(i>=n-1?e:null)}return o}
+ _bollinger(n=20,m=2){const mid=this._sma(n),upper=[],lower=[];for(let i=0;i<this.data.length;i++){if(i<n-1){upper.push(null);lower.push(null);continue}let sum=0;for(let j=i-n+1;j<=i;j++)sum+=(this.data[j].c-mid[i])**2;const sd=Math.sqrt(sum/n);upper.push(mid[i]+m*sd);lower.push(mid[i]-m*sd)}return {upper,lower}}
  draw(){
   if(this._raf)return;
   this._raf=requestAnimationFrame(()=>{this._raf=0;this._paint()});
@@ -77,7 +79,9 @@ class CandleChart{
  _paint(){
   const ctx=this.ctx,w=this.w,h=this.h,col=this.col;
   ctx.clearRect(0,0,w,h);
-  const d=this.data;
+  const raw=this.data;
+  let d=raw;
+  if(this.type==="ha"&&raw.length){let prev=null;d=raw.map(c=>{const close=(c.o+c.h+c.l+c.c)/4,open=prev?(prev.o+prev.c)/2:(c.o+c.c)/2;const out={...c,o:open,c:close,h:Math.max(c.h,open,close),l:Math.min(c.l,open,close)};prev=out;return out;});}
   if(!d.length){ctx.fillStyle=col.text;ctx.font="13px system-ui";ctx.textAlign="center";ctx.fillText("Загрузка графика…",w/2,h/2);return}
   const g=this._geom(),{start,end}=this._slice(),n=end-start,sl=d.slice(start,end);
   const volH=this.vol?g.ph*0.16:0,priceH=g.ph-volH-(this.vol?6:0);
@@ -101,8 +105,11 @@ class CandleChart{
    const vy=g.y0+g.ph;
    for(let i=start;i<end;i++){const c=d[i],bh=c.v/vmax*volH;ctx.fillStyle=(c.c>=c.o?col.up:col.down)+"55";ctx.fillRect(X(i)-g.cw*0.35,vy-bh,Math.max(1,g.cw*0.7),bh)}
   }
-  // свечи
-  for(let i=start;i<end;i++){
+  // Свечной, линейный и Heikin Ashi режимы
+  if(this.type==="line"){
+   ctx.strokeStyle=col.accent;ctx.lineWidth=2;ctx.beginPath();
+   for(let i=start;i<end;i++){const x=X(i),y=Y(d[i].c);if(i===start)ctx.moveTo(x,y);else ctx.lineTo(x,y);}ctx.stroke();
+  }else for(let i=start;i<end;i++){
    const c=d[i],x=X(i),up=c.c>=c.o,color=up?col.up:col.down;
    ctx.strokeStyle=color;ctx.fillStyle=color;ctx.lineWidth=1;
    ctx.beginPath();ctx.moveTo(x,Y(c.h));ctx.lineTo(x,Y(c.l));ctx.stroke();
@@ -113,6 +120,7 @@ class CandleChart{
   const line=(arr,color)=>{ctx.strokeStyle=color;ctx.lineWidth=1.4;ctx.beginPath();let on=false;for(let i=start;i<end;i++){const v=arr[i];if(v==null){on=false;continue}const x=X(i),y=Y(v);if(!on){ctx.moveTo(x,y);on=true}else ctx.lineTo(x,y)}ctx.stroke()};
   if(this.ma)line(this._sma(20),col.ma);
   if(this.ema)line(this._ema(50),col.ema);
+  if(this.bb){const bands=this._bollinger(20,2);line(bands.upper,"rgba(165,139,255,.9)");line(bands.lower,"rgba(165,139,255,.9)");}
   // линии позиций
   ctx.textBaseline="middle";
   for(const L of this.lines){

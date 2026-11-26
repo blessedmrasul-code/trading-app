@@ -41,7 +41,8 @@
     <main class="main">
       <!-- ТОРГОВЛЯ -->
       <section class="screen active" id="screen-trade">
-        <div class="ticker-row" id="tickerRow"></div>
+        <div class="market-category-row" id="marketCategoryRow"><button class="market-cat on" data-market-cat="all">Все</button><button class="market-cat" data-market-cat="majors">Топ</button><button class="market-cat" data-market-cat="alt">Альткоины</button><button class="market-cat" data-market-cat="fav">★ Избранное</button></div>
+<div class="market-search-wrap"><input id="marketSearch" class="field market-search" type="search" placeholder="Поиск рынка: BTC, XRP, TON…" aria-label="Поиск активов"><button class="ghost" id="marketSearchClear" type="button">Очистить</button></div><div class="ticker-row" id="tickerRow"></div>
         <div class="price-head">
           <div><div class="pair" id="pairName">Bitcoin · BTC / USDT</div><div class="big-price" id="bigPrice">$0.00</div></div>
           <div class="price-meta"><span class="chg" id="chgBadge">+0.00%</span><span class="live" id="liveStatus">DEMO</span></div>
@@ -52,10 +53,10 @@
             <div class="seg small" id="tfSeg">
               <button data-tf="1m">1м</button><button data-tf="5m">5м</button><button data-tf="15m" class="on">15м</button><button data-tf="1h">1ч</button><button data-tf="4h">4ч</button><button data-tf="1d">1Д</button>
             </div>
-            <div class="chart-tools">
+            <div class="chart-tools"><button class="tool on" data-chart-type="candle" title="Свечной график">Свечи</button><button class="tool" data-chart-type="line" title="Линейный график">Линия</button><button class="tool" data-chart-type="ha" title="Heikin Ashi">HA</button>
               <button class="tool on" data-ind="ma" title="Скользящая средняя 20">MA</button>
-              <button class="tool" data-ind="ema" title="Экспоненциальная средняя 50">EMA</button>
-              <button class="tool on" data-ind="vol" title="Объём">VOL</button>
+              <button class="tool" data-ind="ema" title="Экспоненциальная средняя 50">EMA</button><button class="tool" data-ind="bb" title="Полосы Боллинджера 20, 2σ">BB</button>
+              <button class="tool on" data-ind="vol" title="Объём">VOL</button><button class="tool" data-ind="fractals" title="Локальные фракталы">FR</button>
               <button class="tool icon" id="zoomOut" aria-label="Уменьшить">−</button>
               <button class="tool icon" id="zoomIn" aria-label="Увеличить">+</button>
               <button class="tool icon" id="fsBtn" aria-label="На весь экран"><svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
@@ -64,6 +65,15 @@
           <div class="ohlc" id="ohlcLine"></div>
           <div class="chart-wrap" id="chartWrap"><canvas id="chartCanvas"></canvas></div>
           <div class="chart-foot"><span id="chartSrc">Данные: Binance</span><span>Свайп — прокрутка · нажатие — перекрестие</span></div>
+          <button class="ghost chart-learning-toggle" id="chartLearningToggle" type="button">✦ Обучение по графику</button><button class="ghost chart-learning-toggle" id="replayToggle" type="button">◀ Историческая практика (Replay)</button><div class="chart-replay card" id="chartReplayPanel" hidden><label class="lbl">Историческое воспроизведение</label><div class="replay-actions"><button class="primary" id="replayPlay">▶ Старт</button><button class="ghost" id="replayStep">+1 свеча</button><select id="replaySpeed" class="field"><option value="1200">0.5×</option><option value="650" selected>1×</option><option value="300">2×</option><option value="120">5×</option></select></div><input id="replayRange" type="range" min="10" max="300" value="300"><div class="row2"><span id="replayCount">300 свечей</span><button class="ghost" id="replayReset">Показать весь график</button></div><p class="muted">Учебный режим: скрывает будущие свечи текущей загрузки. Не изменяет цены и не исполняет сделки.</p></div>
+          <div class="chart-learning card" id="chartLearningPanel" hidden>
+            <h3>Как читать этот график</h3>
+            <p><b>Свеча:</b> тело показывает открытие и закрытие, фитили — максимум и минимум за период.</p>
+            <p><b>MA / EMA:</b> сглаживают цену; это вспомогательные индикаторы, а не сигналы с гарантией.</p>
+            <p><b>VOL:</b> показывает объём за свечу. Сравни объём с предыдущими периодами.</p>
+            <p><b>Фрактал:</b> локальный максимум обычно выделяется, если его вершина выше соседних свечей слева и справа. Локальный минимум — ниже соседних.</p>
+            <p><b>Практика:</b> отметь направление тренда, ближайший уровень и сценарий, при котором твоя идея перестаёт быть актуальной.</p>
+          </div>
           <div class="fs-actions">
             <button class="buy" data-open="LONG">LONG ↗</button>
             <button class="sell" data-open="SHORT">SHORT ↘</button>
@@ -71,6 +81,7 @@
           </div>
         </div>
 
+        <div class="card chart-journal"><div class="card-title">Заметка по текущему графику <small>Личный разбор · сохраняется на устройстве</small></div><textarea id="chartNote" class="field" rows="3" maxlength="1200" placeholder="Тренд, уровень, сценарий, риск, что подтвердит или отменит идею…"></textarea><div class="row2"><button class="ghost" id="chartNoteSave">Сохранить заметку</button><button class="ghost" id="chartNoteClear">Очистить</button></div><small class="muted" id="chartNoteStatus"></small></div>
         <div class="card order-card">
           <div class="card-title">Новая сделка <small>Только виртуальные средства</small></div>
           <label class="lbl" for="amount">Маржа (своя сумма)</label>
