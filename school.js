@@ -103,7 +103,7 @@ function examHTML(){
   Object.values(EXAMS).map(c=>{const p=progress.exams[c.id],locked=!!c.premium&&(typeof Access==="undefined"||!Access.isPremium());
    return `<div class="card exam-card"><h3>${c.premium?"✦ ":""}${c.title} ${p?.passed?'<span class="tag long">СДАН</span>':""}</h3><p>${c.desc}</p>
    <div class="meta"><span>${c.count} вопросов</span><span>${Math.round(c.time/60)} мин</span><span>Зачёт от ${c.pass}%</span><span>+${c.xp} XP</span>${p?`<span>Лучший: ${p.best}%</span><span>Попыток: ${p.attempts}</span>`:""}</div>
-   ${locked?'<p class="muted">Экзамен доступен подписчикам ARVEX Premium.</p><a class="primary" href="https://t.me/ArvexPremiumBot" data-premium-purchase style="display:block;text-align:center;text-decoration:none">Открыть Premium</a>':`<button class="primary" style="margin-top:0" data-act="start" data-exam="${c.id}">${p?"Пройти снова":"Начать экзамен"}</button>`}</div>`).join("");
+   ${locked?'<p class="muted">Экзамен доступен подписчикам ARVEX Premium.</p><a class="primary" href="https://t.me/ArvexPremiumBot" data-premium-purchase style="display:block;text-align:center;text-decoration:none">Открыть Premium</a>':`<button class="primary" style="margin-top:0" data-act="start" data-exam="${c.id}">${p?"Пройти снова":"Начать экзамен"}</button>`}</div>`}).join("");
 }
 function startExam(id){
  const cfg=EXAMS[id];
