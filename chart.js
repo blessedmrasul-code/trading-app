@@ -3,7 +3,7 @@ class CandleChart{
  constructor(canvas,opts={}){
   this.c=canvas;this.ctx=canvas.getContext("2d");
   this.data=[];this.visible=80;this.offset=0;this.type="candle";
-  this.ma=true;this.ema=false;this.vol=true;
+  this.ma=true;this.ema=false;this.bb=false;this.vol=true;
   this.lines=[];this.cross=null;this.tfMs=900000;
   this.onCross=opts.onCross||null;
   this.col={up:"#2ee59d",down:"#ff5470",grid:"rgba(255,255,255,.06)",text:"#8890a6",ma:"#f5c451",ema:"#4f8cff",accent:"#7c5cff"};
@@ -71,6 +71,7 @@ class CandleChart{
  }
  _sma(n){const o=[],d=this.data;let s=0;for(let i=0;i<d.length;i++){s+=d[i].c;if(i>=n)s-=d[i-n].c;o.push(i>=n-1?s/n:null)}return o}
  _ema(n){const o=[],d=this.data,k=2/(n+1);let e=null;for(let i=0;i<d.length;i++){e=e==null?d[i].c:d[i].c*k+e*(1-k);o.push(i>=n-1?e:null)}return o}
+ _bollinger(n=20,m=2){const mid=this._sma(n),upper=[],lower=[];for(let i=0;i<this.data.length;i++){if(i<n-1){upper.push(null);lower.push(null);continue}let sum=0;for(let j=i-n+1;j<=i;j++)sum+=(this.data[j].c-mid[i])**2;const sd=Math.sqrt(sum/n);upper.push(mid[i]+m*sd);lower.push(mid[i]-m*sd)}return {upper,lower}}
  draw(){
   if(this._raf)return;
   this._raf=requestAnimationFrame(()=>{this._raf=0;this._paint()});
@@ -119,6 +120,7 @@ class CandleChart{
   const line=(arr,color)=>{ctx.strokeStyle=color;ctx.lineWidth=1.4;ctx.beginPath();let on=false;for(let i=start;i<end;i++){const v=arr[i];if(v==null){on=false;continue}const x=X(i),y=Y(v);if(!on){ctx.moveTo(x,y);on=true}else ctx.lineTo(x,y)}ctx.stroke()};
   if(this.ma)line(this._sma(20),col.ma);
   if(this.ema)line(this._ema(50),col.ema);
+  if(this.bb){const bands=this._bollinger(20,2);line(bands.upper,"rgba(165,139,255,.9)");line(bands.lower,"rgba(165,139,255,.9)");}
   // линии позиций
   ctx.textBaseline="middle";
   for(const L of this.lines){
