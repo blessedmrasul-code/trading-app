@@ -224,8 +224,9 @@ const CHART_NOTES_KEY="arvex_120_chart_notes";
 function loadChartNote(){try{const notes=JSON.parse(localStorage.getItem(CHART_NOTES_KEY)||"{}");$("chartNote").value=notes[currentAsset]||"";$("chartNoteStatus").textContent=notes[currentAsset]?"Заметка загружена.":"Нет сохранённой заметки для этого актива."}catch(e){}}
 function saveChartNote(){try{const notes=JSON.parse(localStorage.getItem(CHART_NOTES_KEY)||"{}");notes[currentAsset]=$("chartNote").value;localStorage.setItem(CHART_NOTES_KEY,JSON.stringify(notes));$("chartNoteStatus").textContent="Сохранено для "+ASSETS[currentAsset].pair+" · "+new Date().toLocaleString("ru-RU");showToast("Заметка сохранена.");}catch(e){showToast("Не удалось сохранить заметку.");}}
 function renderTicker(){
- const q=($("marketSearch")?.value||"").trim().toLowerCase();
- $("tickerRow").innerHTML=Object.keys(ASSETS).filter(a=>!q||a.toLowerCase().includes(q)||ASSETS[a].sym.toLowerCase().includes(q)||ASSETS[a].name.toLowerCase().includes(q)||ASSETS[a].pair.toLowerCase().includes(q)).map(a=>{const c=changes[a]??DEMO_CHANGE[a];
+ const q=($("marketSearch")?.value||"").trim().toLowerCase(),cat=window.arvexMarketCat||"all";
+ const majors=["BTCUSDT","ETHUSDT","BNBUSDT","SOLUSDT","XRPUSDT","ADAUSDT"];
+ $("tickerRow").innerHTML=Object.keys(ASSETS).filter(a=>(cat==="all"||(cat==="majors"?majors.includes(a):!majors.includes(a)))&&(!q||a.toLowerCase().includes(q)||ASSETS[a].sym.toLowerCase().includes(q)||ASSETS[a].name.toLowerCase().includes(q)||ASSETS[a].pair.toLowerCase().includes(q))).map(a=>{const c=changes[a]??DEMO_CHANGE[a];
   return `<button class="tick ${a===currentAsset?"on":""}" data-asset="${a}"><b>${ASSETS[a].sym}</b><span>${money(marketPrice(a))}</span><small class="${c>=0?"pos":"neg"}">${c>=0?"+":""}${c.toFixed(2)}%</small></button>`}).join("")||'<div class="empty">Активы не найдены.</div>';
 }
 function renderHead(){
@@ -511,6 +512,7 @@ function bind(){
  $("buyBtn").onclick=()=>openTrade("LONG");$("sellBtn").onclick=()=>openTrade("SHORT");
  $("amount").addEventListener("input",updateOrderPreview);
  if($("marketSearch"))$("marketSearch").addEventListener("input",renderTicker);
+ document.querySelectorAll("[data-market-cat]").forEach(b=>b.onclick=()=>{window.arvexMarketCat=b.dataset.marketCat;document.querySelectorAll("[data-market-cat]").forEach(x=>x.classList.toggle("on",x===b));renderTicker();});
  if($("marketSearchClear"))$("marketSearchClear").onclick=()=>{$("marketSearch").value="";renderTicker();};
  if($("chartNoteSave"))$("chartNoteSave").onclick=saveChartNote;
  if($("chartNoteClear"))$("chartNoteClear").onclick=()=>{$("chartNote").value="";saveChartNote();};
