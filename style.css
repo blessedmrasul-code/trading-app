@@ -259,3 +259,6 @@ html{overflow-x:hidden;max-width:100%}
 .chart-replay{padding:14px!important;margin:10px 0}.chart-replay input[type=range]{width:100%;accent-color:var(--purple);margin:10px 0}.chart-replay .row2{display:flex;align-items:center;justify-content:space-between;gap:8px}.chart-replay p{font-size:12px;margin:10px 0 0}
 
 .replay-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:8px 0}.replay-actions .field{max-width:100px;margin:0}.replay-actions button{flex:1;min-width:100px}
+
+/* Compact chart controls on narrow Android screens */
+.chart-bar{flex-wrap:wrap;row-gap:8px}.chart-tools{flex-wrap:wrap;max-width:100%}.chart-tools .tool{flex:0 0 auto}.chart-card{min-width:0}.chart-wrap{min-width:0}
