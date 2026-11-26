@@ -65,7 +65,7 @@
           <div class="ohlc" id="ohlcLine"></div>
           <div class="chart-wrap" id="chartWrap"><canvas id="chartCanvas"></canvas></div>
           <div class="chart-foot"><span id="chartSrc">Данные: Binance</span><span>Свайп — прокрутка · нажатие — перекрестие</span></div>
-          <button class="ghost chart-learning-toggle" id="chartLearningToggle" type="button">✦ Обучение по графику</button>
+          <button class="ghost chart-learning-toggle" id="chartLearningToggle" type="button">✦ Обучение по графику</button><button class="ghost chart-learning-toggle" id="replayToggle" type="button">◀ Историческая практика (Replay)</button><div class="chart-replay card" id="chartReplayPanel" hidden><label class="lbl">Перемещение по истории свечей</label><input id="replayRange" type="range" min="10" max="300" value="300"><div class="row2"><span id="replayCount">300 свечей</span><button class="ghost" id="replayReset">Показать весь график</button></div><p class="muted">Учебный режим: скрывает будущие свечи текущей загрузки. Не изменяет цены и не исполняет сделки.</p></div>
           <div class="chart-learning card" id="chartLearningPanel" hidden>
             <h3>Как читать этот график</h3>
             <p><b>Свеча:</b> тело показывает открытие и закрытие, фитили — максимум и минимум за период.</p>
