@@ -114,6 +114,12 @@ function synthCandles(asset,tfKey){
  const k=marketPrice(asset)/arr[n-1].c;
  return arr.map(x=>({...x,o:x.o*k,h:x.h*k,l:x.l*k,c:x.c*k}));
 }
+let replayAllCandles=[],replayActive=false;
+function applyReplay(count){
+ if(!replayAllCandles.length||!chart)return;const n=Math.max(10,Math.min(replayAllCandles.length,Number(count)||replayAllCandles.length));
+ candles=replayAllCandles.slice(0,n);chart.setData(candles,TF[tf]);updateOhlc();setChartLines();
+ if($("replayCount"))$("replayCount").textContent=n+" / "+replayAllCandles.length+" свечей";
+}
 async function loadCandles(){
  if(!chart)return;
  const asset=currentAsset,myTf=tf,req=++candleReq;let arr;
@@ -124,9 +130,10 @@ async function loadCandles(){
   klLive=true;
  }catch(e){klLive=false;arr=synthCandles(asset,myTf)}
  if(req!==candleReq)return;
- candles=arr;
+ replayAllCandles=arr;
  if(klLive&&!live)prices[asset]=arr[arr.length-1].c;
- chart.setData(candles,TF[myTf]);updateOhlc();setChartLines();renderHead();
+ candles=arr;chart.setData(candles,TF[myTf]);updateOhlc();setChartLines();renderHead();
+ if(replayActive&&$("replayRange")){const rg=$("replayRange");rg.max=arr.length;rg.min=10;rg.value=arr.length;applyReplay(rg.value);}
 }
 function updateOhlc(c){
  const k=c||candles[candles.length-1];if(!k){$("ohlcLine").innerHTML="";return}
@@ -483,9 +490,9 @@ function bind(){
   if(t.closest("#avPhotoDel")){pendingPhoto="";renderAvatarPicker();return}
   const go_=t.closest("[data-go]");if(go_){go(go_.dataset.go);return}
   const cl=t.closest("[data-close]");if(cl){closePosition(Number(cl.dataset.close));return}
-  const as=t.closest("[data-asset]");if(as){currentAsset=as.dataset.asset;saveState();renderTicker();renderHead();updateOrderPreview();candles=[];chart.setData([]);loadCandles();if($("chartNote"))loadChartNote();return}
+  const as=t.closest("[data-asset]");if(as){currentAsset=as.dataset.asset;saveState();renderTicker();renderHead();updateOrderPreview();candles=[];chart.setData([]);replayActive=false;if($("chartReplayPanel"))$("chartReplayPanel").hidden=true;loadCandles();if($("chartNote"))loadChartNote();return}
   if(t.closest("#chartLearningToggle")){const panel=$("chartLearningPanel");if(panel){panel.hidden=!panel.hidden; t.closest("#chartLearningToggle").textContent=panel.hidden?"✦ Обучение по графику":"✦ Скрыть обучение";}return}
-  const tfb=t.closest("[data-tf]");if(tfb){tf=tfb.dataset.tf;document.querySelectorAll("#tfSeg button").forEach(b=>b.classList.toggle("on",b===tfb));loadCandles();return}
+  const tfb=t.closest("[data-tf]");if(tfb){tf=tfb.dataset.tf;replayActive=false;if($("chartReplayPanel"))$("chartReplayPanel").hidden=true;document.querySelectorAll("#tfSeg button").forEach(b=>b.classList.toggle("on",b===tfb));loadCandles();return}
   const ind=t.closest("[data-ind]");if(ind){const k=ind.dataset.ind;chart[k]=!chart[k];ind.classList.toggle("on",chart[k]);if(k==="fractals")setChartLines();chart.draw();return}
   const lv=t.closest("[data-lev]");if(lv){$("leverage").value=lv.dataset.lev;$("levLabel").textContent=lv.dataset.lev+"x";document.querySelectorAll("#levChips button").forEach(b=>b.classList.toggle("on",b===lv));updateOrderPreview();return}
   const pc=t.closest("[data-pct]");if(pc){$("amount").value=Math.floor(balance*Number(pc.dataset.pct))/100;updateOrderPreview();return}
@@ -515,6 +522,9 @@ function bind(){
  document.querySelectorAll("[data-market-cat]").forEach(b=>b.onclick=()=>{window.arvexMarketCat=b.dataset.marketCat;document.querySelectorAll("[data-market-cat]").forEach(x=>x.classList.toggle("on",x===b));renderTicker();});
  if($("marketSearchClear"))$("marketSearchClear").onclick=()=>{$("marketSearch").value="";renderTicker();};
  if($("chartNoteSave"))$("chartNoteSave").onclick=saveChartNote;
+ if($("replayToggle"))$("replayToggle").onclick=()=>{replayActive=!replayActive;$("chartReplayPanel").hidden=!replayActive;$("replayToggle").textContent=replayActive?"◀ Скрыть Replay":"◀ Историческая практика (Replay)";if(replayActive){const r=$("replayRange");r.max=replayAllCandles.length;r.value=replayAllCandles.length;applyReplay(r.value);}};
+ if($("replayRange"))$("replayRange").addEventListener("input",e=>applyReplay(e.target.value));
+ if($("replayReset"))$("replayReset").onclick=()=>{if($("replayRange"))$("replayRange").value=replayAllCandles.length;applyReplay(replayAllCandles.length);};
  if($("chartNoteClear"))$("chartNoteClear").onclick=()=>{$("chartNote").value="";saveChartNote();};
  $("fsBtn").onclick=()=>setFullscreen(true);$("fsClose").onclick=()=>setFullscreen(false);
  $("zoomIn").onclick=()=>chart.zoom(0.8);$("zoomOut").onclick=()=>chart.zoom(1.25);
