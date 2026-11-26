@@ -140,6 +140,7 @@ function setChartLines(){
   if(v.liq)L.push({price:v.liq,color:"#ff5470",label:"LIQ"});
   if(p.tp)L.push({price:p.tp,color:"#2ee59d",label:"TP"});
   if(p.sl)L.push({price:p.sl,color:"#ff9f43",label:"SL"});});
+ if(chart.fractals&&candles.length>5){let highs=[],lows=[];for(let i=2;i<candles.length-2;i++){const q=candles[i];if(q.h>candles[i-1].h&&q.h>candles[i-2].h&&q.h>candles[i+1].h&&q.h>candles[i+2].h)highs.push(q.h);if(q.l<candles[i-1].l&&q.l<candles[i-2].l&&q.l<candles[i+1].l&&q.l<candles[i+2].l)lows.push(q.l)}highs.slice(-4).forEach(p=>L.push({price:p,color:"#ff9f43",label:"FR high"}));lows.slice(-4).forEach(p=>L.push({price:p,color:"#68e0d0",label:"FR low"}));}
  chart.setLines(L);
 }
 
@@ -480,7 +481,7 @@ function bind(){
   const as=t.closest("[data-asset]");if(as){currentAsset=as.dataset.asset;saveState();renderTicker();renderHead();updateOrderPreview();candles=[];chart.setData([]);loadCandles();return}
   if(t.closest("#chartLearningToggle")){const panel=$("chartLearningPanel");if(panel){panel.hidden=!panel.hidden; t.closest("#chartLearningToggle").textContent=panel.hidden?"✦ Обучение по графику":"✦ Скрыть обучение";}return}
   const tfb=t.closest("[data-tf]");if(tfb){tf=tfb.dataset.tf;document.querySelectorAll("#tfSeg button").forEach(b=>b.classList.toggle("on",b===tfb));loadCandles();return}
-  const ind=t.closest("[data-ind]");if(ind){const k=ind.dataset.ind;chart[k]=!chart[k];ind.classList.toggle("on",chart[k]);chart.draw();return}
+  const ind=t.closest("[data-ind]");if(ind){const k=ind.dataset.ind;chart[k]=!chart[k];ind.classList.toggle("on",chart[k]);if(k==="fractals")setChartLines();chart.draw();return}
   const lv=t.closest("[data-lev]");if(lv){$("leverage").value=lv.dataset.lev;$("levLabel").textContent=lv.dataset.lev+"x";document.querySelectorAll("#levChips button").forEach(b=>b.classList.toggle("on",b===lv));updateOrderPreview();return}
   const pc=t.closest("[data-pct]");if(pc){$("amount").value=Math.floor(balance*Number(pc.dataset.pct))/100;updateOrderPreview();return}
   const op=t.closest("[data-open]");if(op){confirmTrade(op.dataset.open);return}
