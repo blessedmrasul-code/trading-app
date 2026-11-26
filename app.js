@@ -2,12 +2,18 @@
    Учебный симулятор: все средства виртуальные. By Mrasulv */
 const $=id=>document.getElementById(id);
 const ASSETS={
- BTCUSDT:{sym:"BTC",name:"Bitcoin",pair:"BTC / USDT",fb:74900},
- ETHUSDT:{sym:"ETH",name:"Ethereum",pair:"ETH / USDT",fb:3200},
- SOLUSDT:{sym:"SOL",name:"Solana",pair:"SOL / USDT",fb:165},
- BNBUSDT:{sym:"BNB",name:"BNB",pair:"BNB / USDT",fb:620}
+ BTCUSDT:{sym:"BTC",name:"Bitcoin",pair:"BTC / USDT",fb:74900},ETHUSDT:{sym:"ETH",name:"Ethereum",pair:"ETH / USDT",fb:3200},
+ SOLUSDT:{sym:"SOL",name:"Solana",pair:"SOL / USDT",fb:165},BNBUSDT:{sym:"BNB",name:"BNB",pair:"BNB / USDT",fb:620},
+ XRPUSDT:{sym:"XRP",name:"XRP",pair:"XRP / USDT",fb:2.2},ADAUSDT:{sym:"ADA",name:"Cardano",pair:"ADA / USDT",fb:0.72},
+ DOGEUSDT:{sym:"DOGE",name:"Dogecoin",pair:"DOGE / USDT",fb:0.18},TONUSDT:{sym:"TON",name:"Toncoin",pair:"TON / USDT",fb:5.2},
+ TRXUSDT:{sym:"TRX",name:"TRON",pair:"TRX / USDT",fb:0.15},AVAXUSDT:{sym:"AVAX",name:"Avalanche",pair:"AVAX / USDT",fb:38},
+ LINKUSDT:{sym:"LINK",name:"Chainlink",pair:"LINK / USDT",fb:18},DOTUSDT:{sym:"DOT",name:"Polkadot",pair:"DOT / USDT",fb:8},
+ LTCUSDT:{sym:"LTC",name:"Litecoin",pair:"LTC / USDT",fb:95},BCHUSDT:{sym:"BCH",name:"Bitcoin Cash",pair:"BCH / USDT",fb:420},
+ NEARUSDT:{sym:"NEAR",name:"NEAR",pair:"NEAR / USDT",fb:6},APTUSDT:{sym:"APT",name:"Aptos",pair:"APT / USDT",fb:12},
+ SUIUSDT:{sym:"SUI",name:"Sui",pair:"SUI / USDT",fb:2.1},ETCUSDT:{sym:"ETC",name:"Ethereum Classic",pair:"ETC / USDT",fb:28},
+ UNIUSDT:{sym:"UNI",name:"Uniswap",pair:"UNI / USDT",fb:10},ATOMUSDT:{sym:"ATOM",name:"Cosmos",pair:"ATOM / USDT",fb:12}
 };
-const DEMO_CHANGE={BTCUSDT:1.24,ETHUSDT:-0.62,SOLUSDT:2.8,BNBUSDT:0.35};
+const DEMO_CHANGE={BTCUSDT:1.24,ETHUSDT:-0.62,SOLUSDT:2.8,BNBUSDT:0.35,XRPUSDT:1.1,ADAUSDT:-.8,DOGEUSDT:2.2,TONUSDT:1.6,TRXUSDT:.4,AVAXUSDT:-1.3,LINKUSDT:.9,DOTUSDT:-.6,LTCUSDT:.3,BCHUSDT:1.5,NEARUSDT:-1.1,APTUSDT:.7,SUIUSDT:2,ETCUSDT:-.4,UNIUSDT:1.2,ATOMUSDT:-.2};
 const TF={"1m":60000,"5m":300000,"15m":900000,"1h":3600000,"4h":14400000,"1d":86400000};
 const API="https://api.binance.com/api/v3";
 const STORAGE_KEY="arvex_v3_state";
