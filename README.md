@@ -109,3 +109,11 @@ The repository's `cloud-config.js` is already connected to the ARVEX Supabase pr
 - Payment verification reads confirmed TRC-20 transfers from TronGrid and only activates Premium after the server verifies the recipient, USDT contract, exact invoice amount, timestamp, and unique transaction ID.
 - Add `TRONGRID_API_KEY` as a Supabase Edge Function secret before enabling live crypto payments. Do not put this key, a wallet private key, or a seed phrase in the repository or browser code.
 - A crypto invoice expires after 30 minutes. If a transfer was broadcast before expiry but confirmation arrives shortly after, the server allows a 10-minute confirmation grace period.
+
+
+## ARVEX Feature Pack
+- 20 уровней и названий рангов.
+- Встроенный дополнительный справочник торговых терминов с поиском.
+- Локальный центр уведомлений; переключатель синхронизирован с настройкой звуковой/вибро обратной связи приложения.
+- Откройте плавающую кнопку **✦ Обновление** внутри приложения.
+- Эти функции не проверялись в реальном браузере после изменений; Premium ограничение требует серверной реализации.
