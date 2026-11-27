@@ -56,8 +56,8 @@ function loadState(){
  try{s=JSON.parse(localStorage.getItem(STORAGE_KEY)||"null")}catch(e){}
  if(s&&typeof s==="object"){
   const n=(v,d)=>Number.isFinite(v)?v:d;
-  balance=n(s.balance,10000);closedPnl=n(s.closedPnl,0);xp=n(s.xp,0);level=Math.max(1,n(s.level,1));
-  positions=Array.isArray(s.positions)?s.positions:[];history=Array.isArray(s.history)?s.history:[];
+  balance=Math.max(0,n(s.balance,10000));closedPnl=n(s.closedPnl,0);xp=Math.max(0,n(s.xp,0));level=Math.max(1,Math.floor(n(s.level,1)));
+  positions=Array.isArray(s.positions)?s.positions.filter(p=>p&&ASSETS[p.asset]&&Number.isFinite(p.entry)&&p.entry>0&&Number.isFinite(p.margin)&&p.margin>0&&Number.isFinite(p.leverage)&&p.leverage>=1&&p.leverage<=20&&["LONG","SHORT"].includes(p.direction)):[];history=Array.isArray(s.history)?s.history.filter(p=>p&&ASSETS[p.asset]&&Number.isFinite(p.pnl)&&Number.isFinite(p.entry)&&p.entry>0):[];
   if(s.currentAsset&&ASSETS[s.currentAsset])currentAsset=s.currentAsset;
   if(s.progress&&typeof s.progress==="object")progress={lessons:{...(s.progress.lessons||{})},quizzes:{...(s.progress.quizzes||{})},exams:{...(s.progress.exams||{})},masterclass:{...(s.progress.masterclass||{})}};
   tourDone=!!s.tourDone;
