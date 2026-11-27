@@ -21,7 +21,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y ffmpeg
-          python -m pip install requests
+          python -m pip install requests Pillow
       - name: Generate video
         run: python tools/arvex_video.py
       - name: Upload video
