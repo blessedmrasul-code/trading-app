@@ -1,6 +1,7 @@
 import json
 import os
 import subprocess
+import time
 from pathlib import Path
 import requests
 
@@ -40,20 +41,19 @@ def parse_result(raw):
                 return item.get("url") or item.get("path")
     raise RuntimeError("No completed video returned by the public Space.")
 
-def generate(prompt, n):
+def generate_once(prompt, n, headers):
     body = {"data": [prompt, NEG, "", "", 1280, 720, "text-to-video", 6.75, 9, 20261127+n, True, 1, True]}
-    headers = {"Content-Type": "application/json"}
-    if os.getenv("HF_TOKEN"):
-        headers["Authorization"] = "Bearer " + os.environ["HF_TOKEN"]
     res = requests.post(API, json=body, headers=headers, timeout=90)
     res.raise_for_status()
     event_id = res.json().get("event_id")
     if not event_id:
-        raise RuntimeError("Space did not return an event id.")
+        raise RuntimeError("Space did not return an event id: " + res.text[:500])
     print("Waiting for scene", n, "(shared free queue)...", flush=True)
     res = requests.get(API + "/" + event_id, headers=headers, timeout=(30, 900))
     res.raise_for_status()
     url = parse_result(res.text)
+    if not url:
+        raise RuntimeError("Space completed without returning a video URL.")
     if url.startswith("/"):
         url = SPACE + url
     target = TMP / ("scene_" + str(n) + ".mp4")
@@ -66,6 +66,25 @@ def generate(prompt, n):
     if target.stat().st_size < 10000:
         raise RuntimeError("Downloaded scene is unexpectedly small.")
     return target
+
+def generate(prompt, n):
+    headers = {"Content-Type": "application/json"}
+    if os.getenv("HF_TOKEN"):
+        headers["Authorization"] = "Bearer " + os.environ["HF_TOKEN"]
+    delays = [20, 45, 90]
+    last_error = None
+    for attempt in range(1, len(delays) + 2):
+        try:
+            print("Scene", n, "- attempt", attempt, "of", len(delays) + 1, flush=True)
+            return generate_once(prompt, n, headers)
+        except Exception as exc:
+            last_error = exc
+            print("Scene", n, "attempt", attempt, "failed:", repr(exc), flush=True)
+            if attempt <= len(delays):
+                wait = delays[attempt - 1]
+                print("Retrying scene", n, "in", wait, "seconds...", flush=True)
+                time.sleep(wait)
+    raise RuntimeError("Scene " + str(n) + " failed after retries. Last error: " + repr(last_error))
 
 def run(args):
     print("+", " ".join(str(x) for x in args), flush=True)
