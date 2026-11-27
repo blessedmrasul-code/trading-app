@@ -171,7 +171,7 @@ for (const lesson of MASTER_LESSONS) {
 assert.equal(MASTER_FINAL.length, 12, "Creator final exam must contain twelve questions");
 assert.equal(MASTER_STRESS.length, 20, "Premium stress exam must contain twenty questions");
 for (const q of MASTER_STRESS) assert.ok(q.options.length >= 3 && Number.isInteger(q.answer) && q.answer >= 0 && q.answer < q.options.length, "Stress exam question has invalid answer data");
-assert.ok(app.includes("masterclass:{}") && app.includes("masterclass:{...(s.progress.masterclass||{})}"), "Creator masterclass progress must persist without resetting existing progress");
+assert.ok(app.includes("masterclass:{}") && app.includes("masterclass:cleanMap(s.progress.masterclass)") && app.includes("progress"), "Creator masterclass progress must persist without resetting existing progress");
 assert.ok(app.includes('Access.refresh().then(()=>{if(typeof schoolTab!=="undefined"&&schoolTab==="masterclass"'), "Premium entitlement must refresh when the app returns from Telegram payment");
 assert.ok(cloud.includes("/functions/v1/admin-user-ban") && cloud.includes("data-admin-unban-user"), "Admin must be able to ban and unban accounts");
 assert.ok(cloud.includes("arvex_admin_set_subscription") && cloud.includes("arvex_admin_revoke_subscription"), "Admin panel must grant, extend and revoke Premium");
