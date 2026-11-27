@@ -90,8 +90,8 @@ def main():
     endcard = TMP / "endcard.mp4"
     font = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
     vf = ("drawtext=fontfile=" + font + ":text='ARVEX':fontcolor=white:fontsize=104:x=(w-text_w)/2:y=470,"
-          "drawtext=fontfile=" + font + ":text='TORGUY. RAZVIVAYSYA. POBEZHDAY.':fontcolor=0xB99AFF:fontsize=25:x=(w-text_w)/2:y=625,"
-          "drawtext=fontfile=" + font + ":text='ARVEX':fontcolor=white:fontsize=30:x=(w-text_w)/2:y=710")
+          "drawtext=fontfile=" + font + ":text='Торгуй. Развивайся. Побеждай.':fontcolor=0xB99AFF:fontsize=25:x=(w-text_w)/2:y=625,"
+          "drawtext=fontfile=" + font + ":text='Начни обучение с ARVEX':fontcolor=white:fontsize=27:x=(w-text_w)/2:y=710")
     run(["ffmpeg", "-y", "-f", "lavfi", "-i", "color=c=#090711:s=720x1280:r=30:d=3",
          "-vf", vf, "-c:v", "libx264", "-preset", "veryfast", "-pix_fmt", "yuv420p", str(endcard)])
 
