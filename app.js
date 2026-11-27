@@ -126,14 +126,15 @@ function applyReplay(count){
 }
 async function loadCandles(){
  if(!chart)return;
- const asset=currentAsset,myTf=tf,req=++candleReq;let arr;
+ const asset=currentAsset,myTf=tf,req=++candleReq;let arr,requestLive=false;
  try{
   const raw=await fetchJSON(`${API}/klines?symbol=${asset}&interval=${myTf}&limit=300`);
   arr=raw.map(k=>({t:+k[0],o:+k[1],h:+k[2],l:+k[3],c:+k[4],v:+k[5]}));
   if(!arr.length||arr.some(c=>!Number.isFinite(c.c)||!Number.isFinite(c.t)))throw new Error("bad data");
-  klLive=true;
- }catch(e){klLive=false;arr=synthCandles(asset,myTf)}
+  requestLive=true;
+ }catch(e){arr=synthCandles(asset,myTf)}
  if(req!==candleReq)return;
+ klLive=requestLive;
  replayAllCandles=arr;
  if(klLive&&!live)prices[asset]=arr[arr.length-1].c;
  candles=arr;chart.setData(candles,TF[myTf]);updateOhlc();setChartLines();renderHead();
@@ -201,7 +202,7 @@ function openTrade(direction){
 }
 function tradeXpFor(p){
  if(!p||!Number.isFinite(p.time)||Date.now()-p.time<30000)return 0;
- const day=new Date().toISOString().slice(0,10);if(tradeXp.day!==day)tradeXp={day,amount:0};
+ const nowDay=new Date(),day=[nowDay.getFullYear(),String(nowDay.getMonth()+1).padStart(2,'0'),String(nowDay.getDate()).padStart(2,'0')].join('-');if(tradeXp.day!==day)tradeXp={day,amount:0};
  tradeXp.amount=Math.max(0,Math.min(50,Number(tradeXp.amount)||0));
  const give=Math.min(10,50-tradeXp.amount);if(give<=0)return 0;tradeXp.amount+=give;return give;
 }
