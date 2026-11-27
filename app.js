@@ -193,8 +193,9 @@ function openTrade(direction){
  showToast(`${direction} ${lev}x открыт. Ликвидация: ${lq?money(lq):"—"}${slBeyond?" ⚠ стоп дальше ликвидации":""}`);return true;
 }
 function tradeXpFor(p){
- if(Date.now()-p.time<30000)return 0; // защита от накрутки XP быстрыми сделками
+ if(!p||!Number.isFinite(p.time)||Date.now()-p.time<30000)return 0;
  const day=new Date().toISOString().slice(0,10);if(tradeXp.day!==day)tradeXp={day,amount:0};
+ tradeXp.amount=Math.max(0,Math.min(50,Number(tradeXp.amount)||0));
  const give=Math.min(10,50-tradeXp.amount);if(give<=0)return 0;tradeXp.amount+=give;return give;
 }
 // reason: "liq" | "sl" | "tp" | undefined (вручную). exitPrice — цена срабатывания стопа/тейка.
