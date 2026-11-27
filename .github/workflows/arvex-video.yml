@@ -2,6 +2,11 @@ name: ARVEX 30s video
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'tools/arvex_video.py'
+      - '.github/workflows/arvex-video.yml'
 
 permissions:
   contents: read
