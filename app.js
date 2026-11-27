@@ -280,7 +280,7 @@ function applyAvatar(el,idx,name,photo){
  el.textContent=((name||"A").trim().charAt(0)||"A").toUpperCase();
 }
 function renderTop(){
- $("topBalance").textContent=Math.abs(balance)>=1e6?(balance<0?"-":"")+"$"+(Math.abs(balance)/1e6).toFixed(2)+"M":money(balance);$("topLvl").textContent=level;
+ $("topBalance").textContent=Math.abs(balance)>=1e6?(balance<0?"-":"")+"$"+(Math.abs(balance)/1e6).toFixed(2)+"M":money(balance);$("topLvl").textContent=level;$("topLvl").title="Уровень "+level+" · "+levelTitle();
  applyAvatar($("topAvatar"),profile?.avatar,profile?.name,profile?.photo);
  if(activeScreen==="profile")renderProfile();
 }
