@@ -70,7 +70,7 @@ function loadState(){
  positions=positions.filter(p=>p&&ASSETS[p.asset]&&Number.isFinite(p.amount)&&Number.isFinite(p.entry));
  history=history.filter(p=>p&&ASSETS[p.asset]&&Number.isFinite(p.pnl));
 }
-function addXp(n){xp+=n;let up=false;if(xp>=100){level+=Math.floor(xp/100);xp%=100;up=true}return up}
+function addXp(n){n=Number(n);if(!Number.isFinite(n)||n<=0)return false;xp=Math.max(0,xp)+n;let up=false;while(xp>=100){xp-=100;level=Math.min(20,level+1);up=true}if(level>=20)xp=Math.min(xp,99);return up}
 function awardOnce(kind,id,amount){
  if(progress[kind][id])return {awarded:false,levelUp:false};
  progress[kind][id]=true;const levelUp=addXp(amount);saveState();renderTop();return {awarded:true,levelUp};
