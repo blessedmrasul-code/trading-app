@@ -30,7 +30,7 @@ let prices={}, changes={}, live=false, klLive=false, tf="15m", candles=[], chart
 setTimeout(()=>{const s=$("splash");if(s)s.classList.add("out")},4500);
 
 /* ===== Утилиты ===== */
-function money(n){if(Math.abs(n)<0.00001)n=0;const a=Math.abs(n);return (n<0?"-":"")+"$"+a.toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:a>=1?2:5})}
+function money(n){n=Number(n);if(!Number.isFinite(n))n=0;if(Math.abs(n)<0.00001)n=0;const a=Math.abs(n);return (n<0?"-":"")+"$"+a.toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:a>=1?2:5})}
 function signed(n){return (n>0?"+":"")+money(n)}
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 function appFeedback(){
