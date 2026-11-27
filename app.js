@@ -176,6 +176,7 @@ function readTpSl(direction,entry){
 }
 function openTrade(direction){
  const margin=Number($("amount").value),lev=Number($("leverage").value)||1;
+ if(!Number.isFinite(lev)||lev<1||lev>20){showToast("Плечо должно быть от 1x до 20x.");return false}
  if(!Number.isFinite(margin)||margin<=0){showToast("Укажи сумму больше нуля.");return false}
  if(margin<1){showToast("Минимальная сумма — $1.");return false}
  if(margin>balance){showToast("Недостаточно демо-средств для маржи.");return false}
