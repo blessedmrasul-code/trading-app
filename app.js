@@ -532,7 +532,7 @@ function bind(){
   if(t.closest("#resetAccount")){resetAccount();return}
   if(t.id==="sheet"){closeSheet();return}
  });
- $("buyBtn").onclick=()=>openTrade("LONG");$("sellBtn").onclick=()=>openTrade("SHORT");
+ const buy=$("buyBtn"),sell=$("sellBtn");if(buy)buy.onclick=()=>openTrade("LONG");if(sell)sell.onclick=()=>openTrade("SHORT");
  $("amount").addEventListener("input",updateOrderPreview);
  if($("marketSearch"))$("marketSearch").addEventListener("input",renderTicker);
  document.querySelectorAll("[data-market-cat]").forEach(b=>b.onclick=()=>{window.arvexMarketCat=b.dataset.marketCat;document.querySelectorAll("[data-market-cat]").forEach(x=>x.classList.toggle("on",x===b));renderTicker();});
