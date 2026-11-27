@@ -11,7 +11,7 @@ class CandleChart{
   this._raf=0;this._bind();this.resize();
  }
  setData(arr,tfMs){
-  this.data=arr||[];if(tfMs)this.tfMs=tfMs;
+  this.data=Array.isArray(arr)?arr.filter(x=>x&&Number.isFinite(Number(x.t))&&[x.o,x.h,x.l,x.c].every(v=>Number.isFinite(Number(v)))&&Number(x.h)>=Number(x.l)):[];if(Number.isFinite(Number(tfMs))&&Number(tfMs)>0)this.tfMs=tfMs;
   this.offset=Math.min(this.offset,Math.max(0,this.data.length-10));
   this.draw();
  }
@@ -19,8 +19,8 @@ class CandleChart{
  setType(type){this.type=["candle","line","ha"].includes(type)?type:"candle";this.draw()}
  resize(){
   const p=this.c.parentElement;if(!p)return;
-  const r=p.getBoundingClientRect(),dpr=window.devicePixelRatio||1;
-  this.w=Math.max(160,Math.floor(r.width));this.h=Math.max(140,Math.floor(r.height));
+  const r=p.getBoundingClientRect();let dpr=window.devicePixelRatio||1;
+  this.w=Math.max(160,Math.floor(r.width));this.h=Math.max(140,Math.floor(r.height));if(!Number.isFinite(dpr)||dpr<=0)dpr=1;
   this.c.width=Math.floor(this.w*dpr);this.c.height=Math.floor(this.h*dpr);
   this.c.style.width=this.w+"px";this.c.style.height=this.h+"px";
   this.ctx.setTransform(dpr,0,0,dpr,0,0);this.draw();
