@@ -19,7 +19,6 @@ PROMPTS = [
     HERO + ". Late at night he sits at a desk, overwhelmed by red and green trading charts, rain on the window, worried expression, slow camera push-in. " + STYLE,
     HERO + ". He discovers an educational trading simulator glowing violet on his monitor, curiosity replaces confusion, over-the-shoulder camera, no readable interface text. " + STYLE,
     HERO + ". He studies a short lesson and practices on a clearly virtual trading chart, focused expression, smooth side camera move, no real money or real trades. " + STYLE,
-    HERO + ". He sits upright and confident, violet light reflects in his eyes, the chart becomes orderly, cinematic pull-back, hopeful mood, no words or logos. " + STYLE,
 ]
 
 def parse_result(raw):
@@ -114,7 +113,7 @@ def main():
     vf = ("drawtext=fontfile=" + font + ":text='ARVEX':fontcolor=white:fontsize=104:x=(w-text_w)/2:y=470,"
           "drawtext=fontfile=" + font + ":text='Торгуй. Развивайся. Побеждай.':fontcolor=0xB99AFF:fontsize=25:x=(w-text_w)/2:y=625,"
           "drawtext=fontfile=" + font + ":text='Начни обучение с ARVEX':fontcolor=white:fontsize=27:x=(w-text_w)/2:y=710")
-    run(["ffmpeg", "-y", "-f", "lavfi", "-i", "color=c=#090711:s=720x1280:r=30:d=3",
+    run(["ffmpeg", "-y", "-f", "lavfi", "-i", "color=c=#090711:s=720x1280:r=30:d=9",
          "-vf", vf, "-c:v", "libx264", "-preset", "veryfast", "-pix_fmt", "yuv420p", str(endcard)])
 
     final_list = TMP / "final.txt"
