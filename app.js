@@ -165,10 +165,12 @@ function posView(p,now=marketPrice(p.asset)){
  return {lev,margin,size,pnl,funding,net,equity,liq:liqPrice(p.entry,lev,p.direction),isLiq:equity<=size*MMR};
 }
 function updateOrderPreview(){
- const margin=Number($("amount").value)||0,lev=Number($("leverage").value)||1,entry=marketPrice();
- $("posSize").textContent=money(margin*lev);$("available").textContent=money(balance);
+ const amount=$("amount"),leverage=$("leverage"),size=$("posSize"),available=$("available"),long=$("liqLong"),short=$("liqShort");
+ if(!amount||!leverage||!size||!available||!long||!short)return;
+ const margin=Number(amount.value)||0,lev=Number(leverage.value)||1,entry=marketPrice();
+ size.textContent=money(margin*lev);available.textContent=money(balance);
  const l=liqPrice(entry,lev,"LONG"),s=liqPrice(entry,lev,"SHORT");
- $("liqLong").textContent=l?money(l):"—";$("liqShort").textContent=s?money(s):"—";
+ long.textContent=l?money(l):"—";short.textContent=s?money(s):"—";
 }
 function readTpSl(direction,entry){
  const parse=id=>{const raw=String($(id).value||"").trim().replace(",",".");if(!raw)return {v:null};const n=Number(raw);return Number.isFinite(n)&&n>0?{v:n}:{err:true}};
