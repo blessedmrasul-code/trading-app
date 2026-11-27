@@ -169,7 +169,7 @@ function posView(p,now=marketPrice(p.asset)){
 function updateOrderPreview(){
  const amount=$("amount"),leverage=$("leverage"),size=$("posSize"),available=$("available"),long=$("liqLong"),short=$("liqShort");
  if(!amount||!leverage||!size||!available||!long||!short)return;
- const margin=Number(amount.value)||0,lev=Number(leverage.value)||1,entry=marketPrice();
+ const margin=Math.max(0,Number(amount.value)||0),lev=Math.max(1,Math.min(20,Number(leverage.value)||1)),entry=marketPrice();
  size.textContent=money(margin*lev);available.textContent=money(balance);
  const l=liqPrice(entry,lev,"LONG"),s=liqPrice(entry,lev,"SHORT");
  long.textContent=l?money(l):"—";short.textContent=s?money(s):"—";
