@@ -170,9 +170,13 @@ function readTpSl(direction,entry){
  const parse=id=>{const raw=String($(id).value||"").trim().replace(",",".");if(!raw)return {v:null};const n=Number(raw);return Number.isFinite(n)&&n>0?{v:n}:{err:true}};
  const t=parse("tpPct"),l=parse("slPct");
  if(t.err||l.err)return {err:"Тейк-профит и стоп-лосс — положительные проценты (или оставь пустыми)."};
+ if(t.v!=null&&t.v>10000)return {err:"Тейк-профит не может превышать 10000%."};
  if(l.v!=null&&l.v>=100)return {err:"Стоп-лосс должен быть меньше 100%."};
  const d=direction==="LONG"?1:-1;
- return {tp:t.v!=null?entry*(1+d*t.v/100):null,sl:l.v!=null?entry*(1-d*l.v/100):null};
+ const tp=t.v!=null?entry*(1+d*t.v/100):null,sl=l.v!=null?entry*(1-d*l.v/100):null;
+ if(tp!=null&&(!Number.isFinite(tp)||tp<=0))return {err:"Некорректный тейк-профит."};
+ if(sl!=null&&(!Number.isFinite(sl)||sl<=0))return {err:"Некорректный стоп-лосс."};
+ return {tp,sl};
 }
 function openTrade(direction){
  const margin=Number($("amount").value),lev=Number($("leverage").value)||1;
