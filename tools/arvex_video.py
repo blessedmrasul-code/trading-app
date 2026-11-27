@@ -42,7 +42,9 @@ def parse_result(raw):
     raise RuntimeError("No completed video returned by the public Space.")
 
 def generate_once(prompt, n, headers):
-    body = {"data": [prompt, NEG, "", "", 1280, 720, "text-to-video", 6.75, 9, 20261127+n, True, 1, True]}
+    # The Space sliders accept only multiples of 32. 720 is invalid (not divisible by 32),
+    # and Gradio responds with an opaque SSE "error: null". Use valid portrait dimensions.
+    body = {"data": [prompt, NEG, None, None, 1280, 704, "text-to-video", 6.75, 9, 20261127+n, True, 1.0, True]}
     res = requests.post(API, json=body, headers=headers, timeout=90)
     res.raise_for_status()
     event_id = res.json().get("event_id")
