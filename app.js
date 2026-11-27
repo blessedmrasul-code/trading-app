@@ -260,7 +260,7 @@ function renderHead(){
  $("chartSrc").textContent=klLive?"Данные: Binance":"Иллюстративные данные (нет связи с Binance)";
 }
 function positionRows(){
- positions=Array.isArray(positions)?positions.filter(p=>p&&ASSETS[p.asset]&&["LONG","SHORT"].includes(p.direction)&&Number.isFinite(Number(p.entry))&&Number(p.entry)>0):[];
+ positions=Array.isArray(positions)?positions.filter(p=>p&&ASSETS[p.asset]&&["LONG","SHORT"].includes(p.direction)&&Number.isFinite(Number(p.entry))&&Number(p.entry)>0&&Number.isFinite(Number(p.margin??p.amount))&&Number(p.margin??p.amount)>0&&Number.isFinite(Number(p.leverage))&&Number(p.leverage)>=1&&Number(p.leverage)<=20&&Number.isFinite(Number(p.size??p.amount))&&Number(p.size??p.amount)>0):[];
  if(!positions.length)return `<div class="empty">Нет открытых позиций.<br>Выбери направление и открой первую демо-сделку.</div>`;
  return positions.map(p=>{const v=posView(p);
   return `<div class="pos-row"><div class="l"><span class="tag ${p.direction==="LONG"?"long":"short"}">${p.direction} ${v.lev}x</span><b>${ASSETS[p.asset].sym}</b><small>Вход ${money(p.entry)} · Размер ${money(v.size)}</small></div>
@@ -272,7 +272,7 @@ function renderPositions(){
  setChartLines();renderPortfolioStats();
 }
 function historyRows(){
- history=Array.isArray(history)?history.filter(h=>h&&ASSETS[h.asset]&&["LONG","SHORT"].includes(h.direction)&&Number.isFinite(Number(h.entry))&&Number(h.entry)>0):[];
+ history=Array.isArray(history)?history.filter(h=>h&&ASSETS[h.asset]&&["LONG","SHORT"].includes(h.direction)&&Number.isFinite(Number(h.entry))&&Number(h.entry)>0&&Number.isFinite(Number(h.pnl))&&Number.isFinite(Number(h.size??h.amount))&&Number(h.size??h.amount)>0).slice(0,300):[];
  if(!history.length)return `<div class="empty">История пуста. Закрытые сделки появятся здесь.</div>`;
  const rtag=h=>h.liquidated?'<span class="tag liq">ЛИКВИДАЦИЯ</span>':h.reason==="sl"?'<span class="tag liq">СТОП</span>':h.reason==="tp"?'<span class="tag long">ТЕЙК</span>':"";
  return history.slice(0,60).map(h=>`<div class="pos-row"><div class="l"><span class="tag ${h.direction==="LONG"?"long":"short"}">${h.direction} ${h.leverage||1}x</span><b>${ASSETS[h.asset].sym}</b>${rtag(h)}<small>${new Date(h.closed||h.time).toLocaleString("ru-RU",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})}</small></div>
@@ -392,6 +392,8 @@ function confirmTrade(direction){
  const margin=Number($("amount").value),lev=Number($("leverage").value)||1;
  if(!Number.isFinite(margin)||margin<=0){showToast("Укажи сумму больше нуля.");return}
  if(margin>balance){showToast("Недостаточно демо-средств для маржи.");return}
+ if(positions.length>=100){showToast("Лимит демо-позиций (100) достигнут. Закрой часть позиций.");return}
+ if(!Number.isFinite(lev)||lev<1||lev>20){showToast("Плечо должно быть от 1x до 20x.");return}
  const entry=marketPrice(),lq=liqPrice(entry,lev,direction),ts=readTpSl(direction,entry);
  if(ts.err){showToast(ts.err);return}
  openSheet(`<h3>${direction} ${ASSETS[currentAsset].sym} · ${lev}x</h3><div class="kvs"><div><span>Цена входа</span><b>${money(entry)}</b></div><div><span>Маржа</span><b>${money(margin)}</b></div><div><span>Размер позиции</span><b>${money(margin*lev)}</b></div><div><span>Ликвидация</span><b class="neg">${lq?money(lq):"—"}</b></div>${ts.tp?`<div><span>Тейк-профит</span><b class="pos">${money(ts.tp)}</b></div>`:""}${ts.sl?`<div><span>Стоп-лосс</span><b class="neg">${money(ts.sl)}</b></div>`:""}</div>
