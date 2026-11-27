@@ -267,6 +267,7 @@ function renderPositions(){
  setChartLines();renderPortfolioStats();
 }
 function historyRows(){
+ history=Array.isArray(history)?history.filter(h=>h&&ASSETS[h.asset]&&["LONG","SHORT"].includes(h.direction)&&Number.isFinite(Number(h.entry))&&Number(h.entry)>0):[];
  if(!history.length)return `<div class="empty">История пуста. Закрытые сделки появятся здесь.</div>`;
  const rtag=h=>h.liquidated?'<span class="tag liq">ЛИКВИДАЦИЯ</span>':h.reason==="sl"?'<span class="tag liq">СТОП</span>':h.reason==="tp"?'<span class="tag long">ТЕЙК</span>':"";
  return history.slice(0,60).map(h=>`<div class="pos-row"><div class="l"><span class="tag ${h.direction==="LONG"?"long":"short"}">${h.direction} ${h.leverage||1}x</span><b>${ASSETS[h.asset].sym}</b>${rtag(h)}<small>${new Date(h.closed||h.time).toLocaleString("ru-RU",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})}</small></div>
