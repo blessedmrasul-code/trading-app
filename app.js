@@ -239,8 +239,9 @@ function tradeStats(){
 const CHART_NOTES_KEY="arvex_120_chart_notes";
 function loadChartNote(){try{const notes=JSON.parse(localStorage.getItem(CHART_NOTES_KEY)||"{}");$("chartNote").value=notes[currentAsset]||"";$("chartNoteStatus").textContent=notes[currentAsset]?"Заметка загружена.":"Нет сохранённой заметки для этого актива."}catch(e){}}
 function saveChartNote(){try{const notes=JSON.parse(localStorage.getItem(CHART_NOTES_KEY)||"{}");notes[currentAsset]=$("chartNote").value;localStorage.setItem(CHART_NOTES_KEY,JSON.stringify(notes));$("chartNoteStatus").textContent="Сохранено для "+ASSETS[currentAsset].pair+" · "+new Date().toLocaleString("ru-RU");showToast("Заметка сохранена.");}catch(e){showToast("Не удалось сохранить заметку.");}}
+function safeFavorites(){try{const x=JSON.parse(localStorage.getItem("arvex_favorites")||"[]");return Array.isArray(x)?[...new Set(x.filter(a=>ASSETS[a]))]:[]}catch(e){return []}}
 function renderTicker(){
- const q=($("marketSearch")?.value||"").trim().toLowerCase(),cat=window.arvexMarketCat||"all";let fav=[];try{const raw=JSON.parse(localStorage.getItem("arvex_favorites")||"[]");if(Array.isArray(raw))fav=raw.filter(a=>ASSETS[a]);}catch(e){fav=[];}
+ const q=($("marketSearch")?.value||"").trim().toLowerCase(),cat=window.arvexMarketCat||"all";const fav=safeFavorites();
  const majors=["BTCUSDT","ETHUSDT","BNBUSDT","SOLUSDT","XRPUSDT","ADAUSDT"];
  $("tickerRow").innerHTML=Object.keys(ASSETS).filter(a=>(cat==="all"||(cat==="majors"?majors.includes(a):cat==="alt"?!majors.includes(a):fav.includes(a)))&&(!q||a.toLowerCase().includes(q)||ASSETS[a].sym.toLowerCase().includes(q)||ASSETS[a].name.toLowerCase().includes(q)||ASSETS[a].pair.toLowerCase().includes(q))).map(a=>{const c=changes[a]??DEMO_CHANGE[a];
   return `<button class="tick ${a===currentAsset?"on":""}" data-asset="${a}"><b>${fav.includes(a)?"★":"☆"} ${ASSETS[a].sym}</b><span>${money(marketPrice(a))}</span><small class="${c>=0?"pos":"neg"}">${c>=0?"+":""}${c.toFixed(2)}%</small></button>`}).join("")||'<div class="empty">Активы не найдены.</div>';
