@@ -139,9 +139,10 @@ async function loadCandles(){
  if(replayActive&&$("replayRange")){const rg=$("replayRange");rg.max=arr.length;rg.min=10;rg.value=arr.length;applyReplay(rg.value);}
 }
 function updateOhlc(c){
- const k=c||candles[candles.length-1];if(!k){$("ohlcLine").innerHTML="";return}
+ const line=$("ohlcLine");if(!line)return;
+ const k=c||candles[candles.length-1];if(!k){line.innerHTML="";return}
  const d=(k.c-k.o)/k.o*100,f=v=>v.toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:v>=100?2:4});
- $("ohlcLine").innerHTML=`<span>O <b>${f(k.o)}</b></span><span>H <b>${f(k.h)}</b></span><span>L <b>${f(k.l)}</b></span><span>C <b>${f(k.c)}</b></span><span class="${d>=0?"pos":"neg"}"><b>${d>=0?"+":""}${d.toFixed(2)}%</b></span>`;
+ line.innerHTML=`<span>O <b>${f(k.o)}</b></span><span>H <b>${f(k.h)}</b></span><span>L <b>${f(k.l)}</b></span><span>C <b>${f(k.c)}</b></span><span class="${d>=0?"pos":"neg"}"><b>${d>=0?"+":""}${d.toFixed(2)}%</b></span>`;
 }
 function setChartLines(){
  if(!chart)return;const L=[];
