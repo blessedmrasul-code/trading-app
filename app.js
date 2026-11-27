@@ -182,7 +182,7 @@ function openTrade(direction){
  const entry=marketPrice(),ts=readTpSl(direction,entry);
  if(ts.err){showToast(ts.err);return false}
  const p={id:Date.now()+Math.floor(Math.random()*1000),asset:currentAsset,direction,amount:margin,margin,leverage:lev,size:margin*lev,entry,time:Date.now(),tp:ts.tp,sl:ts.sl};
- balance-=margin;positions.unshift(p);saveState();renderTop();renderPositions();updateOrderPreview();
+ balance-=margin;positions.unshift(p);saveState();renderTop();renderPositions();updateOrderPreview();appFeedback();
  const lq=liqPrice(entry,lev,direction);
  const slBeyond=ts.sl&&lq&&((direction==="LONG"&&ts.sl<=lq)||(direction==="SHORT"&&ts.sl>=lq));
  showToast(`${direction} ${lev}x открыт. Ликвидация: ${lq?money(lq):"—"}${slBeyond?" ⚠ стоп дальше ликвидации":""}`);return true;
@@ -201,7 +201,7 @@ function closePosition(id,reason,exitPrice){
  const got=liquidated?0:tradeXpFor(p),up=got?addXp(got):false;
  history.unshift({...p,exit:now,pnl:net,funding:v.funding,liquidated,reason:reason||"manual",closed:Date.now()});
  if(history.length>300)history.length=300;
- saveState();renderTop();renderPositions();renderPortfolio();updateOrderPreview();
+ saveState();renderTop();renderPositions();renderPortfolio();updateOrderPreview();appFeedback();
  const res=`${net>=0?"+":""}${money(net)}${got?` · +${got} XP`:""}`;
  showToast(liquidated?`Ликвидация ${ASSETS[p.asset].pair}: потеряна маржа ${money(v.margin)}`
   :reason==="sl"?`Сработал стоп-лосс ${ASSETS[p.asset].sym}: ${res}`
