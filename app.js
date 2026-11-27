@@ -43,9 +43,9 @@ function appFeedback(){
   }
  }catch(e){}
 }
-function showToast(msg){const t=$("toast");t.textContent=msg;t.classList.add("show");clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove("show"),2800);appFeedback()}
-function marketPrice(a=currentAsset){return prices[a]??ASSETS[a].fb}
-function levelTitle(){return LEVEL_TITLES[Math.min(level-1,LEVEL_TITLES.length-1)]}
+function showToast(msg){const t=$("toast");if(!t)return;t.textContent=String(msg??"");t.classList.add("show");clearTimeout(toastTimer);toastTimer=setTimeout(()=>{if(t)t.classList.remove("show")},2800);appFeedback()}
+function marketPrice(a=currentAsset){const asset=ASSETS[a];if(!asset)return 0;const p=prices[a];return Number.isFinite(p)&&p>0?p:asset.fb}
+function levelTitle(){const n=Math.max(1,Math.min(LEVEL_TITLES.length,Math.floor(Number(level)||1)));return LEVEL_TITLES[n-1]}
 
 /* ===== Состояние ===== */
 function saveState(){
