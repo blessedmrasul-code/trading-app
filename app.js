@@ -59,7 +59,7 @@ function loadState(){
   balance=Math.max(0,n(s.balance,10000));closedPnl=n(s.closedPnl,0);xp=Math.max(0,n(s.xp,0));level=Math.max(1,Math.floor(n(s.level,1)));
   positions=Array.isArray(s.positions)?s.positions.filter(p=>p&&ASSETS[p.asset]&&Number.isFinite(p.entry)&&p.entry>0&&Number.isFinite(p.margin)&&p.margin>0&&Number.isFinite(p.leverage)&&p.leverage>=1&&p.leverage<=20&&["LONG","SHORT"].includes(p.direction)):[];history=Array.isArray(s.history)?s.history.filter(p=>p&&ASSETS[p.asset]&&Number.isFinite(p.pnl)&&Number.isFinite(p.entry)&&p.entry>0):[];
   if(s.currentAsset&&ASSETS[s.currentAsset])currentAsset=s.currentAsset;
-  if(s.progress&&typeof s.progress==="object")progress={lessons:{...(s.progress.lessons||{})},quizzes:{...(s.progress.quizzes||{})},exams:{...(s.progress.exams||{})},masterclass:{...(s.progress.masterclass||{})}};
+  if(s.progress&&typeof s.progress==="object"){const cleanMap=v=>v&&typeof v==="object"&&!Array.isArray(v)?Object.fromEntries(Object.entries(v).filter(([k,val])=>typeof k==="string"&&k.length<120&&val===true)):{};progress={lessons:cleanMap(s.progress.lessons),quizzes:cleanMap(s.progress.quizzes),exams:cleanMap(s.progress.exams),masterclass:cleanMap(s.progress.masterclass)};}
   tourDone=!!s.tourDone;
   if(s.tradeXp&&typeof s.tradeXp==="object")tradeXp={day:String(s.tradeXp.day||""),amount:n(s.tradeXp.amount,0)};
   if(s.profile&&s.profile.name)profile={name:String(s.profile.name),username:String(s.profile.username||""),avatar:Number(s.profile.avatar)||0,photo:/^data:image\/jpeg;base64,/.test(s.profile.photo||"")?s.profile.photo:""};
@@ -75,6 +75,7 @@ function loadState(){
 }
 function addXp(n){n=Number(n);if(!Number.isFinite(n)||n<=0||level>=20)return false;xp=Math.max(0,xp)+n;let up=false;while(xp>=100&&level<20){xp-=100;level++;up=true}if(level>=20)xp=0;return up}
 function awardOnce(kind,id,amount){
+ if(!["lessons","quizzes","exams","masterclass"].includes(kind)||!progress[kind]||typeof id!=="string"||!id||id.length>120)return {awarded:false,levelUp:false};
  if(progress[kind][id])return {awarded:false,levelUp:false};
  progress[kind][id]=true;const levelUp=addXp(amount);saveState();renderTop();return {awarded:true,levelUp};
 }
