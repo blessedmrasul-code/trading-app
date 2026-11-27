@@ -67,8 +67,11 @@ function loadState(){
  if(!profile){ // миграция со старых версий
   try{const nm=localStorage.getItem("arvex_name"),un=localStorage.getItem("arvex_username");if(nm&&un)profile={name:nm,username:un,avatar:0}}catch(e){}
  }
- positions=positions.filter(p=>p&&ASSETS[p.asset]&&Number.isFinite(p.amount)&&Number.isFinite(p.entry));
- history=history.filter(p=>p&&ASSETS[p.asset]&&Number.isFinite(p.pnl));
+ positions=positions.filter(p=>p&&ASSETS[p.asset]&&Number.isFinite(p.amount)&&p.amount>0&&Number.isFinite(p.entry)&&p.entry>0&&Number.isFinite(p.leverage)&&p.leverage>=1&&p.leverage<=20&&["LONG","SHORT"].includes(p.direction));
+ history=history.filter(p=>p&&ASSETS[p.asset]&&Number.isFinite(p.pnl)&&Number.isFinite(p.entry)&&p.entry>0).slice(0,300);
+ xp=Math.max(0,Math.min(99,Math.floor(Number(xp)||0)));level=Math.max(1,Math.min(20,Math.floor(Number(level)||1)));
+ if(level>=20)xp=0;
+ tradeXp={day:String(tradeXp.day||""),amount:Math.max(0,Math.min(50,Number(tradeXp.amount)||0))};
 }
 function addXp(n){n=Number(n);if(!Number.isFinite(n)||n<=0||level>=20)return false;xp=Math.max(0,xp)+n;let up=false;while(xp>=100&&level<20){xp-=100;level++;up=true}if(level>=20)xp=0;return up}
 function awardOnce(kind,id,amount){
