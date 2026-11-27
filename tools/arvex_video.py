@@ -42,9 +42,10 @@ def parse_result(raw):
     raise RuntimeError("No completed video returned by the public Space.")
 
 def generate_once(prompt, n, headers):
-    # The Space sliders accept only multiples of 32. 720 is invalid (not divisible by 32),
-    # and Gradio responds with an opaque SSE "error: null". Use valid portrait dimensions.
-    body = {"data": [prompt, NEG, None, None, 1280, 704, "text-to-video", 6.75, 9, 20261127+n, True, 1.0, True]}
+    # Keep inference inside the public ZeroGPU Space limits: short low-resolution
+    # source clips, then upscale and gently slow them in the final render.
+    # Dimensions are (height, width), both divisible by 32.
+    body = {"data": [prompt, NEG, None, None, 512, 704, "text-to-video", 2.25, 9, 20261127+n, True, 1.0, False]}
     res = requests.post(API, json=body, headers=headers, timeout=90)
     res.raise_for_status()
     event_id = res.json().get("event_id")
@@ -98,7 +99,7 @@ def main():
     for i, clip in enumerate(clips, 1):
         dest = TMP / ("normalized_" + str(i) + ".mp4")
         run(["ffmpeg", "-y", "-i", str(clip), "-t", "6.75",
-             "-vf", "scale=720:1280:force_original_aspect_ratio=increase,crop=720:1280,fps=30,setsar=1",
+             "-vf", "setpts=3*PTS,scale=720:1280:force_original_aspect_ratio=increase,crop=720:1280,fps=30,setsar=1",
              "-an", "-c:v", "libx264", "-preset", "veryfast", "-crf", "22",
              "-pix_fmt", "yuv420p", str(dest)])
         normalized.append(dest)
