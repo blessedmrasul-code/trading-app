@@ -120,7 +120,7 @@ function synthCandles(asset,tfKey){
 }
 let replayAllCandles=[],replayActive=false,replayTimer=null;
 function applyReplay(count){
- if(!replayAllCandles.length||!chart)return;const n=Math.max(10,Math.min(replayAllCandles.length,Number(count)||replayAllCandles.length));
+ if(!replayAllCandles.length||!chart)return;const n=Math.max(10,Math.min(replayAllCandles.length,Math.floor(Number(count)||replayAllCandles.length)));
  candles=replayAllCandles.slice(0,n);chart.setData(candles,TF[tf]);updateOhlc();setChartLines();
  if($("replayCount"))$("replayCount").textContent=n+" / "+replayAllCandles.length+" свечей";
 }
@@ -209,7 +209,7 @@ function tradeXpFor(p){
 // reason: "liq" | "sl" | "tp" | undefined (вручную). exitPrice — цена срабатывания стопа/тейка.
 function closePosition(id,reason,exitPrice){
  const i=positions.findIndex(p=>p.id===id);if(i<0)return;
- const p=positions.splice(i,1)[0],now=exitPrice??marketPrice(p.asset),v=posView(p,now),liquidated=reason==="liq";
+ const p=positions.splice(i,1)[0],now=Number.isFinite(Number(exitPrice))&&Number(exitPrice)>0?Number(exitPrice):marketPrice(p.asset),v=posView(p,now),liquidated=reason==="liq";
  const net=Math.max(liquidated?-v.margin:v.net,-v.margin);
  balance+=v.margin+net;closedPnl+=net;
  const got=liquidated?0:tradeXpFor(p),up=got?addXp(got):false;
@@ -225,6 +225,7 @@ function closePosition(id,reason,exitPrice){
 // Ликвидация проверяется первой: если стоп дальше неё, сработает ликвидация.
 function checkTriggers(){
  positions.slice().forEach(p=>{
+  if(!positions.some(x=>x.id===p.id))return;
   if(posView(p).isLiq){closePosition(p.id,"liq");return}
   const now=marketPrice(p.asset),long=p.direction==="LONG";
   if(p.sl&&(long?now<=p.sl:now>=p.sl))closePosition(p.id,"sl",p.sl);
