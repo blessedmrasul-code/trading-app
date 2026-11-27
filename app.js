@@ -247,7 +247,8 @@ function renderTicker(){
   return `<button class="tick ${a===currentAsset?"on":""}" data-asset="${a}"><b>${fav.includes(a)?"★":"☆"} ${ASSETS[a].sym}</b><span>${money(marketPrice(a))}</span><small class="${c>=0?"pos":"neg"}">${c>=0?"+":""}${c.toFixed(2)}%</small></button>`}).join("")||'<div class="empty">Активы не найдены.</div>';
 }
 function renderHead(){
- const a=ASSETS[currentAsset],c=changes[currentAsset]??DEMO_CHANGE[currentAsset];
+ if(!ASSETS[currentAsset])currentAsset=Object.keys(ASSETS)[0];
+ const a=ASSETS[currentAsset],c=changes[currentAsset]??DEMO_CHANGE[currentAsset]??0;
  $("pairName").textContent=`${a.name} · ${a.pair}`;$("bigPrice").textContent=money(marketPrice());
  const b=$("chgBadge");b.textContent=`${c>=0?"+":""}${c.toFixed(2)}% · 24ч`;b.classList.toggle("dn",c<0);
  const lv=$("liveStatus");lv.textContent=live?"● LIVE · Binance":"ДЕМО-ДАННЫЕ";lv.classList.toggle("on",live);
