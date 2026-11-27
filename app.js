@@ -255,6 +255,7 @@ function renderHead(){
  $("chartSrc").textContent=klLive?"Данные: Binance":"Иллюстративные данные (нет связи с Binance)";
 }
 function positionRows(){
+ positions=Array.isArray(positions)?positions.filter(p=>p&&ASSETS[p.asset]&&["LONG","SHORT"].includes(p.direction)&&Number.isFinite(Number(p.entry))&&Number(p.entry)>0):[];
  if(!positions.length)return `<div class="empty">Нет открытых позиций.<br>Выбери направление и открой первую демо-сделку.</div>`;
  return positions.map(p=>{const v=posView(p);
   return `<div class="pos-row"><div class="l"><span class="tag ${p.direction==="LONG"?"long":"short"}">${p.direction} ${v.lev}x</span><b>${ASSETS[p.asset].sym}</b><small>Вход ${money(p.entry)} · Размер ${money(v.size)}</small></div>
