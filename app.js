@@ -281,7 +281,7 @@ function renderPortfolioStats(){
   <div class="stat"><small>Сделок</small><b>${st.n}</b></div>
   <div class="stat"><small>Винрейт</small><b>${st.n?st.winrate.toFixed(0)+"%":"—"}</b></div></div>`;
 }
-function renderPortfolio(){renderPortfolioStats();$("portfolioPositions").innerHTML=positionRows();$("historyContent").innerHTML=historyRows()}
+function renderPortfolio(){renderPortfolioStats();const pp=$("portfolioPositions"),hh=$("historyContent");if(pp)pp.innerHTML=positionRows();if(hh)hh.innerHTML=historyRows()}
 
 /* ===== Верхняя панель и профиль ===== */
 function applyAvatar(el,idx,name,photo){
