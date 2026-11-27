@@ -530,7 +530,7 @@ function bind(){
  $("amount").addEventListener("input",updateOrderPreview);
  if($("marketSearch"))$("marketSearch").addEventListener("input",renderTicker);
  document.querySelectorAll("[data-market-cat]").forEach(b=>b.onclick=()=>{window.arvexMarketCat=b.dataset.marketCat;document.querySelectorAll("[data-market-cat]").forEach(x=>x.classList.toggle("on",x===b));renderTicker();});
- $("tickerRow").addEventListener("contextmenu",e=>{const b=e.target.closest("[data-asset]");if(!b)return;e.preventDefault();const list=JSON.parse(localStorage.getItem("arvex_favorites")||"[]"),a=b.dataset.asset;localStorage.setItem("arvex_favorites",JSON.stringify(list.includes(a)?list.filter(x=>x!==a):list.concat(a)));renderTicker();});
+ $("tickerRow").addEventListener("contextmenu",e=>{const b=e.target.closest("[data-asset]");if(!b)return;e.preventDefault();let list=[];try{const raw=JSON.parse(localStorage.getItem("arvex_favorites")||"[]");if(Array.isArray(raw))list=raw.filter(x=>ASSETS[x]);}catch(e){}const a=b.dataset.asset;if(!ASSETS[a])return;localStorage.setItem("arvex_favorites",JSON.stringify(list.includes(a)?list.filter(x=>x!==a):list.concat(a)));renderTicker();});
  if($("marketSearchClear"))$("marketSearchClear").onclick=()=>{$("marketSearch").value="";renderTicker();};
  if($("chartNoteSave"))$("chartNoteSave").onclick=saveChartNote;
  if($("replayToggle"))$("replayToggle").onclick=()=>{replayStop();replayActive=!replayActive;$("chartReplayPanel").hidden=!replayActive;$("replayToggle").textContent=replayActive?"◀ Скрыть Replay":"◀ Историческая практика (Replay)";if(replayActive){const r=$("replayRange");r.max=replayAllCandles.length;r.value=replayAllCandles.length;applyReplay(r.value);}};
