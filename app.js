@@ -145,7 +145,7 @@ function updateOhlc(c){
  line.innerHTML=`<span>O <b>${f(k.o)}</b></span><span>H <b>${f(k.h)}</b></span><span>L <b>${f(k.l)}</b></span><span>C <b>${f(k.c)}</b></span><span class="${d>=0?"pos":"neg"}"><b>${d>=0?"+":""}${d.toFixed(2)}%</b></span>`;
 }
 function setChartLines(){
- if(!chart)return;const L=[];
+ if(!chart||typeof chart.setLines!=="function")return;const L=[];
  positions.filter(p=>p.asset===currentAsset).forEach(p=>{const v=posView(p);
   L.push({price:p.entry,color:"#a58bff",label:`${p.direction} ${v.lev}x`});
   if(v.liq)L.push({price:v.liq,color:"#ff5470",label:"LIQ"});
