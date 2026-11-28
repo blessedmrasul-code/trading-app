@@ -1,0 +1,36 @@
+name: Unpack NEXORA
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "nexora-source*.zip"
+      - ".github/workflows/unpack.yml"
+permissions:
+  contents: write
+jobs:
+  unpack:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Unpack, test and save
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          zips=(nexora-source*.zip)
+          if [ ${#zips[@]} -ne 1 ]; then echo "Нужен ровно один архив nexora-source.zip в корне"; exit 1; fi
+          tmp=$(mktemp -d)
+          unzip -q "${zips[0]}" -d "$tmp"
+          (cd "$tmp" && node --test test/*.test.mjs)
+          (cd "$tmp" && find . -type f) | while IFS= read -r f; do
+            if [ -f "$f" ] && ! cmp -s "$f" "$tmp/$f"; then
+              mkdir -p "_backup/$(dirname "$f")"
+              cp "$f" "_backup/$f"
+            fi
+          done
+          cp -r "$tmp/." .
+          rm "${zips[0]}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Add NEXORA Mini App"
+          git push
